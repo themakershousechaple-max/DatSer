@@ -15,6 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 
 // Context
 import { AppProvider } from './context/AppContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard')
@@ -26,9 +27,10 @@ function App() {
   const [showMonthModal, setShowMonthModal] = useState(false)
 
   return (
-    <ErrorBoundary>
-      <AppProvider>
-        <div className="min-h-screen bg-gray-50">
+    <ThemeProvider>
+      <ErrorBoundary>
+        <AppProvider>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <Header 
           currentView={currentView}
           setCurrentView={setCurrentView}
@@ -91,8 +93,9 @@ function App() {
           pauseOnHover
         />
         </div>
-      </AppProvider>
-    </ErrorBoundary>
+        </AppProvider>
+      </ErrorBoundary>
+    </ThemeProvider>
   )
 }
 

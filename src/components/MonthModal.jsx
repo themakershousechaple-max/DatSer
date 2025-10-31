@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { useTheme } from '../context/ThemeContext'
 import { X, Calendar, Plus } from 'lucide-react'
 
 const MonthModal = ({ isOpen, onClose }) => {
   const { createNewMonth } = useApp()
+  const { isDarkMode } = useTheme()
   const [loading, setLoading] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -80,15 +82,15 @@ const MonthModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto transition-colors duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Month</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Month</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
@@ -96,16 +98,16 @@ const MonthModal = ({ isOpen, onClose }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Month Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Month *
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
               >
                 <option value="">Choose month</option>
                 {months.map(month => (
@@ -119,14 +121,14 @@ const MonthModal = ({ isOpen, onClose }) => {
 
           {/* Year Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Year *
             </label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
             >
               {years.map(year => (
                 <option key={year} value={year}>
@@ -139,13 +141,13 @@ const MonthModal = ({ isOpen, onClose }) => {
           {/* Preview Sundays */}
           {previewSundays.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 Sunday Dates Preview ({previewSundays.length} dates)
               </label>
-              <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 max-h-32 overflow-y-auto transition-colors">
                 <div className="space-y-1">
                   {previewSundays.map((sunday, index) => (
-                    <div key={index} className="text-sm text-gray-600">
+                    <div key={index} className="text-sm text-gray-600 dark:text-gray-300">
                       {sunday.toLocaleDateString('en-US', { 
                         month: 'long', 
                         day: 'numeric',
@@ -163,7 +165,7 @@ const MonthModal = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors"
             >
               Cancel
             </button>

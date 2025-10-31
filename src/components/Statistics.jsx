@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { useTheme } from '../context/ThemeContext'
 import { BarChart3, TrendingUp, Users, Calendar, PieChart, Activity } from 'lucide-react'
 
 const Statistics = () => {
   const { members, attendanceData, fetchAttendanceForDate } = useApp()
+  const { isDarkMode } = useTheme()
   const [stats, setStats] = useState({
     totalMembers: 0,
     maleMembers: 0,
@@ -127,24 +129,24 @@ const Statistics = () => {
     const maxValue = Math.max(...data.map(d => d.rate), 1)
     
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className={`rounded-lg shadow-sm border p-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <h3 className={`text-lg font-semibold mb-4 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
         <div className="space-y-3">
           {data.slice(-7).map((item, index) => (
             <div key={index} className="flex items-center gap-3">
-              <div className="w-16 text-xs text-gray-600">
+              <div className={`w-16 text-xs transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 {new Date(item.date).toLocaleDateString('en-US', { 
                   month: 'short', 
                   day: 'numeric' 
                 })}
               </div>
-              <div className="flex-1 bg-gray-200 rounded-full h-4 relative">
+              <div className={`flex-1 rounded-full h-4 relative transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                 <div 
                   className={`bg-${color}-500 h-4 rounded-full transition-all duration-300`}
                   style={{ width: `${(item.rate / maxValue) * 100}%` }}
                 ></div>
               </div>
-              <div className="w-12 text-xs text-gray-600 text-right">
+              <div className={`w-12 text-xs text-right transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 {item.rate}%
               </div>
             </div>
@@ -155,10 +157,10 @@ const Statistics = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className={`max-w-7xl mx-auto p-6 transition-colors ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Statistics Dashboard</h1>
-        <p className="text-gray-600">Overview of member demographics and attendance patterns</p>
+        <h1 className={`text-3xl font-bold mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Statistics Dashboard</h1>
+        <p className={`transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Overview of member demographics and attendance patterns</p>
       </div>
 
       {/* Period Selector */}
@@ -169,7 +171,9 @@ const Statistics = () => {
             className={`px-4 py-2 rounded-lg transition-colors ${
               selectedPeriod === 'week'
                 ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : isDarkMode 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             Last 7 Days
@@ -179,7 +183,9 @@ const Statistics = () => {
             className={`px-4 py-2 rounded-lg transition-colors ${
               selectedPeriod === 'month'
                 ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : isDarkMode 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             Last 30 Days
@@ -189,41 +195,41 @@ const Statistics = () => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className={`rounded-lg shadow-sm border p-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Members</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalMembers}</p>
+              <p className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Members</p>
+              <p className={`text-2xl font-bold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.totalMembers}</p>
             </div>
             <Users className="w-8 h-8 text-blue-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className={`rounded-lg shadow-sm border p-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Average Age</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.averageAge}</p>
+              <p className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Average Age</p>
+              <p className={`text-2xl font-bold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.averageAge}</p>
             </div>
             <Activity className="w-8 h-8 text-green-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className={`rounded-lg shadow-sm border p-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Attendance Rate</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.attendanceRate}%</p>
+              <p className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Attendance Rate</p>
+              <p className={`text-2xl font-bold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.attendanceRate}%</p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className={`rounded-lg shadow-sm border p-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Period</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Period</p>
+              <p className={`text-2xl font-bold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 {selectedPeriod === 'week' ? '7' : '30'} Days
               </p>
             </div>
@@ -234,16 +240,16 @@ const Statistics = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Gender Distribution */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <PieChart className="w-5 h-5" />
+        <div className={`rounded-lg shadow-sm border p-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            <PieChart className={`w-5 h-5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
             Gender Distribution
           </h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Male</span>
+              <span className={`transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Male</span>
               <div className="flex items-center gap-2">
-                <div className="w-32 bg-gray-200 rounded-full h-3">
+                <div className={`w-32 rounded-full h-3 transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                   <div 
                     className="bg-blue-500 h-3 rounded-full transition-all duration-300"
                     style={{ 
@@ -251,15 +257,15 @@ const Statistics = () => {
                     }}
                   ></div>
                 </div>
-                <span className="text-sm font-medium text-gray-900 w-8">
+                <span className={`text-sm font-medium w-8 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {stats.maleMembers}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Female</span>
+              <span className={`transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Female</span>
               <div className="flex items-center gap-2">
-                <div className="w-32 bg-gray-200 rounded-full h-3">
+                <div className={`w-32 rounded-full h-3 transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                   <div 
                     className="bg-pink-500 h-3 rounded-full transition-all duration-300"
                     style={{ 
@@ -267,7 +273,7 @@ const Statistics = () => {
                     }}
                   ></div>
                 </div>
-                <span className="text-sm font-medium text-gray-900 w-8">
+                <span className={`text-sm font-medium w-8 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {stats.femaleMembers}
                 </span>
               </div>
@@ -276,17 +282,17 @@ const Statistics = () => {
         </div>
 
         {/* Level Distribution */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5" />
+        <div className={`rounded-lg shadow-sm border p-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            <BarChart3 className={`w-5 h-5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
             Level Distribution
           </h3>
           <div className="space-y-3">
             {Object.entries(stats.levelDistribution).map(([level, count]) => (
               <div key={level} className="flex items-center justify-between">
-                <span className="text-gray-600">{level}</span>
+                <span className={`transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{level}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-32 bg-gray-200 rounded-full h-3">
+                  <div className={`w-32 rounded-full h-3 transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                     <div 
                       className="bg-green-500 h-3 rounded-full transition-all duration-300"
                       style={{ 
@@ -294,7 +300,7 @@ const Statistics = () => {
                       }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-gray-900 w-8">
+                  <span className={`text-sm font-medium w-8 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {count}
                   </span>
                 </div>
@@ -306,9 +312,9 @@ const Statistics = () => {
 
       {/* Attendance Chart */}
       {loading ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <div className={`rounded-lg shadow-sm border p-12 text-center transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading attendance data...</p>
+          <p className={`transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading attendance data...</p>
         </div>
       ) : (
         <SimpleBarChart 

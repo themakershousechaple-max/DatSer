@@ -5,11 +5,15 @@ import {
   Download, 
   Shield, 
   Plus,
-  Search,
-  Calendar
+  Calendar,
+  Moon,
+  Sun
 } from 'lucide-react'
+import { useTheme } from '../context/ThemeContext'
 
 const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember, onCreateMonth }) => {
+  const { isDarkMode, toggleTheme } = useTheme()
+  
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: Users },
     { id: 'statistics', label: 'Statistics', icon: BarChart3 },
@@ -25,7 +29,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   }
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 transition-colors duration-200">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Title */}
@@ -34,8 +38,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <Users className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">TMHT</h1>
-              <p className="text-sm text-gray-500">The Master's Heart Tabernacle</p>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">TMHT</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">The Master's Heart Tabernacle</p>
             </div>
           </div>
 
@@ -49,8 +53,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                   onClick={() => setCurrentView(item.id)}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     currentView === item.id
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -60,15 +64,19 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             })}
           </nav>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-              <Search className="w-5 h-5" />
-            </button>
-          </div>
+
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-2">
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 transition-colors"
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            
             <button
               onClick={onAddMember}
               className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"

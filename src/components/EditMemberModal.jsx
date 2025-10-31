@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { useTheme } from '../context/ThemeContext'
 import { X, User, Phone, Calendar, BookOpen } from 'lucide-react'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
   const { updateMember, markAttendance } = useApp()
+  const { isDarkMode } = useTheme()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     full_name: '',
@@ -83,15 +85,15 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto transition-colors duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Edit Member</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Member</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
@@ -99,18 +101,18 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Full Name *
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
               <input
                 type="text"
                 name="full_name"
                 value={formData.full_name}
                 onChange={handleInputChange}
                 required
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                 placeholder="Enter full name"
               />
             </div>
@@ -118,11 +120,11 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
 
           {/* Gender */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Gender *
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="flex items-center space-x-2 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label className="flex items-center space-x-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors">
                 <input
                   type="radio"
                   name="gender"
@@ -132,10 +134,10 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                   required
                   className="text-primary-600 focus:ring-primary-500"
                 />
-                <span className="text-sm text-gray-700">Male</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Male</span>
               </label>
               
-              <label className="flex items-center space-x-2 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label className="flex items-center space-x-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors">
                 <input
                   type="radio"
                   name="gender"
@@ -145,24 +147,24 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                   required
                   className="text-primary-600 focus:ring-primary-500"
                 />
-                <span className="text-sm text-gray-700">Female</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Female</span>
               </label>
             </div>
           </div>
 
           {/* Phone Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Phone Number
             </label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
               <input
                 type="tel"
                 name="phone_number"
                 value={formData.phone_number}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                 placeholder="Enter phone number"
               />
             </div>
@@ -170,11 +172,11 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
 
           {/* Age */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Age
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
               <input
                 type="number"
                 name="age"
@@ -182,7 +184,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 onChange={handleInputChange}
                 min="1"
                 max="120"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                 placeholder="Enter age"
               />
             </div>
@@ -190,16 +192,16 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
 
           {/* Current Level */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Current Level
             </label>
             <div className="relative">
-              <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
               <select
                 name="current_level"
                 value={formData.current_level}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
               >
                 <option value="">Select level</option>
                 {levels.map(level => (
@@ -213,7 +215,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
 
           {/* Sunday Attendance */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               September 2025 Sunday Attendance (Optional)
             </label>
             <div className="space-y-3">
@@ -227,8 +229,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 })
                 
                 return (
-                  <div key={date} className="border border-gray-200 rounded-lg p-3">
-                    <div className="text-sm font-medium text-gray-700 mb-2">
+                  <div key={date} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-700 transition-colors">
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {formattedDate}
                     </div>
                     <div className="flex space-x-2">
@@ -237,8 +239,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                         onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: true }))}
                         className={`px-3 py-1 text-xs rounded-full transition-colors ${
                           sundayAttendance[date] === true
-                            ? 'bg-green-100 text-green-800 border border-green-300'
-                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-green-50'
+                            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700'
+                            : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-green-50 dark:hover:bg-green-800'
                         }`}
                       >
                         Present
@@ -248,8 +250,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                         onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: false }))}
                         className={`px-3 py-1 text-xs rounded-full transition-colors ${
                           sundayAttendance[date] === false
-                            ? 'bg-red-100 text-red-800 border border-red-300'
-                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-red-50'
+                            ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700'
+                            : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-red-50 dark:hover:bg-red-800'
                         }`}
                       >
                         Absent
@@ -257,7 +259,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                       <button
                         type="button"
                         onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: null }))}
-                        className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200 transition-colors"
+                        className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                       >
                         Clear
                       </button>
@@ -273,7 +275,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 transition-colors"
             >
               Cancel
             </button>
