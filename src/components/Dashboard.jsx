@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
-import { Search, Users, Filter, Edit3, Trash2, Calendar } from 'lucide-react'
+import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
 import EditMemberModal from './EditMemberModal'
 
 const Dashboard = () => {
@@ -18,6 +18,7 @@ const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState('2025-09-01')
   const [editingMember, setEditingMember] = useState(null)
   const [attendanceLoading, setAttendanceLoading] = useState({})
+  const [expandedMembers, setExpandedMembers] = useState({})
 
   // September 2025 Sunday dates
   const sundayDates = [
@@ -94,6 +95,13 @@ const Dashboard = () => {
     }
   }
 
+  const toggleMemberExpansion = (memberId) => {
+    setExpandedMembers(prev => ({
+      ...prev,
+      [memberId]: !prev[memberId]
+    }))
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -139,206 +147,181 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Bulk Actions */}
-      <div className="bg-white rounded-lg border border-gray-300 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleBulkAttendance(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              title="Mark all present"
-            >
-              <span>All Present</span>
-            </button>
-            <button
-              onClick={() => handleBulkAttendance(false)}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              title="Mark all absent"
-            >
-              <span>All Absent</span>
-            </button>
-            <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
-              <Filter className="w-4 h-4" />
-              <span>Filters</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* September 2025 Sunday Dates */}
-      <div className="bg-white rounded-lg border border-gray-300 p-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <Calendar className="w-5 h-5 mr-2" />
-          September 2025 - Sunday Attendance
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { date: '2025-09-07', day: 7, label: 'Sunday, Sep 7th' },
-            { date: '2025-09-14', day: 14, label: 'Sunday, Sep 14th' },
-            { date: '2025-09-21', day: 21, label: 'Sunday, Sep 21st' },
-            { date: '2025-09-28', day: 28, label: 'Sunday, Sep 28th' }
-          ].map((sunday) => (
-            <div key={sunday.date} className="border border-gray-200 rounded-lg p-3">
-              <div className="text-center mb-3">
-                <div className="text-sm font-medium text-gray-900">{sunday.label}</div>
-                <div className="text-xs text-gray-500">Attendance {sunday.day}{sunday.day === 7 || sunday.day === 21 ? 'th' : sunday.day === 14 ? 'th' : 'th'}</div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleBulkAttendance(true, sunday.date)}
-                  className="flex-1 px-3 py-2 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
-                  title={`Mark all present for ${sunday.label}`}
-                >
-                  All Present
-                </button>
-                <button
-                  onClick={() => handleBulkAttendance(false, sunday.date)}
-                  className="flex-1 px-3 py-2 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
-                  title={`Mark all absent for ${sunday.label}`}
-                >
-                  All Absent
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Members Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredMembers.map((member) => (
-          <div key={member.id} className="bg-white rounded-lg border border-gray-300 p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                  <Users className="w-5 h-5 text-primary-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{member['Full Name']}</h3>
-                  <p className="text-sm text-gray-600 capitalize">{member['Gender']}</p>
+
+
+      {/* Members List */}
+      <div className="space-y-3">
+        {filteredMembers.map((member) => {
+          const isExpanded = expandedMembers[member.id]
+          
+          return (
+            <div key={member.id} className="bg-white rounded-lg border border-gray-300 overflow-hidden hover:shadow-md transition-shadow">
+              {/* Compact Header Row */}
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  {/* Left side: Name and expand button */}
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => toggleMemberExpansion(member.id)}
+                      className="p-1 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-5 h-5" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5" />
+                      )}
+                    </button>
+                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                      <Users className="w-4 h-4 text-primary-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">{member['Full Name']}</h3>
+                  </div>
+
+                  {/* Right side: Attendance buttons */}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleAttendance(member.id, true)}
+                      disabled={attendanceLoading[member.id]}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        attendanceData[`${member.id}_${selectedDate}`] === true
+                          ? 'bg-green-600 text-white'
+                          : attendanceLoading[member.id]
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      }`}
+                      title="Mark present"
+                    >
+                      {attendanceLoading[member.id] ? '...' : 'Present'}
+                    </button>
+                    <button
+                      onClick={() => handleAttendance(member.id, false)}
+                      disabled={attendanceLoading[member.id]}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        attendanceData[`${member.id}_${selectedDate}`] === false
+                          ? 'bg-red-600 text-white'
+                          : attendanceLoading[member.id]
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-red-100 text-red-700 hover:bg-red-200'
+                      }`}
+                      title="Mark absent"
+                    >
+                      {attendanceLoading[member.id] ? '...' : 'Absent'}
+                    </button>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={() => setEditingMember(member)}
-                  className="p-1 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(member)}
-                  className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
 
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Phone:</span>
-                <span className="font-medium">{member['Phone Number'] || 'N/A'}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-gray-600">Age:</span>
-                <span className="font-medium">{member['Age'] || 'N/A'}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-gray-600">Level:</span>
-                <span className="font-medium text-primary-600 capitalize">
-                  {member['Current Level']?.toLowerCase() || 'N/A'}
-                </span>
-              </div>
-            </div>
+              {/* Expandable Content */}
+              {isExpanded && (
+                <div className="px-4 pb-4 border-t border-gray-200 bg-gray-50">
+                  <div className="pt-4">
+                    {/* Member Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-gray-900 mb-2">Member Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Gender:</span>
+                            <span className="font-medium capitalize">{member['Gender']}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Phone:</span>
+                            <span className="font-medium">{member['Phone Number'] || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Age:</span>
+                            <span className="font-medium">{member['Age'] || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Level:</span>
+                            <span className="font-medium text-primary-600 capitalize">
+                              {member['Current Level']?.toLowerCase() || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-            {/* Attendance Actions */}
-            <div className="mt-4 pt-3 border-t border-gray-200">
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleAttendance(member.id, true)}
-                  disabled={attendanceLoading[member.id]}
-                  className={`flex-1 py-1 px-2 rounded text-sm font-medium transition-colors ${
-                    attendanceData[`${member.id}_${selectedDate}`] === true
-                      ? 'bg-green-600 text-white'
-                      : attendanceLoading[member.id]
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-100 text-green-700 hover:bg-green-200'
-                  }`}
-                  title="Mark present"
-                >
-                  {attendanceLoading[member.id] ? '...' : 'Present'}
-                </button>
-                <button
-                  onClick={() => handleAttendance(member.id, false)}
-                  disabled={attendanceLoading[member.id]}
-                  className={`flex-1 py-1 px-2 rounded text-sm font-medium transition-colors ${
-                    attendanceData[`${member.id}_${selectedDate}`] === false
-                      ? 'bg-red-600 text-white'
-                      : attendanceLoading[member.id]
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-red-100 text-red-700 hover:bg-red-200'
-                  }`}
-                  title="Mark absent"
-                >
-                  {attendanceLoading[member.id] ? '...' : 'Absent'}
-                </button>
-              </div>
-            </div>
-
-            {/* September 2025 Sunday Attendance */}
-            <div className="mt-4 pt-3 border-t border-gray-200">
-              <h4 className="text-xs font-medium text-gray-700 mb-2">September 2025 Sundays</h4>
-              <div className="space-y-2">
-                {sundayDates.map(date => {
-                  const dateKey = date
-                  const dateAttendance = attendanceData[dateKey] || {}
-                  const isPresent = dateAttendance[member.id] === true
-                  const isAbsent = dateAttendance[member.id] === false
-                  const isLoading = attendanceLoading[`${member.id}_${dateKey}`]
-                  
-                  return (
-                    <div key={date} className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600">
-                        {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => handleAttendanceForDate(member.id, true, date)}
-                          disabled={isLoading}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                            isPresent
-                              ? 'bg-green-600 text-white'
-                              : isLoading
-                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        >
-                          {isLoading ? '...' : 'P'}
-                        </button>
-                        <button
-                          onClick={() => handleAttendanceForDate(member.id, false, date)}
-                          disabled={isLoading}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                            isAbsent
-                              ? 'bg-red-600 text-white'
-                              : isLoading
-                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              : 'bg-red-100 text-red-700 hover:bg-red-200'
-                          }`}
-                        >
-                          {isLoading ? '...' : 'A'}
-                        </button>
+                      {/* Actions */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-gray-900 mb-2">Actions</h4>
+                        <div className="flex flex-col space-y-2">
+                          <button
+                            onClick={() => setEditingMember(member)}
+                            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            <span>Edit Member</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(member)}
+                            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete Member</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
+
+                    {/* September 2025 Sunday Attendance */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <h4 className="font-medium text-gray-900 mb-3">September 2025 Sunday Attendance</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {sundayDates.map(date => {
+                          const dateKey = date
+                          const dateAttendance = attendanceData[dateKey] || {}
+                          const isPresent = dateAttendance[member.id] === true
+                          const isAbsent = dateAttendance[member.id] === false
+                          const isLoading = attendanceLoading[`${member.id}_${dateKey}`]
+                          
+                          return (
+                            <div key={date} className="bg-white rounded-lg border border-gray-200 p-3">
+                              <div className="text-center mb-2">
+                                <span className="text-sm font-medium text-gray-700">
+                                  {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={() => handleAttendanceForDate(member.id, true, date)}
+                                  disabled={isLoading}
+                                  className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                    isPresent
+                                      ? 'bg-green-600 text-white'
+                                      : isLoading
+                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                      : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  }`}
+                                >
+                                  {isLoading ? '...' : 'P'}
+                                </button>
+                                <button
+                                  onClick={() => handleAttendanceForDate(member.id, false, date)}
+                                  disabled={isLoading}
+                                  className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                    isAbsent
+                                      ? 'bg-red-600 text-white'
+                                      : isLoading
+                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                      : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  }`}
+                                >
+                                  {isLoading ? '...' : 'A'}
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Empty State */}

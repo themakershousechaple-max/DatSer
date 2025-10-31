@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
-import { Calendar, Database, Users, Activity, LogOut, RefreshCw } from 'lucide-react'
+import { Calendar, Database, Users, Activity, LogOut, RefreshCw, Filter, Edit } from 'lucide-react'
+import EditMemberModal from './EditMemberModal'
 
 const AdminPanel = ({ onLogout }) => {
-  const { monthlyTables, currentTable, setCurrentTable, members } = useApp()
+  const { monthlyTables, currentTable, setCurrentTable, members, markAttendance, attendanceLoading } = useApp()
+  
+  // September 2025 Sunday dates
+  const sundayDates = [
+    { date: '2025-09-07', day: 7, label: 'Sunday, Sep 7th' },
+    { date: '2025-09-14', day: 14, label: 'Sunday, Sep 14th' },
+    { date: '2025-09-21', day: 21, label: 'Sunday, Sep 21st' },
+    { date: '2025-09-28', day: 28, label: 'Sunday, Sep 28th' }
+  ]
   const [systemStats, setSystemStats] = useState({
     totalMembers: 0,
     activeMonth: '',
     totalTables: 0,
     lastUpdated: new Date().toLocaleString()
   })
+  
+  // Edit member modal state
+  const [editingMember, setEditingMember] = useState(null)
 
   useEffect(() => {
     setSystemStats({
@@ -38,6 +50,19 @@ const AdminPanel = ({ onLogout }) => {
       ...prev,
       lastUpdated: new Date().toLocaleString()
     }))
+  }
+
+  const handleBulkAttendance = async (present, specificDate = null) => {
+    if (attendanceLoading) return
+    
+    try {
+      const promises = members.map(member => 
+        markAttendance(member.id, present, specificDate)
+      )
+      await Promise.all(promises)
+    } catch (error) {
+      console.error('Error marking bulk attendance:', error)
+    }
   }
 
   return (
@@ -121,8 +146,33 @@ const AdminPanel = ({ onLogout }) => {
           </div>
         </div>
 
+        {/* Database Connection Info */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Database Connection</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Connection Status</h3>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-green-600 font-medium">Connected to Supabase</span>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Project: TMH TEEN Data Compilation
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Current Configuration</h3>
+              <div className="text-sm text-gray-600">
+                <p>Environment: Production</p>
+                <p>Region: US East</p>
+                <p>Last Sync: {new Date().toLocaleTimeString()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Monthly Databases */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">Monthly Databases</h2>
             <div className="text-sm text-gray-600">
@@ -189,31 +239,109 @@ const AdminPanel = ({ onLogout }) => {
           )}
         </div>
 
-        {/* Database Connection Info */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Database Connection</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Connection Status</h3>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-green-600 font-medium">Connected to Supabase</span>
+        {/* September 2025 Sunday Attendance */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <Calendar className="w-5 h-5 mr-2" />
+            September 2025 - Sunday Attendance
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {sundayDates.map((sunday) => (
+              <div key={sunday.date} className="border border-gray-200 rounded-lg p-4">
+                <div className="text-center mb-3">
+                  <div className="text-sm font-medium text-gray-900">{sunday.label}</div>
+                  <div className="text-xs text-gray-500">Attendance {sunday.day}th</div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleBulkAttendance(true, sunday.date)}
+                    disabled={attendanceLoading}
+                    className="flex-1 px-3 py-2 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={`Mark all present for ${sunday.label}`}
+                  >
+                    All Present
+                  </button>
+                  <button
+                    onClick={() => handleBulkAttendance(false, sunday.date)}
+                    disabled={attendanceLoading}
+                    className="flex-1 px-3 py-2 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={`Mark all absent for ${sunday.label}`}
+                  >
+                    All Absent
+                  </button>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
-                Project: TMH TEEN Data Compilation
-              </p>
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Current Configuration</h3>
-              <div className="text-sm text-gray-600">
-                <p>Environment: Production</p>
-                <p>Region: US East</p>
-                <p>Last Sync: {new Date().toLocaleTimeString()}</p>
-              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bulk Attendance Actions */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Bulk Attendance Actions</h2>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleBulkAttendance(true)}
+                disabled={attendanceLoading}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Mark all present"
+              >
+                <span>All Present</span>
+              </button>
+              <button
+                onClick={() => handleBulkAttendance(false)}
+                disabled={attendanceLoading}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Mark all absent"
+              >
+                <span>All Absent</span>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Member Names Display */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">All Members</h2>
+          {members.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {members.map((member) => (
+                <div key={member.id} className="bg-gray-50 rounded-lg p-3 text-center relative group">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Users className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 truncate" title={member['Full Name']}>
+                    {member['Full Name']}
+                  </p>
+                  <p className="text-xs text-gray-500">{member.Gender}</p>
+                  
+                  {/* Edit button - appears on hover */}
+                  <button
+                    onClick={() => setEditingMember(member)}
+                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
+                    title="Edit member details"
+                  >
+                    <Edit className="w-3 h-3 text-gray-600" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No members found in the current table</p>
+            </div>
+          )}
+        </div>
+
       </div>
+      
+      {/* Edit Member Modal */}
+      <EditMemberModal
+        isOpen={!!editingMember}
+        onClose={() => setEditingMember(null)}
+        member={editingMember}
+      />
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { X, User, Phone, Calendar, BookOpen } from 'lucide-react'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
-  const { updateMember } = useApp()
+  const { updateMember, markAttendance } = useApp()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     full_name: '',
@@ -12,6 +12,10 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     age: '',
     current_level: ''
   })
+
+  // Sunday dates for September 2025
+  const sundayDates = ['2025-09-07', '2025-09-14', '2025-09-21', '2025-09-28']
+  const [sundayAttendance, setSundayAttendance] = useState({})
 
   const levels = [
     'SHS1', 'SHS2', 'SHS3', 
@@ -44,8 +48,18 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         'Age': formData.age ? parseInt(formData.age) : null,
         'Current Level': formData.current_level
       })
+
+      // Mark attendance for selected Sunday dates
+      for (const [date, attendance] of Object.entries(sundayAttendance)) {
+        if (attendance !== null) {
+          await markAttendance(member.id, new Date(date), attendance)
+        }
+      }
       
       onClose()
+      
+      // Reset Sunday attendance state
+      setSundayAttendance({})
       
       // Show success message (would use toast in real implementation)
       alert('Member updated successfully!')
@@ -194,6 +208,63 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Sunday Attendance */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              September 2025 Sunday Attendance (Optional)
+            </label>
+            <div className="space-y-3">
+              {sundayDates.map(date => {
+                const dateObj = new Date(date)
+                const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })
+                
+                return (
+                  <div key={date} className="border border-gray-200 rounded-lg p-3">
+                    <div className="text-sm font-medium text-gray-700 mb-2">
+                      {formattedDate}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: true }))}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                          sundayAttendance[date] === true
+                            ? 'bg-green-100 text-green-800 border border-green-300'
+                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-green-50'
+                        }`}
+                      >
+                        Present
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: false }))}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                          sundayAttendance[date] === false
+                            ? 'bg-red-100 text-red-800 border border-red-300'
+                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-red-50'
+                        }`}
+                      >
+                        Absent
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: null }))}
+                        className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200 transition-colors"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
