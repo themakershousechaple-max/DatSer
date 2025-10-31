@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import MemberModal from './components/MemberModal'
+import MonthModal from './components/MonthModal'
 import MonthlyExport from './components/MonthlyExport'
 import Statistics from './components/Statistics'
 import AdminAuth from './components/AdminAuth'
@@ -22,6 +23,7 @@ function App() {
     return localStorage.getItem('tmht_admin_session') === 'true'
   })
   const [showMemberModal, setShowMemberModal] = useState(false)
+  const [showMonthModal, setShowMonthModal] = useState(false)
 
   return (
     <ErrorBoundary>
@@ -33,6 +35,7 @@ function App() {
           isAdmin={isAdmin}
           setIsAdmin={setIsAdmin}
           onAddMember={() => setShowMemberModal(true)}
+          onCreateMonth={() => setShowMonthModal(true)}
         />
         
         <main className="container mx-auto px-4 py-8">
@@ -63,9 +66,16 @@ function App() {
         </main>
 
         {showMemberModal && (
-          <MemberModal 
+          <MemberModal
             isOpen={showMemberModal}
             onClose={() => setShowMemberModal(false)}
+          />
+        )}
+
+        {showMonthModal && (
+          <MonthModal
+            isOpen={showMonthModal}
+            onClose={() => setShowMonthModal(false)}
           />
         )}
 

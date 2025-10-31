@@ -393,6 +393,84 @@ export const AppProvider = ({ children }) => {
     }
   }
 
+  // Create new month table with copied member data
+  const createNewMonth = async ({ month, year, monthName, sundays }) => {
+    try {
+      const newTableName = `${monthName}_${year}`
+      
+      if (!isSupabaseConfigured()) {
+        // Demo mode - just show success message
+        toast.success(`${newTableName} created successfully! (Demo Mode)`)
+        return { success: true, tableName: newTableName }
+      }
+
+      // Build complete migration SQL
+      let migrationSQL = `
+        CREATE TABLE IF NOT EXISTS "${newTableName}" (
+          id BIGSERIAL PRIMARY KEY,
+          "Full Name" TEXT NOT NULL,
+          "Gender" TEXT NOT NULL,
+          "Phone Number" BIGINT,
+          "Age" TEXT,
+          "Current Level" TEXT,
+          inserted_at TIMESTAMPTZ DEFAULT NOW()
+        );
+      `
+
+      // Add attendance columns for each Sunday to the migration
+      for (let i = 0; i < sundays.length; i++) {
+        const sunday = sundays[i]
+        const day = sunday.getDate()
+        let suffix = 'th'
+        if (day === 1 || day === 21 || day === 31) suffix = 'st'
+        else if (day === 2 || day === 22) suffix = 'nd'
+        else if (day === 3 || day === 23) suffix = 'rd'
+        
+        const columnName = `Attendance ${day}${suffix}`
+        
+        migrationSQL += `
+        ALTER TABLE "${newTableName}" 
+        ADD COLUMN IF NOT EXISTS "${columnName}" BOOLEAN DEFAULT NULL;
+        `
+      }
+
+      // Execute the migration SQL directly
+       const { error: createError } = await supabase.rpc('exec_sql', {
+         sql: migrationSQL
+       })
+
+      if (createError) {
+        console.error('Error creating table:', createError)
+        throw createError
+      }
+
+      // Copy member data from current table (excluding attendance columns)
+      const { data: currentMembers, error: fetchError } = await supabase
+        .from(currentTable)
+        .select('Full Name, Gender, Phone Number, Age, Current Level')
+
+      if (fetchError) throw fetchError
+
+      if (currentMembers && currentMembers.length > 0) {
+        const { error: insertError } = await supabase
+          .from(newTableName)
+          .insert(currentMembers)
+
+        if (insertError) throw insertError
+      }
+
+      // Update monthly tables list
+      setMonthlyTables(prev => [...prev, newTableName])
+      
+      toast.success(`${newTableName} created successfully with ${sundays.length} Sunday dates!`)
+      return { success: true, tableName: newTableName }
+    } catch (error) {
+      console.error('Error creating new month:', error)
+      toast.error('Failed to create new month')
+      throw error
+    }
+  }
+
   // Filter members based on search term
   const filteredMembers = members.filter(member =>
     member['Full Name']?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -420,7 +498,8 @@ export const AppProvider = ({ children }) => {
     fetchAttendanceForDate,
     currentTable,
     monthlyTables,
-    setCurrentTable
+    setCurrentTable,
+    createNewMonth
   }
 
   return (

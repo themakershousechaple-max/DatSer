@@ -5,10 +5,11 @@ import {
   Download, 
   Shield, 
   Plus,
-  Search
+  Search,
+  Calendar
 } from 'lucide-react'
 
-const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember }) => {
+const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember, onCreateMonth }) => {
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: Users },
     { id: 'statistics', label: 'Statistics', icon: BarChart3 },
@@ -66,14 +67,24 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember 
             </button>
           </div>
 
-          {/* Add Member Button */}
-          <button
-            onClick={onAddMember}
-            className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Member</span>
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onAddMember}
+              className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Member</span>
+            </button>
+            <button
+              onClick={onCreateMonth}
+              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              title="Create New Month"
+            >
+              <Calendar className="w-4 h-4" />
+              <span className="hidden lg:inline">New Month</span>
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}

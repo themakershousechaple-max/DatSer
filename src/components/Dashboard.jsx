@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
-import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronRight, UserPlus } from 'lucide-react'
 import EditMemberModal from './EditMemberModal'
+import MemberModal from './MemberModal'
+import MonthModal from './MonthModal'
 
 const Dashboard = () => {
   const { 
@@ -13,12 +15,15 @@ const Dashboard = () => {
     markAttendance, 
     bulkAttendance,
     fetchAttendanceForDate,
-    attendanceData 
+    attendanceData,
+    currentTable 
   } = useApp()
   const [selectedDate, setSelectedDate] = useState('2025-09-01')
   const [editingMember, setEditingMember] = useState(null)
   const [attendanceLoading, setAttendanceLoading] = useState({})
   const [expandedMembers, setExpandedMembers] = useState({})
+  const [showMemberModal, setShowMemberModal] = useState(false)
+  const [showMonthModal, setShowMonthModal] = useState(false)
 
   // September 2025 Sunday dates
   const sundayDates = [
@@ -116,20 +121,17 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Member Dashboard</h2>
-          <p className="text-gray-600">
-            {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''} found
-          </p>
-        </div>
-
-        {/* Date Selector */}
-        <div className="flex items-center space-x-2 bg-white rounded-lg border border-gray-300 px-3 py-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-transparent outline-none text-sm"
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+            <p className="text-gray-600">
+              {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''} found
+            </p>
+            <div className="flex items-center text-sm">
+              <span className="text-gray-500">Database:</span>
+              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                {currentTable.replace('_', ' ')}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -354,6 +356,18 @@ const Dashboard = () => {
           member={editingMember}
         />
       )}
+
+      {/* Add Member Modal */}
+      <MemberModal
+        isOpen={showMemberModal}
+        onClose={() => setShowMemberModal(false)}
+      />
+
+      {/* Create Month Modal */}
+      <MonthModal
+        isOpen={showMonthModal}
+        onClose={() => setShowMonthModal(false)}
+      />
     </div>
   )
 }
