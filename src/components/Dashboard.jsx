@@ -174,32 +174,32 @@ const Dashboard = () => {
           return (
             <div key={member.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden hover:shadow-md transition-all duration-200">
               {/* Compact Header Row */}
-              <div className="p-4">
+              <div className="p-3 sm:p-4">
                 <div className="flex items-center justify-between">
                   {/* Left side: Name and expand button */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
                     <button
                       onClick={() => toggleMemberExpansion(member.id)}
-                      className="p-1 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors"
+                      className="p-1 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors flex-shrink-0"
                     >
                       {isExpanded ? (
-                        <ChevronDown className="w-5 h-5" />
+                        <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
                       ) : (
-                        <ChevronRight className="w-5 h-5" />
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                       )}
                     </button>
-                    <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                      <Users className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-600 dark:text-primary-400" />
                     </div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{member['Full Name']}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate min-w-0">{member['Full Name']}</h3>
                   </div>
 
                   {/* Right side: Attendance buttons */}
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0 ml-2">
                     <button
                       onClick={() => handleAttendance(member.id, true)}
                       disabled={attendanceLoading[member.id]}
-                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm font-medium transition-colors ${
                         attendanceData[`${member.id}_${selectedDate}`] === true
                           ? 'bg-green-600 text-white'
                           : attendanceLoading[member.id]
@@ -208,12 +208,13 @@ const Dashboard = () => {
                       }`}
                       title="Mark present"
                     >
-                      {attendanceLoading[member.id] ? '...' : 'Present'}
+                      {attendanceLoading[member.id] ? '...' : <span className="hidden sm:inline">Present</span>}
+                      {attendanceLoading[member.id] ? '...' : <span className="sm:hidden">P</span>}
                     </button>
                     <button
                       onClick={() => handleAttendance(member.id, false)}
                       disabled={attendanceLoading[member.id]}
-                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm font-medium transition-colors ${
                         attendanceData[`${member.id}_${selectedDate}`] === false
                           ? 'bg-red-600 text-white'
                           : attendanceLoading[member.id]
@@ -222,7 +223,8 @@ const Dashboard = () => {
                       }`}
                       title="Mark absent"
                     >
-                      {attendanceLoading[member.id] ? '...' : 'Absent'}
+                      {attendanceLoading[member.id] ? '...' : <span className="hidden sm:inline">Absent</span>}
+                      {attendanceLoading[member.id] ? '...' : <span className="sm:hidden">A</span>}
                     </button>
                   </div>
                 </div>
@@ -230,28 +232,28 @@ const Dashboard = () => {
 
               {/* Expandable Content */}
               {isExpanded && (
-                <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-                  <div className="pt-4">
+                <div className="px-3 sm:px-4 pb-3 sm:pb-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                  <div className="pt-3 sm:pt-4">
                     {/* Member Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Member Information</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                      <div className="space-y-2 sm:space-y-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-1 sm:mb-2 text-sm sm:text-base">Member Information</h4>
+                        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
+                          <div className="flex justify-between items-center">
                             <span className="text-gray-600 dark:text-gray-300">Gender:</span>
-                            <span className="font-medium capitalize text-gray-900 dark:text-white">{member['Gender']}</span>
+                            <span className="font-medium capitalize text-gray-900 dark:text-white truncate ml-2">{member['Gender']}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-center">
                             <span className="text-gray-600 dark:text-gray-300">Phone:</span>
-                            <span className="font-medium text-gray-900 dark:text-white">{member['Phone Number'] || 'N/A'}</span>
+                            <span className="font-medium text-gray-900 dark:text-white truncate ml-2">{member['Phone Number'] || 'N/A'}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-center">
                             <span className="text-gray-600 dark:text-gray-300">Age:</span>
-                            <span className="font-medium text-gray-900 dark:text-white">{member['Age'] || 'N/A'}</span>
+                            <span className="font-medium text-gray-900 dark:text-white truncate ml-2">{member['Age'] || 'N/A'}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-center">
                             <span className="text-gray-600 dark:text-gray-300">Level:</span>
-                            <span className="font-medium text-primary-600 dark:text-primary-400 capitalize">
+                            <span className="font-medium text-primary-600 dark:text-primary-400 capitalize truncate ml-2">
                               {member['Current Level']?.toLowerCase() || 'N/A'}
                             </span>
                           </div>
@@ -259,21 +261,21 @@ const Dashboard = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Actions</h4>
-                        <div className="flex flex-col space-y-2">
+                      <div className="space-y-2 sm:space-y-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-1 sm:mb-2 text-sm sm:text-base">Actions</h4>
+                        <div className="flex flex-col space-y-1 sm:space-y-2">
                           <button
                             onClick={() => setEditingMember(member)}
-                            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors"
+                            className="flex items-center space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>Edit Member</span>
                           </button>
                           <button
                             onClick={() => handleDelete(member)}
-                            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
+                            className="flex items-center space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>Delete Member</span>
                           </button>
                         </div>
