@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   Users, 
   BarChart3, 
@@ -8,26 +8,43 @@ import {
   Calendar,
   Moon,
   Sun,
-  TrendingUp
+  TrendingUp,
+  Menu,
+  ChevronDown
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember, onCreateMonth }) => {
   const { isDarkMode, toggleTheme } = useTheme()
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
   
-  const navigation = [
-    { id: 'dashboard', label: 'Dashboard', icon: Users },
+  const menuItems = [
     { id: 'statistics', label: 'Statistics', icon: BarChart3 },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
   ]
 
   if (isAdmin) {
-    navigation.push(
+    menuItems.push(
       { id: 'export', label: 'Monthly Export', icon: Download },
       { id: 'admin', label: 'Admin', icon: Shield }
     )
   } else {
-    navigation.push({ id: 'admin', label: 'Login', icon: Shield })
+    menuItems.push({ id: 'admin', label: 'Login', icon: Shield })
   }
 
   return (
@@ -45,26 +62,64 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setCurrentView(item.id)}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentView === item.id
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </button>
-              )
-            })}
-          </nav>
+          {/* Center Area - Dashboard and Menu */}
+          <div className="hidden md:flex items-center space-x-2 lg:space-x-3 flex-1 justify-center max-w-md mx-2 lg:mx-4">
+            {/* Dashboard Button */}
+            <button
+              onClick={() => setCurrentView('dashboard')}
+              className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentView === 'dashboard'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span className="hidden lg:inline">Dashboard</span>
+              <span className="lg:hidden">Home</span>
+            </button>
+
+            {/* Menu Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
+                  ['statistics', 'analytics', 'export', 'admin'].includes(currentView)
+                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
+                }`}
+              >
+                <Menu className="w-4 h-4" />
+                <span>Menu</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showDropdown && (
+                <div className="absolute left-0 mt-1 w-44 lg:w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                  {menuItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setCurrentView(item.id)
+                          setShowDropdown(false)
+                        }}
+                        className={`w-full flex items-center space-x-2 px-3 py-2 text-sm font-medium transition-colors text-left ${
+                          currentView === item.id
+                            ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
 
 
 
@@ -98,25 +153,63 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden py-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-4 gap-1">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setCurrentView(item.id)}
-                  className={`flex flex-col items-center space-y-1 p-1.5 rounded-md text-xs font-medium transition-colors ${
-                    currentView === item.id
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span className="leading-tight">{item.label}</span>
-                </button>
-              )
-            })}
+        <div className="md:hidden py-1.5 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-center space-x-1.5 sm:space-x-2">
+            {/* Dashboard */}
+            <button
+              onClick={() => setCurrentView('dashboard')}
+              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors ${
+                currentView === 'dashboard'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline sm:inline">Dashboard</span>
+              <span className="xs:hidden">Home</span>
+            </button>
+
+            {/* Mobile Menu Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
+                  ['statistics', 'analytics', 'export', 'admin'].includes(currentView)
+                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
+                }`}
+              >
+                <Menu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Menu</span>
+                <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Mobile Dropdown Menu */}
+              {showDropdown && (
+                <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-36 sm:w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                  {menuItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setCurrentView(item.id)
+                          setShowDropdown(false)
+                        }}
+                        className={`w-full flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-medium transition-colors text-left ${
+                          currentView === item.id
+                            ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <span>{item.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

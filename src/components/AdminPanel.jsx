@@ -46,6 +46,7 @@ const AdminPanel = ({ onLogout }) => {
   )
 
   const handleTableSwitch = (tableName) => {
+    console.log(`Switching to table: ${tableName}`)
     setCurrentTable(tableName)
   }
 

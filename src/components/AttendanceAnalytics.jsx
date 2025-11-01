@@ -11,18 +11,33 @@ import {
   BarChart3,
   Filter,
   Star,
-  Activity
+  Activity,
+  Bell,
+  Phone,
+  AlertTriangle,
+  X
 } from 'lucide-react'
 
 const AttendanceAnalytics = () => {
-  const { supabase, isSupabaseConfigured } = useApp()
+  const { 
+    supabase, 
+    isSupabaseConfigured, 
+    members, 
+    calculateAttendanceRate, 
+    calculateMemberBadge,
+    updateMemberBadges,
+    assignManualBadge
+  } = useApp()
   const { isDarkMode } = useTheme()
   
   const [analytics, setAnalytics] = useState({
     regularAttendees: [],
     attendanceStats: [],
     monthlyTrends: [],
-    newcomers: []
+    newcomers: [],
+    membersByBadge: {},
+    attendanceByLevel: {},
+    newMemberTrends: []
   })
   
   const [filters, setFilters] = useState({
@@ -32,68 +47,293 @@ const AttendanceAnalytics = () => {
   })
   
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('regulars') // regulars, trends, newcomers, stats
+  const [activeTab, setActiveTab] = useState('badges') // badges, regulars, trends, newcomers, stats
+  const [selectedMember, setSelectedMember] = useState(null)
+  const [showBadgeModal, setShowBadgeModal] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(true)
+  const [outreachData, setOutreachData] = useState({
+    lowAttendance: [],
+    longAbsent: [],
+    newcomersNeedingFollowup: []
+  })
 
-  // Fetch analytics data
-  const fetchAnalytics = async () => {
-    if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured - showing demo data')
-      return
-    }
-
+  // Calculate analytics from local member data
+  const calculateAnalytics = () => {
     setLoading(true)
+    
     try {
-      // Fetch regular attendees
-      const { data: regulars, error: regularsError } = await supabase.rpc('get_regular_attendees', {
-        months_back: filters.monthsBack
+      // Update member badges first
+      updateMemberBadges()
+      
+      // Calculate members by badge type
+      const membersByBadge = {}
+      const attendanceByLevel = {}
+      const regularAttendees = []
+      const newcomers = []
+      
+      members.forEach(member => {
+        const badgeType = calculateMemberBadge(member)
+        const attendanceRate = calculateAttendanceRate(member)
+        const level = member['Current Level'] || 'Unknown'
+        const joinDate = new Date(member['Join Date'] || member.inserted_at)
+        const daysSinceJoin = Math.floor((Date.now() - joinDate) / (1000 * 60 * 60 * 24))
+        
+        // Group by badge type
+        if (!membersByBadge[badgeType]) {
+          membersByBadge[badgeType] = []
+        }
+        membersByBadge[badgeType].push({
+          ...member,
+          attendanceRate,
+          badgeType,
+          daysSinceJoin
+        })
+        
+        // Group by education level
+        if (!attendanceByLevel[level]) {
+          attendanceByLevel[level] = { total: 0, totalAttendance: 0, members: [] }
+        }
+        attendanceByLevel[level].total++
+        attendanceByLevel[level].totalAttendance += attendanceRate
+        attendanceByLevel[level].members.push(member)
+        
+        // Regular attendees (75%+ attendance)
+        if (attendanceRate >= filters.minAttendanceRate) {
+          regularAttendees.push({
+            member_id: member.id,
+            member_name: member['Full Name'],
+            attendance_rate: attendanceRate,
+            total_attended: Math.round((attendanceRate / 100) * 4), // Assuming 4 Sundays per month
+            total_possible: 4,
+            last_attendance: new Date().toISOString(),
+            badge_type: badgeType
+          })
+        }
+        
+        // Newcomers (joined within specified months)
+        if (daysSinceJoin <= filters.newcomerMonths * 30) {
+          newcomers.push({
+            member_id: member.id,
+            member_name: member['Full Name'],
+            join_date: joinDate.toISOString(),
+            attendance_rate: attendanceRate,
+            days_since_join: daysSinceJoin,
+            badge_type: badgeType
+          })
+        }
       })
       
-      if (regularsError) {
-        console.error('Error fetching regular attendees:', regularsError)
-      }
-
-      // Fetch attendance statistics
-      const { data: stats, error: statsError } = await supabase.rpc('get_attendance_statistics', {
-        min_attendance_rate: filters.minAttendanceRate
+      // Calculate average attendance by level
+      Object.keys(attendanceByLevel).forEach(level => {
+        attendanceByLevel[level].averageAttendance = 
+          attendanceByLevel[level].total > 0 
+            ? Math.round(attendanceByLevel[level].totalAttendance / attendanceByLevel[level].total)
+            : 0
       })
       
-      if (statsError) {
-        console.error('Error fetching attendance stats:', statsError)
-      }
-
-      // Fetch monthly trends
-      const { data: trends, error: trendsError } = await supabase.rpc('get_monthly_attendance_trends')
+      // Sort regular attendees by attendance rate
+      regularAttendees.sort((a, b) => b.attendance_rate - a.attendance_rate)
       
-      if (trendsError) {
-        console.error('Error fetching monthly trends:', trendsError)
-      }
-
-      // Fetch newcomers
-      const { data: newcomers, error: newcomersError } = await supabase.rpc('get_newcomers', {
-        months_back: filters.newcomerMonths
+      // Sort newcomers by join date (newest first)
+      newcomers.sort((a, b) => new Date(b.join_date) - new Date(a.join_date))
+      
+      // Calculate outreach data
+      const lowAttendance = []
+      const longAbsent = []
+      const newcomersNeedingFollowup = []
+      
+      members.forEach(member => {
+        const attendanceRate = calculateAttendanceRate(member)
+        const joinDate = new Date(member['Join Date'] || member.inserted_at)
+        const daysSinceJoin = Math.floor((Date.now() - joinDate) / (1000 * 60 * 60 * 24))
+        const phone = member['Phone Number'] || member.phone || 'No phone number'
+        
+        // Low attendance (below 50%)
+        if (attendanceRate < 50 && attendanceRate > 0) {
+          lowAttendance.push({
+            id: member.id,
+            name: member['Full Name'],
+            phone: phone,
+            attendanceRate: attendanceRate,
+            lastAttendance: 'Recent', // This would need actual last attendance data
+            reason: 'Low attendance rate'
+          })
+        }
+        
+        // Long absent (0% attendance and been member for more than 30 days)
+        if (attendanceRate === 0 && daysSinceJoin > 30) {
+          longAbsent.push({
+            id: member.id,
+            name: member['Full Name'],
+            phone: phone,
+            daysSinceJoin: daysSinceJoin,
+            reason: 'No recent attendance'
+          })
+        }
+        
+        // Newcomers needing follow-up (joined within 60 days, low attendance)
+        if (daysSinceJoin <= 60 && attendanceRate < 75) {
+          newcomersNeedingFollowup.push({
+            id: member.id,
+            name: member['Full Name'],
+            phone: phone,
+            attendanceRate: attendanceRate,
+            daysSinceJoin: daysSinceJoin,
+            reason: 'New member with low attendance'
+          })
+        }
       })
       
-      if (newcomersError) {
-        console.error('Error fetching newcomers:', newcomersError)
-      }
-
+      setOutreachData({
+        lowAttendance,
+        longAbsent,
+        newcomersNeedingFollowup
+      })
+      
       setAnalytics({
-        regularAttendees: regulars || [],
-        attendanceStats: stats || [],
-        monthlyTrends: trends || [],
-        newcomers: newcomers || []
+        regularAttendees,
+        attendanceStats: Object.entries(attendanceByLevel).map(([level, data]) => ({
+          level,
+          total_members: data.total,
+          average_attendance: data.averageAttendance
+        })),
+        monthlyTrends: [], // Will be calculated from historical data if available
+        newcomers,
+        membersByBadge,
+        attendanceByLevel,
+        newMemberTrends: [] // Will be calculated from historical data if available
       })
-
+      
     } catch (error) {
-      console.error('Error fetching analytics:', error)
+      console.error('Error calculating analytics:', error)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchAnalytics()
-  }, [filters])
+    if (members.length > 0) {
+      calculateAnalytics()
+    }
+  }, [members, filters])
+
+  // Member Badges Tab
+  const MemberBadgesTab = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className={`text-xl font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          Member Badges & Categories
+        </h3>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          {members.length} total members
+        </div>
+      </div>
+
+      {/* Badge Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Object.entries(analytics.membersByBadge).map(([badgeType, badgeMembers]) => (
+          <div 
+            key={badgeType}
+            className={`rounded-lg border p-4 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+          >
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                badgeType === 'Super Regular' ? 'text-green-500' :
+                badgeType === 'Regular Member' ? 'text-blue-500' :
+                badgeType === 'New Member' ? 'text-yellow-500' :
+                badgeType === 'Active Member' ? 'text-orange-500' :
+                'text-gray-500'
+              }`}>
+                {badgeMembers.length}
+              </div>
+              <div className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                {badgeType}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Members by Badge Type */}
+      <div className="space-y-6">
+        {Object.entries(analytics.membersByBadge).map(([badgeType, badgeMembers]) => (
+          <div key={badgeType} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${
+                badgeType === 'Super Regular' ? 'bg-green-500' :
+                badgeType === 'Regular Member' ? 'bg-blue-500' :
+                badgeType === 'New Member' ? 'bg-yellow-500' :
+                badgeType === 'Active Member' ? 'bg-orange-500' :
+                'bg-gray-500'
+              }`}></div>
+              <h4 className={`font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                {badgeType} ({badgeMembers.length})
+              </h4>
+            </div>
+            
+            <div className="grid gap-3">
+              {badgeMembers.map((member) => (
+                <div 
+                  key={member.id}
+                  className={`rounded-lg border p-3 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold ${
+                        badgeType === 'Super Regular' ? 'bg-green-500' :
+                        badgeType === 'Regular Member' ? 'bg-blue-500' :
+                        badgeType === 'New Member' ? 'bg-yellow-500' :
+                        badgeType === 'Active Member' ? 'bg-orange-500' :
+                        'bg-gray-500'
+                      }`}>
+                        {member['Full Name']?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <h5 className={`font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {member['Full Name']}
+                        </h5>
+                        <p className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {member['Current Level']} • {member.attendanceRate}% attendance
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className={`text-sm font-medium ${
+                          member.attendanceRate >= 90 ? 'text-green-500' :
+                          member.attendanceRate >= 75 ? 'text-blue-500' :
+                          member.attendanceRate >= 50 ? 'text-yellow-500' :
+                          'text-red-500'
+                        }`}>
+                          {member.attendanceRate}%
+                        </div>
+                        <div className={`text-xs transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {member.daysSinceJoin} days
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedMember(member)
+                          setShowBadgeModal(true)
+                        }}
+                        className={`px-2 py-1 text-xs rounded transition-colors ${
+                          isDarkMode 
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        Edit Badge
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 
   // Regular Attendees Tab
   const RegularAttendeesTab = () => (
@@ -260,6 +500,102 @@ const AttendanceAnalytics = () => {
     </div>
   )
 
+  // Badge Management Modal
+  const BadgeManagementModal = () => {
+    const [selectedBadge, setSelectedBadge] = useState('')
+    const [isAssigning, setIsAssigning] = useState(false)
+    
+    const badgeOptions = [
+      { value: '', label: 'Remove Manual Badge' },
+      { value: 'VIP Member', label: '👑 VIP Member' },
+      { value: 'Youth Leader', label: '🌟 Youth Leader' },
+      { value: 'Volunteer', label: '🤝 Volunteer' },
+      { value: 'Mentor', label: '👨‍🏫 Mentor' },
+      { value: 'Special Recognition', label: '🏆 Special Recognition' }
+    ]
+    
+    const handleAssignBadge = async () => {
+      if (!selectedMember) return
+      
+      setIsAssigning(true)
+      try {
+        await assignManualBadge(selectedMember.id, selectedBadge || null)
+        setShowBadgeModal(false)
+        setSelectedMember(null)
+        setSelectedBadge('')
+        // Recalculate analytics
+        calculateAnalytics()
+      } catch (error) {
+        console.error('Error assigning badge:', error)
+      } finally {
+        setIsAssigning(false)
+      }
+    }
+    
+    if (!showBadgeModal || !selectedMember) return null
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`rounded-lg p-6 w-full max-w-md mx-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <h3 className={`text-lg font-semibold mb-4 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            Manage Badge for {selectedMember['Full Name']}
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Current Badge: {selectedMember.badgeType || 'None'}
+              </label>
+              <select
+                value={selectedBadge}
+                onChange={(e) => setSelectedBadge(e.target.value)}
+                className={`w-full p-2 border rounded-md transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+              >
+                {badgeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBadgeModal(false)
+                  setSelectedMember(null)
+                  setSelectedBadge('')
+                }}
+                className={`flex-1 px-4 py-2 rounded-md transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignBadge}
+                disabled={isAssigning}
+                className={`flex-1 px-4 py-2 rounded-md text-white transition-colors ${
+                  isAssigning 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {isAssigning ? 'Assigning...' : 'Assign Badge'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // All Stats Tab
   const AllStatsTab = () => (
     <div className="space-y-6">
@@ -322,6 +658,137 @@ const AttendanceAnalytics = () => {
           </p>
         </div>
 
+        {/* Notification Panel */}
+        {showNotifications && (outreachData.lowAttendance.length > 0 || outreachData.longAbsent.length > 0 || outreachData.newcomersNeedingFollowup.length > 0) && (
+          <div className={`rounded-lg border p-4 mb-6 transition-colors ${isDarkMode ? 'bg-orange-900/20 border-orange-500/30' : 'bg-orange-50 border-orange-200'}`}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Bell className={`w-5 h-5 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                <h3 className={`font-semibold transition-colors ${isDarkMode ? 'text-orange-400' : 'text-orange-800'}`}>
+                  Member Outreach Needed
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowNotifications(false)}
+                className={`p-1 rounded hover:bg-opacity-20 transition-colors ${isDarkMode ? 'text-orange-400 hover:bg-orange-400' : 'text-orange-600 hover:bg-orange-600'}`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Low Attendance */}
+              {outreachData.lowAttendance.length > 0 && (
+                <div className={`rounded-lg p-3 transition-colors ${isDarkMode ? 'bg-red-900/20 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className={`w-4 h-4 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+                    <h4 className={`font-medium text-sm ${isDarkMode ? 'text-red-400' : 'text-red-800'}`}>
+                      Low Attendance ({outreachData.lowAttendance.length})
+                    </h4>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {outreachData.lowAttendance.slice(0, 3).map((member) => (
+                      <div key={member.id} className={`text-xs p-2 rounded transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                        <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {member.name}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Phone className="w-3 h-3" />
+                          <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {member.phone}
+                          </span>
+                        </div>
+                        <div className={`text-xs mt-1 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                          {member.attendanceRate}% attendance
+                        </div>
+                      </div>
+                    ))}
+                    {outreachData.lowAttendance.length > 3 && (
+                      <div className={`text-xs text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        +{outreachData.lowAttendance.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Long Absent */}
+              {outreachData.longAbsent.length > 0 && (
+                <div className={`rounded-lg p-3 transition-colors ${isDarkMode ? 'bg-yellow-900/20 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className={`w-4 h-4 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                    <h4 className={`font-medium text-sm ${isDarkMode ? 'text-yellow-400' : 'text-yellow-800'}`}>
+                      Long Absent ({outreachData.longAbsent.length})
+                    </h4>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {outreachData.longAbsent.slice(0, 3).map((member) => (
+                      <div key={member.id} className={`text-xs p-2 rounded transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                        <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {member.name}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Phone className="w-3 h-3" />
+                          <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {member.phone}
+                          </span>
+                        </div>
+                        <div className={`text-xs mt-1 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                          {Math.floor(member.daysSinceJoin)} days since join
+                        </div>
+                      </div>
+                    ))}
+                    {outreachData.longAbsent.length > 3 && (
+                      <div className={`text-xs text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        +{outreachData.longAbsent.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Newcomers Needing Follow-up */}
+              {outreachData.newcomersNeedingFollowup.length > 0 && (
+                <div className={`rounded-lg p-3 transition-colors ${isDarkMode ? 'bg-blue-900/20 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <UserCheck className={`w-4 h-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                    <h4 className={`font-medium text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`}>
+                      New Members ({outreachData.newcomersNeedingFollowup.length})
+                    </h4>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {outreachData.newcomersNeedingFollowup.slice(0, 3).map((member) => (
+                      <div key={member.id} className={`text-xs p-2 rounded transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                        <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {member.name}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Phone className="w-3 h-3" />
+                          <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {member.phone}
+                          </span>
+                        </div>
+                        <div className={`text-xs mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                          {member.daysSinceJoin} days, {member.attendanceRate}% attendance
+                        </div>
+                      </div>
+                    ))}
+                    {outreachData.newcomersNeedingFollowup.length > 3 && (
+                      <div className={`text-xs text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        +{outreachData.newcomersNeedingFollowup.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={`mt-3 text-xs ${isDarkMode ? 'text-orange-400' : 'text-orange-700'}`}>
+              💡 Tip: Click on phone numbers to call members directly for follow-up and encouragement.
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className={`rounded-lg border p-4 mb-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center gap-4 flex-wrap">
@@ -369,9 +836,10 @@ const AttendanceAnalytics = () => {
 
         {/* Tabs */}
         <div className="mb-6">
-          <div className="flex space-x-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+          <div className="flex space-x-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1 overflow-x-auto">
             {[
-              { id: 'regulars', label: 'Regular Attendees', icon: Award },
+              { id: 'badges', label: 'Member Badges', icon: Award },
+              { id: 'regulars', label: 'Regular Attendees', icon: Star },
               { id: 'trends', label: 'Monthly Trends', icon: TrendingUp },
               { id: 'newcomers', label: 'Newcomers', icon: Users },
               { id: 'stats', label: 'All Stats', icon: BarChart3 }
@@ -381,7 +849,7 @@ const AttendanceAnalytics = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-900 shadow-sm'
                       : isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
@@ -402,6 +870,7 @@ const AttendanceAnalytics = () => {
           </div>
         ) : (
           <div>
+            {activeTab === 'badges' && <MemberBadgesTab />}
             {activeTab === 'regulars' && <RegularAttendeesTab />}
             {activeTab === 'trends' && <MonthlyTrendsTab />}
             {activeTab === 'newcomers' && <NewcomersTab />}
@@ -409,6 +878,9 @@ const AttendanceAnalytics = () => {
           </div>
         )}
       </div>
+      
+      {/* Badge Management Modal */}
+      <BadgeManagementModal />
     </div>
   )
 }

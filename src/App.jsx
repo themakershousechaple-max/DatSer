@@ -43,7 +43,7 @@ function App() {
         
         <main className="container mx-auto px-4 py-8">
           {currentView === 'dashboard' && (
-            <Dashboard />
+            <Dashboard isAdmin={isAdmin} />
           )}
           
           {currentView === 'statistics' && (

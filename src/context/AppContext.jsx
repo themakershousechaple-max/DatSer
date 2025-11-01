@@ -19,11 +19,25 @@ const getCurrentMonthTable = () => {
 // Fallback monthly tables for when Supabase is not configured
 const FALLBACK_MONTHLY_TABLES = [
   'January_2025', 'February_2025', 'April_2025', 'May_2025', 
-  'June_2025', 'July_2025', 'August_2025', 'September_2025', 'October_2025'
+  'June_2025', 'July_2025', 'August_2025', 'September_2025', 'October_2025', 'November_2025'
 ]
 
-// Get the latest available table (October_2025 as the template)
-const getLatestTable = () => 'October_2025'
+// Get the latest available table with persistence
+const getLatestTable = () => {
+  // Try to get saved table from localStorage
+  const savedTable = localStorage.getItem('selectedMonthTable')
+  if (savedTable && FALLBACK_MONTHLY_TABLES.includes(savedTable)) {
+    return savedTable
+  }
+  
+  // Default to current month if available, otherwise October_2025
+  const currentMonthTable = getCurrentMonthTable()
+  if (FALLBACK_MONTHLY_TABLES.includes(currentMonthTable)) {
+    return currentMonthTable
+  }
+  
+  return 'October_2025'
+}
 
 // Mock data for development when Supabase is not configured
 const mockMembers = [
@@ -71,6 +85,8 @@ export const AppProvider = ({ children }) => {
   const [attendanceData, setAttendanceData] = useState({})
   const [currentTable, setCurrentTable] = useState(getLatestTable())
   const [monthlyTables, setMonthlyTables] = useState(FALLBACK_MONTHLY_TABLES)
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(null)
+  const [availableSundayDates, setAvailableSundayDates] = useState([])
 
   // Check if Supabase is properly configured
   const isSupabaseConfigured = () => {
@@ -83,6 +99,7 @@ export const AppProvider = ({ children }) => {
   const fetchMembers = async (tableName = currentTable) => {
     try {
       setLoading(true)
+      console.log(`Fetching members from table: ${tableName}`)
       
       if (!isSupabaseConfigured()) {
         console.log('Using mock data - Supabase not configured')
@@ -98,16 +115,26 @@ export const AppProvider = ({ children }) => {
 
       if (error) {
         console.error('Error fetching members:', error)
-        toast.error(`Failed to fetch members from ${tableName}`)
+        console.log('Error details:', error.message, error.code)
+        
+        // Check if it's a table not found error
+        if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+          toast.error(`Table ${tableName} does not exist in database. Using mock data.`)
+          console.log(`Table ${tableName} not found, using mock data`)
+        } else {
+          toast.error(`Failed to fetch members from ${tableName}: ${error.message}`)
+        }
         setMembers(mockMembers) // Fallback to mock data
       } else {
         // Filter out records with null Full Name
         const validMembers = (data || []).filter(member => member['Full Name'])
         setMembers(validMembers)
+        console.log(`Successfully loaded ${validMembers.length} members from ${tableName}`)
         toast.success(`Loaded ${validMembers.length} members from ${tableName}`)
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Unexpected error in fetchMembers:', error)
+      console.log(`Setting mock members (${mockMembers.length} members) due to error`)
       setMembers(mockMembers) // Fallback to mock data
     } finally {
       setLoading(false)
@@ -126,6 +153,10 @@ export const AppProvider = ({ children }) => {
           'Phone Number': memberData.phoneNumber || memberData['Phone Number'],
           'Age': memberData.age || memberData['Age'],
           'Current Level': memberData.currentLevel || memberData['Current Level'],
+          'Member Status': 'New', // Default status for new members
+          'Badge Type': 'New Member', // Default badge
+          'Join Date': new Date().toISOString().split('T')[0], // Join date
+          'Manual Badge': null, // For manually assigned badges
           inserted_at: new Date().toISOString()
         }
         setMembers(prev => [newMember, ...prev])
@@ -209,6 +240,185 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error('Error getting available attendance dates:', error)
       return []
+    }
+  }
+
+  // Helper function to get all Sundays in a month
+  const getSundaysInMonth = (monthName, year) => {
+    const monthIndex = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ].indexOf(monthName)
+    
+    if (monthIndex === -1) {
+      throw new Error(`Invalid month name: ${monthName}`)
+    }
+    
+    const sundays = []
+    const date = new Date(year, monthIndex, 1)
+    
+    // Find the first Sunday of the month
+    while (date.getDay() !== 0) {
+      date.setDate(date.getDate() + 1)
+    }
+    
+    // Collect all Sundays in the month
+    while (date.getMonth() === monthIndex) {
+      sundays.push(new Date(date))
+      date.setDate(date.getDate() + 7)
+    }
+    
+    return sundays
+  }
+
+  // Get available Sunday dates for the current table
+  const getAvailableSundayDates = async () => {
+    try {
+      // Parse the current table to get month and year
+      const [monthName, year] = currentTable.split('_')
+      const yearNum = parseInt(year)
+      
+      // Get all Sundays in the month
+      const allSundays = getSundaysInMonth(monthName, yearNum)
+      
+      // Get attendance columns to see which Sundays have columns
+      const attendanceColumns = await getAttendanceColumns()
+      
+      // Filter Sundays that have corresponding attendance columns
+      const availableSundays = allSundays.filter(sunday => {
+        const dayOfMonth = sunday.getDate()
+        return attendanceColumns.some(col => {
+          const match = col.column_name.match(/Attendance (\d+)(st|nd|rd|th)/)
+          return match && parseInt(match[1]) === dayOfMonth
+        })
+      })
+      
+      return availableSundays
+    } catch (error) {
+      console.error('Error getting available Sunday dates:', error)
+      return []
+    }
+  }
+
+  // Initialize available Sunday dates and set default selected date
+  const initializeAttendanceDates = async () => {
+    const sundays = await getAvailableSundayDates()
+    setAvailableSundayDates(sundays)
+    
+    // Set default to 2nd Sunday if available, otherwise first available Sunday
+    if (sundays.length > 0) {
+      const defaultDate = sundays.length >= 2 ? sundays[1] : sundays[0]
+      setSelectedAttendanceDate(defaultDate)
+    }
+  }
+
+  // Calculate member attendance rate
+  const calculateAttendanceRate = (member) => {
+    const attendanceColumns = Object.keys(member).filter(key => 
+      key.startsWith('Attendance ') && member[key] !== null && member[key] !== undefined
+    )
+    
+    if (attendanceColumns.length === 0) return 0
+    
+    const presentCount = attendanceColumns.filter(col => 
+      member[col] === 'Present' || member[col] === true
+    ).length
+    
+    return Math.round((presentCount / attendanceColumns.length) * 100)
+  }
+
+  // Calculate member badge based on attendance and join date
+  const calculateMemberBadge = (member) => {
+    const joinDate = new Date(member['Join Date'] || member.inserted_at)
+    const now = new Date()
+    const daysSinceJoin = Math.floor((now - joinDate) / (1000 * 60 * 60 * 24))
+    const attendanceRate = calculateAttendanceRate(member)
+    
+    // Check for manual badge first
+    if (member['Manual Badge']) {
+      return member['Manual Badge']
+    }
+    
+    // New member (less than 30 days)
+    if (daysSinceJoin < 30) {
+      return 'New Member'
+    }
+    
+    // Regular member badges based on attendance
+    if (attendanceRate >= 90) {
+      return 'Super Regular'
+    } else if (attendanceRate >= 75) {
+      return 'Regular Member'
+    } else if (attendanceRate >= 50) {
+      return 'Active Member'
+    } else {
+      return 'Occasional Member'
+    }
+  }
+
+  // Update member badges for all members
+  const updateMemberBadges = () => {
+    setMembers(prev => prev.map(member => ({
+      ...member,
+      'Badge Type': calculateMemberBadge(member),
+      'Attendance Rate': calculateAttendanceRate(member)
+    })))
+  }
+
+  // Manually assign badge to member
+  const assignManualBadge = async (memberId, badgeType) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        // Demo mode - update local state
+        setMembers(prev => prev.map(member => 
+          member.id === memberId 
+            ? { ...member, 'Manual Badge': badgeType, 'Badge Type': badgeType }
+            : member
+        ))
+        toast.success('Badge assigned successfully! (Demo Mode)')
+        return { success: true }
+      }
+
+      // Prepare update object
+      const updateData = { 'Manual Badge': badgeType }
+      
+      // If current table is November_2025, also update role columns
+      if (currentTable === 'November_2025') {
+        // Clear all role columns first
+        updateData.Member = null
+        updateData.Regular = null
+        updateData.Newcomer = null
+        
+        // Set the appropriate role column based on badge type
+        if (badgeType === 'member') {
+          updateData.Member = 'Yes'
+        } else if (badgeType === 'regular') {
+          updateData.Regular = 'Yes'
+        } else if (badgeType === 'newcomer') {
+          updateData.Newcomer = 'Yes'
+        }
+      }
+
+      const { data, error } = await supabase
+        .from(currentTable)
+        .update(updateData)
+        .eq('id', memberId)
+        .select()
+
+      if (error) throw error
+
+      setMembers(prev => prev.map(member => 
+        member.id === memberId 
+          ? { ...member, 'Manual Badge': badgeType, 'Badge Type': badgeType }
+          : member
+      ))
+
+      toast.success('Badge assigned successfully!')
+      return { success: true }
+    } catch (error) {
+      console.error('Error assigning badge:', error)
+      toast.error('Failed to assign badge')
+      return { success: false, error }
     }
   }
 
@@ -479,7 +689,7 @@ export const AppProvider = ({ children }) => {
       await fetchMonthlyTables()
       
       // Switch to the new month
-      setCurrentTable(monthIdentifier)
+      changeCurrentTable(monthIdentifier)
       
       console.log(`Successfully created month: ${monthIdentifier}`)
       return { success: true, tableName: monthIdentifier, result }
@@ -572,6 +782,17 @@ export const AppProvider = ({ children }) => {
     fetchMembers()
   }, [currentTable])
 
+  // Initialize attendance dates when current table changes
+  useEffect(() => {
+    initializeAttendanceDates()
+  }, [currentTable])
+
+  // Wrapper function for setCurrentTable with localStorage persistence
+  const changeCurrentTable = (tableName) => {
+    setCurrentTable(tableName)
+    localStorage.setItem('selectedMonthTable', tableName)
+  }
+
   const value = {
     members,
     filteredMembers,
@@ -589,38 +810,22 @@ export const AppProvider = ({ children }) => {
     fetchAttendanceForDate,
     currentTable,
     monthlyTables,
-    setCurrentTable,
+    setCurrentTable: changeCurrentTable,
     createNewMonth,
     fetchMonthlyTables,
     getAttendanceColumns,
     getAvailableAttendanceDates,
     findAttendanceColumnForDate,
-    getSundaysInMonth: (monthName, year) => {
-      const monthIndex = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ].indexOf(monthName)
-      
-      if (monthIndex === -1) {
-        throw new Error(`Invalid month name: ${monthName}`)
-      }
-      
-      const sundays = []
-      const date = new Date(year, monthIndex, 1)
-      
-      // Find the first Sunday of the month
-      while (date.getDay() !== 0) {
-        date.setDate(date.getDate() + 1)
-      }
-      
-      // Collect all Sundays in the month
-      while (date.getMonth() === monthIndex) {
-        sundays.push(new Date(date))
-        date.setDate(date.getDate() + 7)
-      }
-      
-      return sundays
-    }
+    calculateAttendanceRate,
+    calculateMemberBadge,
+    updateMemberBadges,
+    assignManualBadge,
+    selectedAttendanceDate,
+    setSelectedAttendanceDate,
+    availableSundayDates,
+    getAvailableSundayDates,
+    initializeAttendanceDates,
+    getSundaysInMonth
   }
 
   return (
