@@ -2,20 +2,20 @@
   "name": "TMHT - The Master's Heart Tabernacle",
   "short_name": "TMHT",
   "description": "Member check-in and data management system for TMHT",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3B82F6",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "./favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/apple-touch-icon.svg",
+      "src": "./apple-touch-icon.svg",
       "sizes": "180x180",
       "type": "image/svg+xml"
     }

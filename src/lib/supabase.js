@@ -1,10 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Replace these with your actual Supabase project details
+// Read env at build time; guard to support demo mode when not configured
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const isSupabaseConfigured = Boolean(
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseUrl !== 'your_supabase_url_here' &&
+  supabaseUrl !== 'https://placeholder.supabase.co'
+)
+
+// Only create the client when config exists; otherwise export null
+export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey) : null
 
 // Supabase table schemas (for reference)
 /*
