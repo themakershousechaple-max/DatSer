@@ -18,18 +18,23 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   const { isDarkMode, toggleTheme } = useTheme()
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef(null)
+  const mobileDropdownRef = useRef(null)
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (supports desktop and mobile dropdowns)
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleOutside = (event) => {
+      const inDesktop = dropdownRef.current?.contains(event.target)
+      const inMobile = mobileDropdownRef.current?.contains(event.target)
+      if (!inDesktop && !inMobile) {
         setShowDropdown(false)
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside, { passive: true })
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
     }
   }, [])
   
@@ -170,23 +175,23 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             </button>
 
             {/* Mobile Menu Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={mobileDropdownRef}>
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
+                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
                   ['statistics', 'analytics', 'export', 'admin'].includes(currentView)
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
                 }`}
               >
-                <Menu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Menu</span>
-                <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Mobile Dropdown Menu */}
               {showDropdown && (
-                <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-36 sm:w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
                   {menuItems.map((item) => {
                     const Icon = item.icon
                     return (
@@ -196,13 +201,13 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                           setCurrentView(item.id)
                           setShowDropdown(false)
                         }}
-                        className={`w-full flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-medium transition-colors text-left ${
+                        className={`w-full flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm font-medium transition-colors text-left ${
                           currentView === item.id
                             ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                             : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
-                        <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span>{item.label}</span>
                       </button>
                     )

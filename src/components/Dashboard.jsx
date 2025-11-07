@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronUp, ChevronRight, UserPlus, Award, Star, UserCheck, Check, RefreshCw } from 'lucide-react'
+import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronUp, ChevronRight, UserPlus, Award, Star, UserCheck, Check, RefreshCw, X } from 'lucide-react'
 import EditMemberModal from './EditMemberModal'
 import MemberModal from './MemberModal'
 import MonthModal from './MonthModal'
@@ -28,6 +28,7 @@ const Dashboard = ({ isAdmin = false }) => {
     bulkAttendance,
     fetchAttendanceForDate,
     attendanceData,
+    setAttendanceData,
     currentTable,
     members,
     calculateMemberBadge,
@@ -58,6 +59,8 @@ const Dashboard = ({ isAdmin = false }) => {
   // Tab state for showing all members vs edited members
   const [activeTab, setActiveTab] = useState('all') // 'all' or 'edited'
   const [isBadgeDropdownOpen, setIsBadgeDropdownOpen] = useState(false)
+  const [selectedSundayDate, setSelectedSundayDate] = useState(null)
+  const [isSundayPopupOpen, setIsSundayPopupOpen] = useState(false)
 
   // Helper function to generate Sunday dates for the current month/year
   const generateSundayDates = (currentTable) => {
@@ -132,10 +135,29 @@ const Dashboard = ({ isAdmin = false }) => {
 
   // Fetch attendance for all Sunday dates
   useEffect(() => {
-    sundayDates.forEach(date => {
-      fetchAttendanceForDate(new Date(date))
-    })
-  }, [fetchAttendanceForDate])
+    // When viewing Edited Members, ensure Sunday attendance maps are available
+    if (activeTab !== 'edited') return
+    let isCancelled = false
+    const load = async () => {
+      for (const date of sundayDates) {
+        const map = await fetchAttendanceForDate(new Date(date))
+        if (isCancelled) return
+        if (map && Object.keys(map).length > 0) {
+          setAttendanceData(prev => ({
+            ...prev,
+            [date]: { ...(prev[date] || {}), ...map }
+          }))
+        }
+      }
+    }
+    load()
+    return () => { isCancelled = true }
+  }, [activeTab, currentTable])
+
+  // Reset selected Sunday when month changes
+  useEffect(() => {
+    setSelectedSundayDate(null)
+  }, [currentTable])
 
   // Reset pagination when search term changes
   useEffect(() => {
@@ -367,6 +389,28 @@ const Dashboard = ({ isAdmin = false }) => {
             </div>
           </div>
         </div>
+
+        {/* Mobile: selected Sunday summary card */}
+        {activeTab === 'edited' && selectedSundayDate && (
+          (() => {
+            const dateObj = new Date(selectedSundayDate)
+            const labelFull = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
+            const presentCount = getTabFilteredMembers().filter(m => (attendanceData[selectedSundayDate] || {})[m.id] === true).length
+            return (
+              <div className="sm:hidden mt-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                    <Calendar className="w-4 h-4 text-primary-600" />
+                    <span>{labelFull}</span>
+                  </div>
+                  <div className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">
+                    {presentCount} present
+                  </div>
+                </div>
+              </div>
+            )
+          })()
+        )}
       </div>
 
       {/* Tab Navigation */}
@@ -403,26 +447,148 @@ const Dashboard = ({ isAdmin = false }) => {
         </div>
       </div>
 
+      {/* Edited Members: Sundays Quick View (desktop only) */}
+      {activeTab === 'edited' && (
+        <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary-600" />
+              {getMonthDisplayName(currentTable)} Sundays
+            </h3>
+            {selectedSundayDate && (
+              <button
+                onClick={() => setSelectedSundayDate(null)}
+                className="text-xs sm:text-sm px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                title="Clear date selection"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Sunday date chips */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {sundayDates.length === 0 && (
+              <div className="text-sm text-gray-600 dark:text-gray-300">No Sundays found for this month</div>
+            )}
+            {sundayDates.map(dateStr => {
+              const isSelected = selectedSundayDate === dateStr
+              const dateObj = new Date(dateStr)
+              const label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              const presentCount = getTabFilteredMembers().filter(m => (attendanceData[dateStr] || {})[m.id] === true).length
+              return (
+                <button
+                  key={dateStr}
+                  onClick={async () => {
+                    setSelectedSundayDate(dateStr)
+                    // Ensure attendance map for this date is loaded
+                    if (!attendanceData[dateStr]) {
+                      const map = await fetchAttendanceForDate(new Date(dateStr))
+                      setAttendanceData(prev => ({ ...prev, [dateStr]: map }))
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 border ${
+                    isSelected
+                      ? 'bg-primary-600 text-white border-primary-700 shadow'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                  title={`View present members for ${label}`}
+                >
+                  <span>{label}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${isSelected ? 'bg-white/20' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{presentCount}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Present members list for selected Sunday */}
+          {selectedSundayDate && (
+            <div className="mt-2">
+              {(() => {
+                const dateObj = new Date(selectedSundayDate)
+                const labelFull = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
+                const presentMembers = getTabFilteredMembers().filter(m => (attendanceData[selectedSundayDate] || {})[m.id] === true)
+                return (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        Present on {labelFull}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">{presentMembers.length} member{presentMembers.length !== 1 ? 's' : ''}</div>
+                    </div>
+                    {presentMembers.length === 0 ? (
+                      <div className="text-sm text-gray-600 dark:text-gray-300">No present members recorded for this date.</div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {presentMembers.map(m => (
+                          <div key={m.id} className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1">
+                            <Users className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                            <span className="text-sm text-gray-900 dark:text-white truncate">{m['full_name'] || m['Full Name']}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Compact Badge Management with Mobile Dropdown */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-3 sm:p-4">
         {/* Mobile: dropdown trigger */}
         <div className="sm:hidden">
-          <button
-            onClick={() => setIsBadgeDropdownOpen(v => !v)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-            title="Filter by Badge (Select multiple)"
-          >
-            <span className="flex items-center gap-2 text-sm font-semibold">
-              <Filter className="w-4 h-4 text-primary-600" />
-              Filter by Badge
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Select multiple)</span>
-            </span>
-            {isBadgeDropdownOpen ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsBadgeDropdownOpen(v => !v)}
+              className="flex-1 flex items-center justify-between px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+              title="Filter by Badge (Select multiple)"
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Filter className="w-4 h-4 text-primary-600" />
+                Filter by Badge
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Select multiple)</span>
+              </span>
+              {isBadgeDropdownOpen ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Mobile Sundays button (right side) */}
+            {activeTab === 'edited' && (
+              <button
+                onClick={() => setIsSundayPopupOpen(true)}
+                className="p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                title={`${getMonthDisplayName(currentTable)} Sundays`}
+              >
+                <Calendar className="w-5 h-5 text-primary-600" />
+              </button>
             )}
-          </button>
+
+            {/* Selected Sunday summary chip (mobile only) */}
+            {activeTab === 'edited' && selectedSundayDate && (
+              (() => {
+                const dateObj = new Date(selectedSundayDate)
+                const label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                const presentCount = getTabFilteredMembers().filter(m => (attendanceData[selectedSundayDate] || {})[m.id] === true).length
+                return (
+                  <button
+                    onClick={() => setIsSundayPopupOpen(true)}
+                    className="flex items-center gap-2 px-2 py-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                    title={`Selected: ${label}`}
+                  >
+                    <Calendar className="w-4 h-4 text-primary-600" />
+                    <span className="text-xs font-medium">{label}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">{presentCount}</span>
+                  </button>
+                )
+              })()
+            )}
+          </div>
 
           {isBadgeDropdownOpen && (
             <div className="mt-3 space-y-2">
@@ -500,6 +666,86 @@ const Dashboard = ({ isAdmin = false }) => {
                       {label}
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile-only Sundays popup */}
+          {activeTab === 'edited' && isSundayPopupOpen && (
+            <div
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4"
+              onClick={() => setIsSundayPopupOpen(false)}
+            >
+              <div
+                className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-300 dark:border-gray-600 shadow-2xl p-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary-600" />
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{getMonthDisplayName(currentTable)} Sundays</span>
+                  </div>
+                  <button
+                    onClick={() => setIsSundayPopupOpen(false)}
+                    className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    title="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Sunday options with checkbox-like selection */}
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                  {sundayDates.length === 0 && (
+                    <div className="text-sm text-gray-600 dark:text-gray-300">No Sundays found for this month</div>
+                  )}
+                  {sundayDates.map(dateStr => {
+                    const isSelected = selectedSundayDate === dateStr
+                    const dateObj = new Date(dateStr)
+                    const label = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                    const presentCount = getTabFilteredMembers().filter(m => (attendanceData[dateStr] || {})[m.id] === true).length
+                    return (
+                      <button
+                        key={dateStr}
+                        onClick={async () => {
+                          if (!attendanceData[dateStr]) {
+                            const map = await fetchAttendanceForDate(new Date(dateStr))
+                            setAttendanceData(prev => ({ ...prev, [dateStr]: map }))
+                          }
+                          setSelectedSundayDate(prev => (prev === dateStr ? null : dateStr))
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-md border text-sm transition-colors ${
+                          isSelected
+                            ? 'bg-primary-600 text-white border-primary-700 shadow'
+                            : 'bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        }`}
+                        title={`Select ${label}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span>{label}</span>
+                          {isSelected && <Check className="w-4 h-4" />}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${isSelected ? 'bg-white/20' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{presentCount}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Actions */}
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setSelectedSundayDate(null)}
+                    className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => setIsSundayPopupOpen(false)}
+                    className="px-3 py-1.5 text-sm rounded-md bg-primary-600 text-white hover:bg-primary-700"
+                  >
+                    Done
+                  </button>
                 </div>
               </div>
             </div>
@@ -636,8 +882,8 @@ const Dashboard = ({ isAdmin = false }) => {
 
 
 
-      {/* Members List */}
-      <div className="space-y-3">
+      {/* Members List (hidden on mobile when a Sunday is selected) */}
+      <div className={`${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''} space-y-3`}>
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
           // Get tab-filtered members first

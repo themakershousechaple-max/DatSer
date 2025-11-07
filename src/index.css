@@ -20,6 +20,13 @@
     scroll-behavior: smooth;
   }
   
+  /* Slightly increase base font size on small screens for readability */
+  @media (max-width: 640px) {
+    html {
+      font-size: 17px; /* was browser default ~16px */
+    }
+  }
+  
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
