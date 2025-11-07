@@ -142,9 +142,9 @@ const MemberModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto transition-colors duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-colors duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600 flex-shrink-0">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Member</h2>
           <button
             onClick={onClose}
@@ -154,195 +154,197 @@ const MemberModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Full Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Full Name *
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <input
-                type="text"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleInputChange}
-                required
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
-                placeholder="Enter full name"
-              />
-            </div>
-          </div>
-
-          {/* Gender */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Gender *
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex items-center space-x-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors duration-200">
+        {/* Scrollable Form Area */}
+        <div className="overflow-y-auto no-scrollbar">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Full Name */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Full Name *
+                </label>
+                <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={formData.gender === 'male'}
-                  onChange={handleInputChange}
-                  required
-                  className="text-primary-600 focus:ring-primary-500"
+                    type="text"
+                    name="full_name"
+                    value={formData.full_name}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
+                    placeholder="Enter full name"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Male</span>
-              </label>
-              
-              <label className="flex items-center space-x-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors duration-200">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={formData.gender === 'female'}
-                  onChange={handleInputChange}
-                  required
-                  className="text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Female</span>
-              </label>
+                </div>
             </div>
-          </div>
 
-          {/* Phone Number */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Phone Number
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <input
-                type="tel"
-                name="phone_number"
-                value={formData.phone_number}
-                onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
-                placeholder="Enter phone number"
-              />
-            </div>
-          </div>
-
-          {/* Age */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Age
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <input
-                type="number"
-                name="age"
-                value={formData.age}
-                onChange={handleInputChange}
-                min="1"
-                max="120"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
-                placeholder="Enter age"
-              />
-            </div>
-          </div>
-
-          {/* Current Level */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Current Level
-            </label>
-            <div className="relative">
-              <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <select
-                name="current_level"
-                value={formData.current_level}
-                onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
-              >
-                <option value="">Select level</option>
-                {levels.map(level => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Sunday Attendance */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              {getMonthDisplayName(currentTable)} Sunday Attendance (Optional)
-            </label>
-            <div className="space-y-3">
-              {sundayDates.map(date => {
-                const dateObj = new Date(date)
-                const dateLabel = dateObj.toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  day: 'numeric' 
-                })
+            {/* Gender */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Gender *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center space-x-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors duration-200">
+                    <input
+                    type="radio"
+                    name="gender"
+                    value="male"
+                    checked={formData.gender === 'male'}
+                    onChange={handleInputChange}
+                    required
+                    className="text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Male</span>
+                </label>
                 
-                return (
-                  <div key={date} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 transition-colors duration-200">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {dateLabel}
-                    </span>
-                    <div className="flex space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: true }))}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                          sundayAttendance[date] === true
-                            ? 'bg-green-600 text-white'
-                            : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
-                        }`}
-                      >
-                        Present
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: false }))}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                          sundayAttendance[date] === false
-                            ? 'bg-red-600 text-white'
-                            : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800'
-                        }`}
-                      >
-                        Absent
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: null }))}
-                        className="px-3 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+                <label className="flex items-center space-x-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors duration-200">
+                    <input
+                    type="radio"
+                    name="gender"
+                    value="female"
+                    checked={formData.gender === 'female'}
+                    onChange={handleInputChange}
+                    required
+                    className="text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Female</span>
+                </label>
+                </div>
             </div>
-          </div>
 
-          {/* Form Actions */}
-          <div className="flex space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !formData.full_name || !formData.gender}
-              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Adding...' : 'Add Member'}
-            </button>
-          </div>
-        </form>
+            {/* Phone Number */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Phone Number
+                </label>
+                <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <input
+                    type="tel"
+                    name="phone_number"
+                    value={formData.phone_number}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
+                    placeholder="Enter phone number"
+                />
+                </div>
+            </div>
+
+            {/* Age */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Age
+                </label>
+                <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <input
+                    type="number"
+                    name="age"
+                    value={formData.age}
+                    onChange={handleInputChange}
+                    min="1"
+                    max="120"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
+                    placeholder="Enter age"
+                />
+                </div>
+            </div>
+
+            {/* Current Level */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Current Level
+                </label>
+                <div className="relative">
+                <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <select
+                    name="current_level"
+                    value={formData.current_level}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
+                >
+                    <option value="">Select level</option>
+                    {levels.map(level => (
+                    <option key={level} value={level}>
+                        {level}
+                    </option>
+                    ))}
+                </select>
+                </div>
+            </div>
+
+            {/* Sunday Attendance */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                {getMonthDisplayName(currentTable)} Sunday Attendance (Optional)
+                </label>
+                <div className="space-y-3">
+                {sundayDates.map(date => {
+                    const dateObj = new Date(date)
+                    const dateLabel = dateObj.toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    day: 'numeric' 
+                    })
+                    
+                    return (
+                    <div key={date} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 transition-colors duration-200">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {dateLabel}
+                        </span>
+                        <div className="flex space-x-2">
+                        <button
+                            type="button"
+                            onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: true }))}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                            sundayAttendance[date] === true
+                                ? 'bg-green-600 text-white'
+                                : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
+                            }`}
+                        >
+                            Present
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: false }))}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                            sundayAttendance[date] === false
+                                ? 'bg-red-600 text-white'
+                                : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800'
+                            }`}
+                        >
+                            Absent
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: null }))}
+                            className="px-3 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                        >
+                            Clear
+                        </button>
+                        </div>
+                    </div>
+                    )
+                })}
+                </div>
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex space-x-3 pt-4">
+                <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors"
+                >
+                Cancel
+                </button>
+                <button
+                type="submit"
+                disabled={loading || !formData.full_name || !formData.gender}
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                {loading ? 'Adding...' : 'Add Member'}
+                </button>
+            </div>
+            </form>
+        </div>
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronRight, UserPlus, Award, Star, UserCheck, Check, RefreshCw } from 'lucide-react'
+import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronUp, ChevronRight, UserPlus, Award, Star, UserCheck, Check, RefreshCw } from 'lucide-react'
 import EditMemberModal from './EditMemberModal'
 import MemberModal from './MemberModal'
 import MonthModal from './MonthModal'
@@ -20,6 +20,7 @@ const Dashboard = ({ isAdmin = false }) => {
     loading, 
     searchTerm, 
     setSearchTerm, 
+    refreshSearch,
     forceRefreshMembers,
     searchMemberAcrossAllTables,
     deleteMember, 
@@ -36,7 +37,8 @@ const Dashboard = ({ isAdmin = false }) => {
     updateMemberBadges,
     selectedAttendanceDate,
     badgeFilter,
-    toggleBadgeFilter
+    toggleBadgeFilter,
+    isSupabaseConfigured
   } = useApp()
   const { isDarkMode } = useTheme()
   const [editingMember, setEditingMember] = useState(null)
@@ -55,6 +57,7 @@ const Dashboard = ({ isAdmin = false }) => {
   
   // Tab state for showing all members vs edited members
   const [activeTab, setActiveTab] = useState('all') // 'all' or 'edited'
+  const [isBadgeDropdownOpen, setIsBadgeDropdownOpen] = useState(false)
 
   // Helper function to generate Sunday dates for the current month/year
   const generateSundayDates = (currentTable) => {
@@ -107,11 +110,16 @@ const Dashboard = ({ isAdmin = false }) => {
   // Get filtered members based on active tab
   const getTabFilteredMembers = () => {
     const badgeFilteredMembers = getFilteredMembersByBadge()
-    
+
+    // When searching, ignore tab filters and show all matching results
+    if (searchTerm && searchTerm.trim()) {
+      return badgeFilteredMembers
+    }
+
     if (activeTab === 'edited') {
       return badgeFilteredMembers.filter(member => isEditedMember(member))
     }
-    
+
     return badgeFilteredMembers
   }
 
@@ -270,9 +278,12 @@ const Dashboard = ({ isAdmin = false }) => {
     if (badgeFilter.length === 0) return filteredMembers
     
     // Filter members by selected badge filters
+    // Use explicit badge assignment if available; otherwise fall back to calculated badge
     return filteredMembers.filter(member => {
-      const badge = calculateMemberBadge(member)
-      return badgeFilter.includes(badge)
+      return badgeFilter.some((type) => {
+        // Match if the member explicitly has the badge or their calculated badge equals the type
+        return memberHasBadge(member, type) || calculateMemberBadge(member) === type
+      })
     })
   }
 
@@ -347,6 +358,10 @@ const Dashboard = ({ isAdmin = false }) => {
               <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-md font-medium">
                 {currentTable.replace('_', ' ')}
               </span>
+              <span className="ml-3 text-gray-500 dark:text-gray-400">Mode:</span>
+              <span className={`ml-2 px-2 py-1 rounded-md font-medium ${isSupabaseConfigured() ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'}`}>
+                {isSupabaseConfigured() ? 'Live DB' : 'Demo Mode'}
+              </span>
             </div>
           </div>
         </div>
@@ -354,7 +369,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
       {/* Tab Navigation */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <button
             onClick={() => setActiveTab('all')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -386,13 +401,111 @@ const Dashboard = ({ isAdmin = false }) => {
         </div>
       </div>
 
-      {/* Compact Badge Management */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      {/* Compact Badge Management with Mobile Dropdown */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-3 sm:p-4">
+        {/* Mobile: dropdown trigger */}
+        <div className="sm:hidden">
+          <button
+            onClick={() => setIsBadgeDropdownOpen(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+            title="Filter by Badge (Select multiple)"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <Filter className="w-4 h-4 text-primary-600" />
+              Filter by Badge
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Select multiple)</span>
+            </span>
+            {isBadgeDropdownOpen ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+
+          {isBadgeDropdownOpen && (
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'member', label: 'Member Badge', icon: Award },
+                  { key: 'regular', label: 'Regular', icon: UserCheck },
+                  { key: 'newcomer', label: 'Newcomer', icon: Star }
+                ].map(({ key, label, icon: Icon }) => {
+                  const isSelected = badgeFilter.includes(key)
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => toggleBadgeFilter(key)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
+                        isSelected
+                          ? 'bg-primary-600 dark:bg-primary-700 text-white shadow ring-2 ring-primary-300 dark:ring-primary-500'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600'
+                      }`}
+                      title={isSelected ? `Remove ${label} filter` : `Add ${label} filter`}
+                    >
+                      <Icon className="w-3 h-3" />
+                      {label}
+                      {isSelected && (
+                        <Check className="w-3 h-3 ml-1 bg-white text-primary-600 rounded-full" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Multi-select controls */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const allBadges = ['member', 'regular', 'newcomer']
+                    allBadges.forEach(badge => {
+                      if (!badgeFilter.includes(badge)) toggleBadgeFilter(badge)
+                    })
+                  }}
+                  className="px-2 py-1 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors border border-primary-200 dark:border-primary-700"
+                  title="Select all badge filters"
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => { badgeFilter.forEach(badge => toggleBadgeFilter(badge)) }}
+                  className="px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors border border-gray-300 dark:border-gray-600"
+                  title="Clear all badge filters"
+                >
+                  Clear
+                </button>
+              </div>
+
+              {/* Badge Types Reference */}
+              <div className="space-y-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400">Badge Types Reference:</div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'member', label: 'Member', icon: Award, color: 'blue' },
+                    { key: 'regular', label: 'Regular', icon: UserCheck, color: 'green' }
+                  ].map(({ key, label, icon: Icon, color }) => (
+                    <div
+                      key={key}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium opacity-80 ${
+                        color === 'blue' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' :
+                        'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                      }`}
+                    >
+                      <Icon className="w-3 h-3" />
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop / larger screens: inline filter row */}
+        <div className="hidden sm:flex sm:flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Badge Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Filter className="w-5 h-5 text-primary-600" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Filter className="w-4 h-4 text-primary-600" />
               Filter by Badge
               <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Select multiple)</span>
             </h3>
@@ -407,34 +520,26 @@ const Dashboard = ({ isAdmin = false }) => {
                   <button
                     key={key}
                     onClick={() => toggleBadgeFilter(key)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform relative ${
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
                       isSelected
-                        ? 'bg-primary-600 dark:bg-primary-700 text-white shadow-lg scale-105 ring-2 ring-primary-300 dark:ring-primary-500'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 hover:scale-102'
+                        ? 'bg-primary-600 dark:bg-primary-700 text-white shadow ring-2 ring-primary-300 dark:ring-primary-500'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600'
                     }`}
                     title={isSelected ? `Remove ${label} filter` : `Add ${label} filter`}
                   >
-                    <div className="flex items-center gap-1">
-                      <Icon className="w-4 h-4" />
-                      {label}
-                    </div>
-                    {isSelected && (
-                      <Check className="w-4 h-4 bg-white text-primary-600 rounded-full p-0.5" />
-                    )}
+                    <Icon className="w-4 h-4" />
+                    {label}
+                    {isSelected && <Check className="w-4 h-4 ml-1 bg-white text-primary-600 rounded-full" />}
                   </button>
                 )
               })}
-              
+
               {/* Multi-select controls */}
-              <div className="flex gap-1 ml-2 border-l border-gray-300 dark:border-gray-600 pl-2">
+              <div className="flex gap-2 ml-2 border-l border-gray-300 dark:border-gray-600 pl-2">
                 <button
                   onClick={() => {
                     const allBadges = ['member', 'regular', 'newcomer']
-                    allBadges.forEach(badge => {
-                      if (!badgeFilter.includes(badge)) {
-                        toggleBadgeFilter(badge)
-                      }
-                    })
+                    allBadges.forEach(badge => { if (!badgeFilter.includes(badge)) toggleBadgeFilter(badge) })
                   }}
                   className="px-2 py-1 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
                   title="Select all badge filters"
@@ -442,9 +547,7 @@ const Dashboard = ({ isAdmin = false }) => {
                   All
                 </button>
                 <button
-                  onClick={() => {
-                    badgeFilter.forEach(badge => toggleBadgeFilter(badge))
-                  }}
+                  onClick={() => { badgeFilter.forEach(badge => toggleBadgeFilter(badge)) }}
                   className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                   title="Clear all badge filters"
                 >
@@ -462,16 +565,14 @@ const Dashboard = ({ isAdmin = false }) => {
             <div className="flex flex-wrap gap-2">
               {[
                 { key: 'member', label: 'Member', icon: Award, color: 'blue' },
-                { key: 'regular', label: 'Regular', icon: UserCheck, color: 'green' },
-                { key: 'newcomer', label: 'Newcomer', icon: UserCheck, color: 'yellow' }
+                { key: 'regular', label: 'Regular', icon: UserCheck, color: 'green' }
               ].map(({ key, label, icon: Icon, color }) => (
                 <div
                   key={key}
                   title={`${label} badge - Use individual member buttons to assign`}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium cursor-default opacity-75 ${
+                  className={`flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium cursor-default opacity-75 ${
                     color === 'blue' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' :
-                    color === 'green' ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' :
-                    'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
+                    'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -495,6 +596,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 placeholder="Search members by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') refreshSearch() }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
               />
               {searchTerm && (
@@ -516,9 +618,6 @@ const Dashboard = ({ isAdmin = false }) => {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-            
-            {/* Date Selector */}
-            <DateSelector />
           </div>
         </div>
       </div>
@@ -570,10 +669,10 @@ const Dashboard = ({ isAdmin = false }) => {
                       <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate min-w-0">{member['full_name'] || member['Full Name']}</h3>
                       {(() => {
                         const badge = calculateMemberBadge(member)
+                        if (badge === 'newcomer') return null
                         const badgeConfig = {
                           'member': { color: 'blue', icon: Award, display: 'Member Badge' },
                           'regular': { color: 'green', icon: UserCheck, display: 'Regular Attendee' },
-                          'newcomer': { color: 'yellow', icon: UserCheck, display: 'Newcomer' },
                           'VIP Member': { color: 'purple', icon: Award, display: 'VIP Member' },
                           'Youth Leader': { color: 'indigo', icon: Award, display: 'Youth Leader' }
                         }
@@ -674,20 +773,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       >
                         {badgeAssignmentLoading[member.id] === 'regular' ? '...' : <Star className="w-3 h-3 sm:w-4 sm:h-4" />}
                       </button>
-                      <button
-                        onClick={() => handleIndividualBadgeAssignment(member.id, 'newcomer')}
-                        disabled={badgeAssignmentLoading[member.id]}
-                        className={`p-1 rounded transition-all duration-200 ${
-                          memberHasBadge(member, 'newcomer')
-                            ? 'bg-yellow-800 dark:bg-yellow-700 text-white shadow-xl transform scale-110 ring-2 ring-yellow-300 dark:ring-yellow-400 border-2 border-yellow-900 dark:border-yellow-300 font-extrabold'
-                            : badgeAssignmentLoading[member.id] === 'newcomer'
-                            ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 border border-yellow-300 dark:border-yellow-700'
-                        }`}
-                        title={memberHasBadge(member, 'newcomer') ? "Click to remove Newcomer badge" : "Assign Newcomer Badge"}
-                      >
-                        {badgeAssignmentLoading[member.id] === 'newcomer' ? '...' : <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />}
-                      </button>
+
                     </div>
                   </div>
                 </div>
@@ -866,6 +952,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 <p><strong>Total members:</strong> {members.length}</p>
                 <p><strong>Filtered results:</strong> {filteredMembers.length}</p>
                 <p><strong>Current table:</strong> {currentTable}</p>
+                <p><strong>Supabase status:</strong> {isSupabaseConfigured() ? 'Connected' : 'Not configured (showing mock data)'}</p>
               </div>
               <button
                 onClick={forceRefreshMembers}
@@ -883,6 +970,11 @@ const Dashboard = ({ isAdmin = false }) => {
                 <Search className="w-4 h-4" />
                 Search All Tables
               </button>
+              {!isSupabaseConfigured() && (
+                <div className="mt-3 text-xs text-yellow-700 dark:text-yellow-300">
+                  Tip: Configure <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to search real data.
+                </div>
+              )}
             </div>
           )}
         </div>

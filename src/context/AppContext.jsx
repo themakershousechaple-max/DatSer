@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { toast } from 'react-toastify'
 
@@ -87,6 +87,9 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+  const [serverSearchResults, setServerSearchResults] = useState(null)
+  const searchCacheRef = useRef(new Map())
+  const nameColumnCacheRef = useRef(new Map())
   const [attendanceData, setAttendanceData] = useState({})
   const [currentTable, setCurrentTable] = useState(getLatestTable())
   const [monthlyTables, setMonthlyTables] = useState(FALLBACK_MONTHLY_TABLES)
@@ -813,7 +816,7 @@ export const AppProvider = ({ children }) => {
 
   // Delete member
   const deleteMember = async (memberId) => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured()) {
       console.warn('Supabase is not configured. Cannot delete member in demo mode.')
       return
     }
@@ -956,7 +959,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm)
-    }, 150) // Reduced debounce delay for faster response
+    }, 50)
 
     return () => clearTimeout(timer)
   }, [searchTerm])
@@ -977,6 +980,11 @@ export const AppProvider = ({ children }) => {
     if (!debouncedSearchTerm.trim()) {
       console.log('No search term, returning all members:', members.length)
       return members
+    }
+
+    if (serverSearchResults) {
+      console.log('Using server search results:', serverSearchResults.length)
+      return serverSearchResults
     }
 
     // Simple and fast search implementation
@@ -1001,7 +1009,97 @@ export const AppProvider = ({ children }) => {
     console.log('Filtered results count:', filtered.length)
     console.log('Filtered member names:', filtered.map(m => (m['Full Name'] || m['full_name'] || 'No Name')).join(', '))
     return filtered
-  }, [members, debouncedSearchTerm])
+  }, [members, debouncedSearchTerm, serverSearchResults])
+
+  const resolveNameColumn = useCallback(async (tableName) => {
+    const cached = nameColumnCacheRef.current.get(tableName)
+    if (cached) return cached
+    if (!isSupabaseConfigured()) return 'Full Name'
+    const { data } = await supabase.from(tableName).select('"Full Name", full_name').limit(1)
+    let nameCol = 'Full Name'
+    if (data && data.length) {
+      if (Object.prototype.hasOwnProperty.call(data[0], 'Full Name')) {
+        nameCol = 'Full Name'
+      } else if (Object.prototype.hasOwnProperty.call(data[0], 'full_name')) {
+        nameCol = 'full_name'
+      }
+    }
+    nameColumnCacheRef.current.set(tableName, nameCol)
+    return nameCol
+  }, [isSupabaseConfigured])
+
+  const performServerSearch = useCallback(async (term) => {
+    const trimmed = term.trim()
+    if (!trimmed) {
+      setServerSearchResults(null)
+      return
+    }
+    if (!isSupabaseConfigured()) {
+      setServerSearchResults(null)
+      return
+    }
+
+    // Quick attendance keywords
+    const kw = trimmed.toLowerCase()
+    if (kw === 'present' || kw === 'absent') {
+      await quickMarkAttendanceFromKeyword(kw)
+      setServerSearchResults(null)
+      return
+    }
+
+    const CACHE_DURATION = 10 * 60 * 1000
+    const cacheKey = `${currentTable}::${trimmed}`
+    const hit = searchCacheRef.current.get(cacheKey)
+    const now = Date.now()
+    if (hit && now - hit.timestamp < CACHE_DURATION) {
+      setServerSearchResults(hit.data || [])
+      return
+    }
+
+    const nameCol = await resolveNameColumn(currentTable)
+    const isAge = /^\d{1,3}$/.test(trimmed)
+    let query = supabase.from(currentTable).select('*')
+    if (isAge) {
+      query = query.eq('Age', parseInt(trimmed, 10))
+    } else {
+      const safe = trimmed.replace(/%/g, '').replace(/_/g, '').replace(/\s+/g, ' ').trim()
+      const orExpr = `"${nameCol}".ilike.%${safe}%,"${nameCol}".ilike.${safe}%,"${nameCol}".ilike.% ${safe}%`
+      query = query.or(orExpr)
+    }
+    const { data, error } = await query
+    if (error) {
+      console.error('Server search error', error)
+      setServerSearchResults(null)
+      return
+    }
+    const sorted = (data || []).slice().sort((a, b) => {
+      const an = (a[nameCol] || '').toString().toLowerCase()
+      const bn = (b[nameCol] || '').toString().toLowerCase()
+      if (an < bn) return -1
+      if (an > bn) return 1
+      return 0
+    })
+    searchCacheRef.current.set(cacheKey, { timestamp: now, data: sorted })
+    setServerSearchResults(sorted)
+  }, [currentTable, isSupabaseConfigured, resolveNameColumn])
+
+  useEffect(() => {
+    performServerSearch(debouncedSearchTerm)
+  }, [debouncedSearchTerm, currentTable, performServerSearch])
+
+  const quickMarkAttendanceFromKeyword = useCallback(async (kw) => {
+    const list = serverSearchResults && serverSearchResults.length > 0 ? serverSearchResults : filteredMembers
+    const first = list && list.length ? list[0] : null
+    if (!first) return
+    const status = kw === 'present' ? 'Present' : 'Absent'
+    try {
+      const dateStr = selectedAttendanceDate ? selectedAttendanceDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
+      await markAttendance(first.id, dateStr, status)
+      await fetchMembers(currentTable)
+    } catch (e) {
+      console.error('Quick mark attendance failed', e)
+    }
+  }, [serverSearchResults, filteredMembers, selectedAttendanceDate, markAttendance, fetchMembers, currentTable])
 
   // Function to refresh search results
   const refreshSearch = useCallback(() => {
@@ -1042,7 +1140,7 @@ export const AppProvider = ({ children }) => {
       try {
         console.log(`Checking table: ${tableName}`)
         
-        if (isSupabaseConfigured) {
+        if (isSupabaseConfigured()) {
           const { data, error } = await supabase
             .from(tableName)
             .select('*')
@@ -1329,6 +1427,7 @@ export const AppProvider = ({ children }) => {
     searchTerm,
     setSearchTerm,
     refreshSearch,
+    serverSearchResults,
     forceRefreshMembers,
     searchMemberAcrossAllTables,
     addMember,
@@ -1364,7 +1463,9 @@ export const AppProvider = ({ children }) => {
     initializeAttendanceDates,
     getSundaysInMonth,
     badgeFilter,
-    toggleBadgeFilter
+    toggleBadgeFilter,
+    // Expose Supabase configuration status to consumers
+    isSupabaseConfigured
   }
 
   return (
