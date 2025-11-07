@@ -184,7 +184,8 @@ export const AppProvider = ({ children }) => {
         }
         setMembers(prev => [newMember, ...prev])
         toast.success('Member added successfully! (Demo Mode)')
-        return { success: true, data: newMember }
+        // Return the created member object directly for downstream usage
+        return newMember
       }
 
       // Helper: sanitize phone to fit int4 (last 9 digits)
@@ -221,11 +222,13 @@ export const AppProvider = ({ children }) => {
 
       setMembers(prev => [data[0], ...prev])
       toast.success(`Member added successfully to ${currentTable}!`)
-      return { success: true, data: data[0] }
+      // Return the created member row directly
+      return data[0]
     } catch (error) {
       console.error('Error adding member:', error)
       toast.error('Failed to add member')
-      return { success: false, error }
+      // Propagate error; callers can catch
+      throw error
     }
   }
 
@@ -1134,10 +1137,10 @@ export const AppProvider = ({ children }) => {
     const list = serverSearchResults && serverSearchResults.length > 0 ? serverSearchResults : filteredMembers
     const first = list && list.length ? list[0] : null
     if (!first) return
-    const status = kw === 'present' ? 'Present' : 'Absent'
+    const statusBool = kw === 'present'
     try {
-      const dateStr = selectedAttendanceDate ? selectedAttendanceDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
-      await markAttendance(first.id, dateStr, status)
+      const dateObj = selectedAttendanceDate ? new Date(selectedAttendanceDate) : new Date()
+      await markAttendance(first.id, dateObj, statusBool)
       await fetchMembers(currentTable)
     } catch (e) {
       console.error('Quick mark attendance failed', e)
