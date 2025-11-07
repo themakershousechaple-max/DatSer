@@ -240,9 +240,12 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 name="phone_number"
                 value={formData.phone_number}
                 onChange={handleInputChange}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
                 placeholder="Enter phone number"
               />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Tip: enter local digits only; long numbers are trimmed for saving.</p>
             </div>
           </div>
 

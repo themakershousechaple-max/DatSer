@@ -22,6 +22,7 @@ const Dashboard = ({ isAdmin = false }) => {
     setSearchTerm, 
     refreshSearch,
     forceRefreshMembers,
+    forceRefreshMembersSilent,
     searchMemberAcrossAllTables,
     deleteMember, 
     markAttendance, 
@@ -61,6 +62,26 @@ const Dashboard = ({ isAdmin = false }) => {
   const [isBadgeDropdownOpen, setIsBadgeDropdownOpen] = useState(false)
   const [selectedSundayDate, setSelectedSundayDate] = useState(null)
   const [isSundayPopupOpen, setIsSundayPopupOpen] = useState(false)
+
+  // Quick filter: set badge filter exclusively to the given key
+  const setExclusiveBadgeFilter = (badgeKey) => {
+    const allBadges = ['member', 'regular', 'newcomer']
+    const isOnlyThis = badgeFilter.length === 1 && badgeFilter[0] === badgeKey
+    if (isOnlyThis) {
+      // Clear filter if the same quick filter is tapped again
+      toggleBadgeFilter(badgeKey)
+      return
+    }
+    // Ensure only the chosen badge is selected
+    allBadges.forEach((badge) => {
+      const included = badgeFilter.includes(badge)
+      if (badge === badgeKey) {
+        if (!included) toggleBadgeFilter(badge)
+      } else {
+        if (included) toggleBadgeFilter(badge)
+      }
+    })
+  }
 
   // Helper function to generate Sunday dates for the current month/year
   const generateSundayDates = (currentTable) => {
@@ -327,30 +348,19 @@ const Dashboard = ({ isAdmin = false }) => {
       }
       
       // Toggle the badge
-      await toggleMemberBadge(memberId, badgeType)
+      await toggleMemberBadge(memberId, badgeType, { suppressToast: true })
       await updateMemberBadges()
       
       const badgeName = badgeType.charAt(0).toUpperCase() + badgeType.slice(1)
-      
-      if (hasBadge) {
-        toast.success(`${badgeName} badge removed for: ${memberName}`, {
-          style: {
-            background: '#f3f4f6',
-            color: '#374151'
-          }
-        })
-      } else {
-        toast.success(`${badgeName} badge assigned to: ${memberName}`, {
-          style: {
-            background: badgeColors[badgeType],
-            color: '#ffffff'
-          }
-        })
-      }
-      
-      await updateMemberBadges()
-      // Ensure UI reflects latest DB state when using Supabase
-      await forceRefreshMembers()
+      // Single consolidated notification and silent refresh
+      const message = `${badgeName} badge ${hasBadge ? 'removed' : 'assigned'} for: ${memberName} • data refreshed`
+      toast.success(message, {
+        style: hasBadge
+          ? { background: '#f3f4f6', color: '#374151' }
+          : { background: badgeColors[badgeType], color: '#ffffff' }
+      })
+      // Ensure UI reflects latest DB state when using Supabase, but silently
+      await forceRefreshMembersSilent()
     } catch (error) {
       console.error('Error managing badge:', error)
       toast.error('Failed to update badge. Please try again.')
@@ -618,7 +628,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 </button>
               </div>
 
-              {/* Badge Types Reference */}
+              {/* Badge Types Reference (tap to quick filter) */}
               <div className="space-y-1">
                 <div className="text-xs text-gray-500 dark:text-gray-400">Badge Types Reference:</div>
                 <div className="flex flex-wrap gap-2">
@@ -626,21 +636,27 @@ const Dashboard = ({ isAdmin = false }) => {
                     { key: 'member', label: 'Member', icon: Award, color: 'blue' },
                     { key: 'regular', label: 'Regular', icon: UserCheck, color: 'green' },
                     { key: 'newcomer', label: 'Newcomer', icon: Star, color: 'yellow' }
-                  ].map(({ key, label, icon: Icon, color }) => (
-                    <div
-                      key={key}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium opacity-80 ${
-                        color === 'blue'
-                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                          : color === 'green'
-                          ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                          : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
-                      }`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      {label}
-                    </div>
-                  ))}
+                  ].map(({ key, label, icon: Icon, color }) => {
+                    const isActive = badgeFilter.length === 1 && badgeFilter[0] === key
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setExclusiveBadgeFilter(key)}
+                        title={isActive ? `Show all members (clear ${label})` : `Show only ${label} members`}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium opacity-80 cursor-pointer transition-all ${
+                          color === 'blue'
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                            : color === 'green'
+                            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
+                        } ${isActive ? 'ring-2 ring-primary-400 dark:ring-primary-500 shadow-sm' : ''}`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {label}
+                        {isActive && <Check className="w-3 h-3 ml-1" />}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -784,7 +800,7 @@ const Dashboard = ({ isAdmin = false }) => {
             </div>
           </div>
 
-          {/* Badge Types Reference (Display Only) */}
+          {/* Badge Types Reference (click to quick filter) */}
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="text-xs text-gray-500 dark:text-gray-400 sm:text-right mb-1 sm:mb-0">
               Badge Types Reference:
@@ -794,22 +810,27 @@ const Dashboard = ({ isAdmin = false }) => {
                 { key: 'member', label: 'Member', icon: Award, color: 'blue' },
                 { key: 'regular', label: 'Regular', icon: UserCheck, color: 'green' },
                 { key: 'newcomer', label: 'Newcomer', icon: Star, color: 'yellow' }
-              ].map(({ key, label, icon: Icon, color }) => (
-                <div
-                  key={key}
-                  title={`${label} badge - Use individual member buttons to assign`}
-                  className={`flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium cursor-default opacity-75 ${
-                    color === 'blue'
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                      : color === 'green'
-                      ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                      : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </div>
-              ))}
+              ].map(({ key, label, icon: Icon, color }) => {
+                const isActive = badgeFilter.length === 1 && badgeFilter[0] === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setExclusiveBadgeFilter(key)}
+                    title={isActive ? `Show all members (clear ${label})` : `Show only ${label} members`}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium opacity-75 cursor-pointer transition-all ${
+                      color === 'blue'
+                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                        : color === 'green'
+                        ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                        : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
+                    } ${isActive ? 'ring-2 ring-primary-400 dark:ring-primary-500 shadow-sm' : ''}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                    {isActive && <Check className="w-3 h-3 ml-1" />}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

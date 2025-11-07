@@ -187,12 +187,28 @@ export const AppProvider = ({ children }) => {
         return { success: true, data: newMember }
       }
 
+      // Helper: sanitize phone to fit int4 (last 9 digits)
+      const sanitizePhoneToInt = (val) => {
+        if (val === undefined || val === null) return null
+        const digits = String(val).replace(/\D+/g, '')
+        if (!digits) return null
+        const last9 = digits.slice(-9)
+        const num = Number.parseInt(last9, 10)
+        return Number.isFinite(num) ? num : null
+      }
+
       // Transform data to match monthly table structure
+      const genRaw = memberData.gender || memberData['Gender']
+      const gen = typeof genRaw === 'string'
+        ? (genRaw.trim().toLowerCase() === 'male' ? 'Male' : genRaw.trim().toLowerCase() === 'female' ? 'Female' : genRaw)
+        : genRaw
+      const ageRaw = memberData.age || memberData['Age']
+      const ageParsed = ageRaw === undefined || ageRaw === null || ageRaw === '' ? null : Number.parseInt(ageRaw, 10)
       const transformedData = {
         'Full Name': memberData.full_name || memberData.fullName || memberData['Full Name'],
-        'Gender': memberData.gender || memberData['Gender'],
-        'Phone Number': memberData.phone_number ? parseInt(memberData.phone_number) : (memberData.phoneNumber ? parseInt(memberData.phoneNumber) : null),
-        'Age': memberData.age || memberData['Age'],
+        'Gender': gen,
+        'Phone Number': sanitizePhoneToInt(memberData.phone_number ?? memberData.phoneNumber ?? memberData['Phone Number']),
+        'Age': Number.isFinite(ageParsed) ? ageParsed : null,
         'Current Level': memberData.current_level || memberData.currentLevel || memberData['Current Level']
       }
 
@@ -408,8 +424,9 @@ export const AppProvider = ({ children }) => {
   }
 
   // Toggle badge for member (supports multiple badges) - similar to attendance toggle
-  const toggleMemberBadge = async (memberId, badgeType) => {
+  const toggleMemberBadge = async (memberId, badgeType, options = {}) => {
     try {
+      const { suppressToast = false } = options
       console.log(`Toggling ${badgeType} badge for member ${memberId}`)
       console.log('Supabase configured:', isSupabaseConfigured())
       console.log('Current table:', currentTable)
@@ -499,21 +516,23 @@ export const AppProvider = ({ children }) => {
         return member
       }))
 
-      // Show success message like attendance system
-      if (currentlyHasBadge) {
-        toast.success(`${badgeType.charAt(0).toUpperCase() + badgeType.slice(1)} badge removed for: ${memberName}`, {
-          style: {
-            background: '#f3f4f6',
-            color: '#374151'
-          }
-        })
-      } else {
-        toast.success(`${badgeType.charAt(0).toUpperCase() + badgeType.slice(1)} badge assigned to: ${memberName}`, {
-          style: {
-            background: '#10b981',
-            color: '#ffffff'
-          }
-        })
+      // Show success message like attendance system (unless suppressed)
+      if (!suppressToast) {
+        if (currentlyHasBadge) {
+          toast.success(`${badgeType.charAt(0).toUpperCase() + badgeType.slice(1)} badge removed for: ${memberName}`, {
+            style: {
+              background: '#f3f4f6',
+              color: '#374151'
+            }
+          })
+        } else {
+          toast.success(`${badgeType.charAt(0).toUpperCase() + badgeType.slice(1)} badge assigned to: ${memberName}`, {
+            style: {
+              background: '#10b981',
+              color: '#ffffff'
+            }
+          })
+        }
       }
 
       return { success: true }
@@ -746,20 +765,52 @@ export const AppProvider = ({ children }) => {
         return updatedMember
       }
 
+      // Defensive copy so we can safely normalize values
+      let normalized = { ...updates }
+
       // Normalize name field using schema-aware detection
       const nameCol = await resolveNameColumn(currentTable)
       const incomingName = (
-        typeof updates.full_name === 'string' && updates.full_name.trim()
-      ) ? updates.full_name : (typeof updates['Full Name'] === 'string' ? updates['Full Name'] : undefined)
+        typeof normalized.full_name === 'string' && normalized.full_name.trim()
+      ) ? normalized.full_name : (typeof normalized['Full Name'] === 'string' ? normalized['Full Name'] : undefined)
       if (incomingName !== undefined) {
-        updates = { ...updates, [nameCol]: incomingName }
-        delete updates.full_name
-        delete updates['Full Name']
+        normalized = { ...normalized, [nameCol]: incomingName }
+        delete normalized.full_name
+        delete normalized['Full Name']
+      }
+
+      // Normalize gender to capitalized values the table expects
+      const incomingGender = normalized.gender ?? normalized['Gender']
+      if (typeof incomingGender === 'string') {
+        const cap = incomingGender.trim().toLowerCase() === 'male' ? 'Male'
+          : incomingGender.trim().toLowerCase() === 'female' ? 'Female'
+          : incomingGender
+        normalized = { ...normalized, Gender: cap }
+        delete normalized.gender
+      }
+
+      // Normalize phone number (string -> integer, empty -> null)
+      const incomingPhone = normalized.phone_number ?? normalized['Phone Number']
+      if (incomingPhone !== undefined) {
+        const digits = String(incomingPhone).replace(/\D+/g, '')
+        const last9 = digits ? digits.slice(-9) : ''
+        const parsed = last9 ? Number.parseInt(last9, 10) : null
+        normalized = { ...normalized, 'Phone Number': Number.isFinite(parsed) ? parsed : null }
+        delete normalized.phone_number
+      }
+
+      // Normalize age (string/number -> integer, empty -> null)
+      const incomingAge = normalized.age ?? normalized['Age']
+      if (incomingAge !== undefined) {
+        const rawAge = typeof incomingAge === 'string' ? incomingAge.trim() : incomingAge
+        const ageParsed = rawAge === '' || rawAge === null ? null : Number.parseInt(rawAge, 10)
+        normalized = { ...normalized, Age: Number.isFinite(ageParsed) ? ageParsed : null }
+        delete normalized.age
       }
 
       const { data, error } = await supabase
         .from(currentTable)
-        .update(updates)
+        .update(normalized)
         .eq('id', id)
         .select()
       
@@ -1120,6 +1171,18 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentTable, fetchMembers, members.length])
 
+  // Silent variant for programmatic refreshes (no toasts)
+  const forceRefreshMembersSilent = useCallback(async () => {
+    console.log('Force refreshing members (silent) ...')
+    try {
+      await fetchMembers(currentTable)
+      console.log('Members refreshed silently, new count:', members.length)
+    } catch (error) {
+      console.error('Error refreshing members (silent):', error)
+      // No toast here to prevent notification noise
+    }
+  }, [currentTable, fetchMembers, members.length])
+
   // Function to search for a member across all monthly tables
   const searchMemberAcrossAllTables = useCallback(async (searchName) => {
     console.log('=== SEARCHING ACROSS ALL TABLES ===')
@@ -1427,6 +1490,7 @@ export const AppProvider = ({ children }) => {
     refreshSearch,
     serverSearchResults,
     forceRefreshMembers,
+    forceRefreshMembersSilent,
     searchMemberAcrossAllTables,
     addMember,
     updateMember,
