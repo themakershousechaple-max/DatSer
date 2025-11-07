@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronRight, UserPlus, Award, Star, UserCheck, Check } from 'lucide-react'
+import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronRight, UserPlus, Award, Star, UserCheck, Check, RefreshCw } from 'lucide-react'
 import EditMemberModal from './EditMemberModal'
 import MemberModal from './MemberModal'
 import MonthModal from './MonthModal'
@@ -20,6 +20,8 @@ const Dashboard = ({ isAdmin = false }) => {
     loading, 
     searchTerm, 
     setSearchTerm, 
+    forceRefreshMembers,
+    searchMemberAcrossAllTables,
     deleteMember, 
     markAttendance, 
     bulkAttendance,
@@ -50,6 +52,9 @@ const Dashboard = ({ isAdmin = false }) => {
   // Badge management state
   const [isUpdatingBadges, setIsUpdatingBadges] = useState(false)
   const [badgeAssignmentLoading, setBadgeAssignmentLoading] = useState({})
+  
+  // Tab state for showing all members vs edited members
+  const [activeTab, setActiveTab] = useState('all') // 'all' or 'edited'
 
   // Helper function to generate Sunday dates for the current month/year
   const generateSundayDates = (currentTable) => {
@@ -90,6 +95,26 @@ const Dashboard = ({ isAdmin = false }) => {
   // Generate Sunday dates dynamically based on current table
   const sundayDates = generateSundayDates(currentTable)
 
+  // Function to check if a member has been edited (has attendance marked for any date)
+  const isEditedMember = (member) => {
+    return sundayDates.some(date => {
+      const dateKey = date
+      const dateAttendance = attendanceData[dateKey] || {}
+      return dateAttendance[member.id] === true || dateAttendance[member.id] === false
+    })
+  }
+
+  // Get filtered members based on active tab
+  const getTabFilteredMembers = () => {
+    const badgeFilteredMembers = getFilteredMembersByBadge()
+    
+    if (activeTab === 'edited') {
+      return badgeFilteredMembers.filter(member => isEditedMember(member))
+    }
+    
+    return badgeFilteredMembers
+  }
+
   // Fetch attendance when date changes
   useEffect(() => {
     if (selectedAttendanceDate) {
@@ -115,7 +140,7 @@ const Dashboard = ({ isAdmin = false }) => {
   }, [searchTerm])
 
   const handleDelete = async (member) => {
-    if (window.confirm(`Are you sure you want to delete ${member['Full Name']}?`)) {
+    if (window.confirm(`Are you sure you want to delete ${member['full_name'] || member['Full Name']}?`)) {
       try {
         await deleteMember(member.id)
         // Show success toast (would be implemented with react-toastify)
@@ -129,7 +154,7 @@ const Dashboard = ({ isAdmin = false }) => {
     setAttendanceLoading(prev => ({ ...prev, [memberId]: true }))
     try {
       const member = members.find(m => m.id === memberId)
-      const memberName = member ? member['Full Name'] : 'Member'
+      const memberName = member ? (member['full_name'] || member['Full Name']) : 'Member'
       const attendanceKey = `${memberId}_${selectedAttendanceDate}`
       const currentStatus = attendanceData[attendanceKey]
       
@@ -238,9 +263,13 @@ const Dashboard = ({ isAdmin = false }) => {
   }
 
   const getFilteredMembersByBadge = () => {
+    // When searching, ignore badge filters and search across all members
+    if (searchTerm.trim()) return filteredMembers
+
     // If no filters selected, show all members
     if (badgeFilter.length === 0) return filteredMembers
     
+    // Filter members by selected badge filters
     return filteredMembers.filter(member => {
       const badge = calculateMemberBadge(member)
       return badgeFilter.includes(badge)
@@ -254,7 +283,7 @@ const Dashboard = ({ isAdmin = false }) => {
     
     try {
       const member = members.find(m => m.id === memberId)
-      const memberName = member ? member['Full Name'] : 'Member'
+      const memberName = member ? (member['full_name'] || member['Full Name']) : 'Member'
       const hasBadge = memberHasBadge(member, badgeType)
       
       // Badge colors matching the icon colors
@@ -266,6 +295,7 @@ const Dashboard = ({ isAdmin = false }) => {
       
       // Toggle the badge
       await toggleMemberBadge(memberId, badgeType)
+      await updateMemberBadges()
       
       const badgeName = badgeType.charAt(0).toUpperCase() + badgeType.slice(1)
       
@@ -310,7 +340,7 @@ const Dashboard = ({ isAdmin = false }) => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Member Dashboard</h2>
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
             <p className="text-gray-600 dark:text-gray-300">
-              {getFilteredMembersByBadge().length} member{getFilteredMembersByBadge().length !== 1 ? 's' : ''} found
+              {getTabFilteredMembers().length} member{getTabFilteredMembers().length !== 1 ? 's' : ''} found
             </p>
             <div className="flex items-center text-sm">
               <span className="text-gray-500 dark:text-gray-400">Database:</span>
@@ -319,6 +349,40 @@ const Dashboard = ({ isAdmin = false }) => {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              activeTab === 'all'
+                ? 'bg-primary-600 text-white shadow-md'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            All Members
+          </button>
+          <button
+            onClick={() => setActiveTab('edited')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative ${
+              activeTab === 'edited'
+                ? 'bg-primary-600 text-white shadow-md'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            Edited Members
+            {(() => {
+              const editedCount = getFilteredMembersByBadge().filter(member => isEditedMember(member)).length
+              return editedCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
+                  {editedCount > 99 ? '99+' : editedCount}
+                </span>
+              )
+            })()}
+          </button>
         </div>
       </div>
 
@@ -444,6 +508,15 @@ const Dashboard = ({ isAdmin = false }) => {
               )}
             </div>
             
+            {/* Refresh Button */}
+            <button
+              onClick={forceRefreshMembers}
+              className="p-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
+              title="Refresh member data"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            
             {/* Date Selector */}
             <DateSelector />
           </div>
@@ -458,15 +531,15 @@ const Dashboard = ({ isAdmin = false }) => {
       <div className="space-y-3">
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
-          // Get badge-filtered members first
-          const badgeFilteredMembers = getFilteredMembersByBadge()
+          // Get tab-filtered members first
+          const tabFilteredMembers = getTabFilteredMembers()
           
           // When searching, show all matching results for better UX
           const membersToShow = searchTerm 
-            ? badgeFilteredMembers 
-            : badgeFilteredMembers.slice(0, displayLimit)
+            ? tabFilteredMembers 
+            : tabFilteredMembers.slice(0, displayLimit)
           
-          const hasMoreMembers = !searchTerm && badgeFilteredMembers.length > displayLimit
+          const hasMoreMembers = !searchTerm && tabFilteredMembers.length > displayLimit
           
           return (
             <>
@@ -494,7 +567,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-600 dark:text-primary-400" />
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0 flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate min-w-0">{member['Full Name']}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate min-w-0">{member['full_name'] || member['Full Name']}</h3>
                       {(() => {
                         const badge = calculateMemberBadge(member)
                         const badgeConfig = {
@@ -540,7 +613,7 @@ const Dashboard = ({ isAdmin = false }) => {
                         disabled={attendanceLoading[member.id]}
                         className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm font-bold transition-all duration-200 ${
                           attendanceData[`${member.id}_${selectedAttendanceDate}`] === true
-                            ? 'bg-green-700 dark:bg-green-600 text-white shadow-lg transform scale-110 ring-2 ring-green-400 dark:ring-green-500 border-2 border-green-800 dark:border-green-400'
+                            ? 'bg-green-800 dark:bg-green-700 text-white shadow-xl transform scale-110 ring-4 ring-green-300 dark:ring-green-400 border-2 border-green-900 dark:border-green-300 font-extrabold'
                             : attendanceLoading[member.id]
                             ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             : attendanceData[`${member.id}_${selectedAttendanceDate}`] === false
@@ -557,7 +630,7 @@ const Dashboard = ({ isAdmin = false }) => {
                         disabled={attendanceLoading[member.id]}
                         className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm font-bold transition-all duration-200 ${
                           attendanceData[`${member.id}_${selectedAttendanceDate}`] === false
-                            ? 'bg-red-700 dark:bg-red-600 text-white shadow-lg transform scale-110 ring-2 ring-red-400 dark:ring-red-500 border-2 border-red-800 dark:border-red-400'
+                            ? 'bg-red-800 dark:bg-red-700 text-white shadow-xl transform scale-110 ring-4 ring-red-300 dark:ring-red-400 border-2 border-red-900 dark:border-red-300 font-extrabold'
                             : attendanceLoading[member.id]
                             ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             : attendanceData[`${member.id}_${selectedAttendanceDate}`] === true
@@ -578,7 +651,7 @@ const Dashboard = ({ isAdmin = false }) => {
                         disabled={badgeAssignmentLoading[member.id]}
                         className={`p-1 rounded transition-all duration-200 ${
                           memberHasBadge(member, 'member')
-                            ? 'bg-blue-700 dark:bg-blue-600 text-white shadow-lg transform scale-110 ring-2 ring-blue-400 dark:ring-blue-500 border-2 border-blue-800 dark:border-blue-400'
+                            ? 'bg-blue-800 dark:bg-blue-700 text-white shadow-xl transform scale-110 ring-2 ring-blue-300 dark:ring-blue-400 border-2 border-blue-900 dark:border-blue-300 font-extrabold'
                             : badgeAssignmentLoading[member.id] === 'member'
                             ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 border border-blue-300 dark:border-blue-700'
@@ -592,7 +665,7 @@ const Dashboard = ({ isAdmin = false }) => {
                         disabled={badgeAssignmentLoading[member.id]}
                         className={`p-1 rounded transition-all duration-200 ${
                           memberHasBadge(member, 'regular')
-                            ? 'bg-green-700 dark:bg-green-600 text-white shadow-lg transform scale-110 ring-2 ring-green-400 dark:ring-green-500 border-2 border-green-800 dark:border-green-400'
+                            ? 'bg-green-800 dark:bg-green-700 text-white shadow-xl transform scale-110 ring-2 ring-green-300 dark:ring-green-400 border-2 border-green-900 dark:border-green-300 font-extrabold'
                             : badgeAssignmentLoading[member.id] === 'regular'
                             ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 border border-green-300 dark:border-green-700'
@@ -606,7 +679,7 @@ const Dashboard = ({ isAdmin = false }) => {
                         disabled={badgeAssignmentLoading[member.id]}
                         className={`p-1 rounded transition-all duration-200 ${
                           memberHasBadge(member, 'newcomer')
-                            ? 'bg-yellow-700 dark:bg-yellow-600 text-white shadow-lg transform scale-110 ring-2 ring-yellow-400 dark:ring-yellow-500 border-2 border-yellow-800 dark:border-yellow-400'
+                            ? 'bg-yellow-800 dark:bg-yellow-700 text-white shadow-xl transform scale-110 ring-2 ring-yellow-300 dark:ring-yellow-400 border-2 border-yellow-900 dark:border-yellow-300 font-extrabold'
                             : badgeAssignmentLoading[member.id] === 'newcomer'
                             ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 border border-yellow-300 dark:border-yellow-700'
@@ -698,9 +771,9 @@ const Dashboard = ({ isAdmin = false }) => {
                                 <button
                                   onClick={() => handleAttendanceForDate(member.id, true, date)}
                                   disabled={isLoading}
-                                  className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                  className={`flex-1 px-2 py-1 rounded text-xs font-bold transition-all duration-200 ${
                                     isPresent
-                                      ? 'bg-green-600 text-white'
+                                      ? 'bg-green-800 dark:bg-green-700 text-white shadow-lg ring-2 ring-green-300 dark:ring-green-400 border border-green-900 dark:border-green-300 font-extrabold'
                                       : isLoading
                                       ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                                       : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
@@ -711,9 +784,9 @@ const Dashboard = ({ isAdmin = false }) => {
                                 <button
                                   onClick={() => handleAttendanceForDate(member.id, false, date)}
                                   disabled={isLoading}
-                                  className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                  className={`flex-1 px-2 py-1 rounded text-xs font-bold transition-all duration-200 ${
                                     isAbsent
-                                      ? 'bg-red-600 text-white'
+                                      ? 'bg-red-800 dark:bg-red-700 text-white shadow-lg ring-2 ring-red-300 dark:ring-red-400 border border-red-900 dark:border-red-300 font-extrabold'
                                       : isLoading
                                       ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                                       : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800'
@@ -756,7 +829,7 @@ const Dashboard = ({ isAdmin = false }) => {
               ) : (
                 <>
                   <UserPlus className="w-4 h-4" />
-                  <span>Load More ({filteredMembers.length - displayLimit} remaining)</span>
+                  <span>Load More ({tabFilteredMembers.length - displayLimit} remaining)</span>
                 </>
               )}
             </button>
@@ -764,9 +837,9 @@ const Dashboard = ({ isAdmin = false }) => {
         )}
         
         {/* Members count info */}
-        {!searchTerm && filteredMembers.length > 0 && (
+        {!searchTerm && tabFilteredMembers.length > 0 && (
           <div className="text-center mt-4 text-sm text-gray-600 dark:text-gray-400">
-            Showing {Math.min(displayLimit, filteredMembers.length)} of {filteredMembers.length} members
+            Showing {Math.min(displayLimit, tabFilteredMembers.length)} of {tabFilteredMembers.length} members
           </div>
         )}
         
@@ -780,9 +853,38 @@ const Dashboard = ({ isAdmin = false }) => {
         <div className="text-center py-12">
           <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No members found</h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first member'}
           </p>
+          
+          {/* Debug Information for Search Issues */}
+          {searchTerm && members.length > 0 && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 max-w-md mx-auto text-left">
+              <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">🔍 Debug Info</h4>
+              <div className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                <p><strong>Search term:</strong> "{searchTerm}"</p>
+                <p><strong>Total members:</strong> {members.length}</p>
+                <p><strong>Filtered results:</strong> {filteredMembers.length}</p>
+                <p><strong>Current table:</strong> {currentTable}</p>
+              </div>
+              <button
+                onClick={forceRefreshMembers}
+                className="mt-3 w-full bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh Data
+              </button>
+              
+              <button
+                onClick={() => searchMemberAcrossAllTables(searchTerm)}
+                className="mt-2 w-full bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                disabled={!searchTerm.trim()}
+              >
+                <Search className="w-4 h-4" />
+                Search All Tables
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -69,7 +69,17 @@ const MemberModal = ({ isOpen, onClose }) => {
     return attendance
   }
 
-  const [sundayAttendance, setSundayAttendance] = useState(initializeSundayAttendance())
+  const [sundayAttendance, setSundayAttendance] = useState(() => initializeSundayAttendance())
+  const [previousIsOpen, setPreviousIsOpen] = useState(false)
+  
+  // Reset attendance state when modal opens (but not while it stays open) or current table changes
+  React.useEffect(() => {
+    if (isOpen && !previousIsOpen) {
+      // Modal just opened, reset attendance
+      setSundayAttendance(initializeSundayAttendance())
+    }
+    setPreviousIsOpen(isOpen)
+  }, [isOpen, currentTable])
 
   const levels = [
     'SHS1', 'SHS2', 'SHS3', 

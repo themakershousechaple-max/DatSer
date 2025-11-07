@@ -23,12 +23,27 @@ const AttendanceAnalytics = () => {
     supabase, 
     isSupabaseConfigured,
     members, 
+    currentTable, 
+    attendanceData, 
     calculateAttendanceRate, 
     calculateMemberBadge,
     updateMemberBadges,
     toggleMemberBadge
   } = useApp()
   const { isDarkMode } = useTheme()
+
+  // Helper function to get latest attendance status for a member
+  const getLatestAttendanceStatus = (member) => {
+    const attendanceDates = Object.keys(attendanceData).sort().reverse()
+    
+    for (const date of attendanceDates) {
+      const memberAttendance = attendanceData[date]?.[member.id]
+      if (memberAttendance !== undefined) {
+        return memberAttendance
+      }
+    }
+    return null
+  }
 
   // Helper function to convert badge types to display names
   const getBadgeDisplayName = (badgeType) => {
@@ -55,6 +70,9 @@ const AttendanceAnalytics = () => {
     minAttendanceRate: 75,
     newcomerMonths: 3
   })
+  
+  // Add badge filter state
+  const [badgeFilter, setBadgeFilter] = useState([])
   
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('badges') // badges, regulars, trends, newcomers, stats
@@ -111,7 +129,7 @@ const AttendanceAnalytics = () => {
         if (attendanceRate >= filters.minAttendanceRate) {
           regularAttendees.push({
             member_id: member.id,
-            member_name: member['Full Name'],
+            member_name: member['full_name'] || member['Full Name'],
             attendance_rate: attendanceRate,
             total_attended: Math.round((attendanceRate / 100) * 4), // Assuming 4 Sundays per month
             total_possible: 4,
@@ -124,7 +142,7 @@ const AttendanceAnalytics = () => {
         if (daysSinceJoin <= filters.newcomerMonths * 30) {
           newcomers.push({
             member_id: member.id,
-            member_name: member['Full Name'],
+            member_name: member['full_name'] || member['Full Name'],
             join_date: joinDate.toISOString(),
             attendance_rate: attendanceRate,
             days_since_join: daysSinceJoin,
@@ -162,7 +180,7 @@ const AttendanceAnalytics = () => {
         if (attendanceRate < 50 && attendanceRate > 0) {
           lowAttendance.push({
             id: member.id,
-            name: member['Full Name'],
+            name: member['full_name'] || member['Full Name'],
             phone: phone,
             attendanceRate: attendanceRate,
             lastAttendance: 'Recent', // This would need actual last attendance data
@@ -174,7 +192,7 @@ const AttendanceAnalytics = () => {
         if (attendanceRate === 0 && daysSinceJoin > 30) {
           longAbsent.push({
             id: member.id,
-            name: member['Full Name'],
+            name: member['full_name'] || member['Full Name'],
             phone: phone,
             daysSinceJoin: daysSinceJoin,
             reason: 'No recent attendance'
@@ -185,7 +203,7 @@ const AttendanceAnalytics = () => {
         if (daysSinceJoin <= 60 && attendanceRate < 75) {
           newcomersNeedingFollowup.push({
             id: member.id,
-            name: member['Full Name'],
+            name: member['full_name'] || member['Full Name'],
             phone: phone,
             attendanceRate: attendanceRate,
             daysSinceJoin: daysSinceJoin,
@@ -293,12 +311,31 @@ const AttendanceAnalytics = () => {
                         badgeType === 'newcomer' ? 'bg-yellow-500' :
                         'bg-gray-500'
                       }`}>
-                        {member['Full Name']?.charAt(0) || '?'}
+                        {(member['full_name'] || member['Full Name'])?.charAt(0) || '?'}
                       </div>
                       <div>
-                        <h5 className={`font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {member['Full Name']}
-                        </h5>
+                        <div className="flex items-center gap-2">
+                          <h5 className={`font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {member['full_name'] || member['Full Name']}
+                          </h5>
+                          {(() => {
+                            const attendanceStatus = getLatestAttendanceStatus(member)
+                            if (attendanceStatus === true) {
+                              return (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-800 dark:bg-green-700 text-white ring-2 ring-green-300 dark:ring-green-400">
+                                  P
+                                </span>
+                              )
+                            } else if (attendanceStatus === false) {
+                              return (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-red-800 dark:bg-red-700 text-white ring-2 ring-red-300 dark:ring-red-400">
+                                  A
+                                </span>
+                              )
+                            }
+                            return null
+                          })()}
+                        </div>
                         <p className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                           {member['Current Level']} • {member.attendanceRate}% attendance
                         </p>
@@ -575,7 +612,7 @@ const AttendanceAnalytics = () => {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className={`rounded-lg p-6 w-full max-w-md mx-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <h3 className={`text-lg font-semibold mb-4 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Manage Badge for {selectedMember['Full Name']}
+            Manage Badge for {selectedMember['full_name'] || selectedMember['Full Name']}
           </h3>
           
           <div className="space-y-4">
@@ -828,45 +865,91 @@ const AttendanceAnalytics = () => {
 
         {/* Filters */}
         <div className={`rounded-lg border p-4 mb-6 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Filters:
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Filters:
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Months back:
+                </label>
+                <select 
+                  value={filters.monthsBack}
+                  onChange={(e) => setFilters(prev => ({ ...prev, monthsBack: parseInt(e.target.value) }))}
+                  className={`px-2 py-1 rounded border text-sm transition-colors ${
+                    isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                >
+                  <option value={3}>3 months</option>
+                  <option value={6}>6 months</option>
+                  <option value={12}>12 months</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Min attendance:
+                </label>
+                <select 
+                  value={filters.minAttendanceRate}
+                  onChange={(e) => setFilters(prev => ({ ...prev, minAttendanceRate: parseInt(e.target.value) }))}
+                  className={`px-2 py-1 rounded border text-sm transition-colors ${
+                    isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                >
+                  <option value={0}>0%</option>
+                  <option value={25}>25%</option>
+                  <option value={50}>50%</option>
+                  <option value={75}>75%</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* Badge Filters */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Badge Filters:
               </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Months back:
-              </label>
-              <select 
-                value={filters.monthsBack}
-                onChange={(e) => setFilters(prev => ({ ...prev, monthsBack: parseInt(e.target.value) }))}
-                className={`px-2 py-1 rounded border text-sm transition-colors ${
-                  isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value={3}>3 months</option>
-                <option value={6}>6 months</option>
-                <option value={12}>12 months</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className={`text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Min attendance:
-              </label>
-              <select 
-                value={filters.minAttendanceRate}
-                onChange={(e) => setFilters(prev => ({ ...prev, minAttendanceRate: parseInt(e.target.value) }))}
-                className={`px-2 py-1 rounded border text-sm transition-colors ${
-                  isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value={0}>0%</option>
-                <option value={25}>25%</option>
-                <option value={50}>50%</option>
-                <option value={75}>75%</option>
-              </select>
+              {['member', 'regular', 'newcomer'].map((badge) => (
+                <button
+                  key={badge}
+                  onClick={() => {
+                    setBadgeFilter(prev => 
+                      prev.includes(badge) 
+                        ? prev.filter(b => b !== badge)
+                        : [...prev, badge]
+                    )
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
+                    badgeFilter.includes(badge)
+                      ? badge === 'member' 
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : badge === 'regular'
+                        ? 'bg-green-500 text-white border-green-500'
+                        : 'bg-yellow-500 text-white border-yellow-500'
+                      : isDarkMode
+                        ? 'bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600'
+                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                  }`}
+                >
+                  {getBadgeDisplayName(badge)}
+                </button>
+              ))}
+              {badgeFilter.length > 0 && (
+                <button
+                  onClick={() => setBadgeFilter([])}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Clear All
+                </button>
+              )}
             </div>
           </div>
         </div>

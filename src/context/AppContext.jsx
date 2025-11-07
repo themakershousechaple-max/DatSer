@@ -24,19 +24,23 @@ const FALLBACK_MONTHLY_TABLES = [
 
 // Get the latest available table with persistence
 const getLatestTable = () => {
+  // Force November_2025 as default (clear old localStorage)
+  localStorage.removeItem('selectedMonthTable')
+  localStorage.setItem('selectedMonthTable', 'November_2025')
+  
   // Try to get saved table from localStorage
   const savedTable = localStorage.getItem('selectedMonthTable')
   if (savedTable && FALLBACK_MONTHLY_TABLES.includes(savedTable)) {
     return savedTable
   }
   
-  // Default to current month if available, otherwise October_2025
+  // Default to current month if available, otherwise November_2025
   const currentMonthTable = getCurrentMonthTable()
   if (FALLBACK_MONTHLY_TABLES.includes(currentMonthTable)) {
     return currentMonthTable
   }
   
-  return 'October_2025'
+  return 'November_2025'
 }
 
 // Mock data for development when Supabase is not configured
@@ -45,7 +49,7 @@ const mockMembers = [
     id: '1',
     'Full Name': 'John Doe',
     'Gender': 'Male',
-    'Phone Number': '123-456-7890',
+    'Phone Number': 1234567890,
     'Age': '16',
     'Current Level': 'SHS1',
     inserted_at: new Date().toISOString()
@@ -54,7 +58,7 @@ const mockMembers = [
     id: '2',
     'Full Name': 'Jane Smith',
     'Gender': 'Female',
-    'Phone Number': '098-765-4321',
+    'Phone Number': 987654321,
     'Age': '15',
     'Current Level': 'JHS3',
     inserted_at: new Date().toISOString()
@@ -63,7 +67,7 @@ const mockMembers = [
     id: '3',
     'Full Name': 'Michael Johnson',
     'Gender': 'Male',
-    'Phone Number': '555-123-4567',
+    'Phone Number': 555123456,
     'Age': '17',
     'Current Level': 'SHS2',
     inserted_at: new Date().toISOString()
@@ -133,10 +137,18 @@ export const AppProvider = ({ children }) => {
         }
         setMembers(mockMembers) // Fallback to mock data
       } else {
-        // Filter out records with null Full Name
-        const validMembers = (data || []).filter(member => member['Full Name'])
-        setMembers(validMembers)
-        console.log(`Successfully loaded ${validMembers.length} members from ${tableName}`)
+        // Filter out records with null name, then normalize both name keys
+        const validMembers = (data || []).filter(member => member['full_name'] || member['Full Name'])
+        const normalizedMembers = validMembers.map(member => {
+          const name = (
+            typeof member['full_name'] === 'string' && member['full_name'].trim()
+          ) ? member['full_name'] : (typeof member['Full Name'] === 'string' ? member['Full Name'] : '')
+          return { ...member, full_name: name, 'Full Name': name }
+        })
+        setMembers(normalizedMembers)
+        console.log(`Successfully loaded ${normalizedMembers.length} members from ${tableName}`)
+        console.log('First few members:', normalizedMembers.slice(0, 3))
+        console.log('Sample member structure:', normalizedMembers[0])
         // Removed automatic toast notification on page load
       }
     } catch (error) {
@@ -155,11 +167,11 @@ export const AppProvider = ({ children }) => {
         // Demo mode - add to local state
         const newMember = {
           id: Date.now().toString(),
-          'Full Name': memberData.fullName || memberData['Full Name'],
+          'Full Name': memberData.full_name || memberData.fullName || memberData['Full Name'],
           'Gender': memberData.gender || memberData['Gender'],
-          'Phone Number': memberData.phoneNumber || memberData['Phone Number'],
+          'Phone Number': memberData.phone_number || memberData.phoneNumber || memberData['Phone Number'],
           'Age': memberData.age || memberData['Age'],
-          'Current Level': memberData.currentLevel || memberData['Current Level'],
+          'Current Level': memberData.current_level || memberData.currentLevel || memberData['Current Level'],
           'Member Status': 'New', // Default status for new members
           'Badge Type': 'newcomer', // Default badge
           'Join Date': new Date().toISOString().split('T')[0], // Join date
@@ -173,11 +185,11 @@ export const AppProvider = ({ children }) => {
 
       // Transform data to match monthly table structure
       const transformedData = {
-        'Full Name': memberData.fullName || memberData['Full Name'],
+        'Full Name': memberData.full_name || memberData.fullName || memberData['Full Name'],
         'Gender': memberData.gender || memberData['Gender'],
-        'Phone Number': parseInt(memberData.phoneNumber || memberData['Phone Number']),
+        'Phone Number': memberData.phone_number ? parseInt(memberData.phone_number) : (memberData.phoneNumber ? parseInt(memberData.phoneNumber) : null),
         'Age': memberData.age || memberData['Age'],
-        'Current Level': memberData.currentLevel || memberData['Current Level']
+        'Current Level': memberData.current_level || memberData.currentLevel || memberData['Current Level']
       }
 
       const { data, error } = await supabase
@@ -391,9 +403,24 @@ export const AppProvider = ({ children }) => {
     })))
   }
 
-  // Toggle badge for member (supports multiple badges)
+  // Toggle badge for member (supports multiple badges) - similar to attendance toggle
   const toggleMemberBadge = async (memberId, badgeType) => {
     try {
+      console.log(`Toggling ${badgeType} badge for member ${memberId}`)
+      console.log('Supabase configured:', isSupabaseConfigured())
+      console.log('Current table:', currentTable)
+      
+      // Find the member and log their current badge status
+      const member = members.find(m => m.id === memberId)
+      const memberName = member ? (member['Full Name'] || member['full_name']) : 'Member'
+      console.log('Member found:', memberName)
+      console.log('Current badge values:', {
+        Member: member?.Member,
+        Regular: member?.Regular,
+        Newcomer: member?.Newcomer,
+        'Manual Badges': member?.['Manual Badges']
+      })
+      
       if (!isSupabaseConfigured()) {
         // Demo mode - update local state
         setMembers(prev => prev.map(member => {
@@ -417,58 +444,50 @@ export const AppProvider = ({ children }) => {
         return { success: true }
       }
 
-      // For Supabase, we'll store the badges as a JSON array
-      const member = members.find(m => m.id === memberId)
-      const currentBadges = member['Manual Badges'] || []
-      let updatedBadges
+      // For Supabase, handle individual badge toggling like attendance
+      const targetMember = members.find(m => m.id === memberId)
       
-      if (currentBadges.includes(badgeType)) {
-        updatedBadges = currentBadges.filter(badge => badge !== badgeType)
-      } else {
-        updatedBadges = [...currentBadges, badgeType]
+      // Check current badge status - this determines if we're turning ON or OFF
+      const currentlyHasBadge = memberHasBadge(targetMember, badgeType)
+      console.log(`Current badge status for ${badgeType}:`, currentlyHasBadge)
+      
+      // Prepare update object - toggle the badge state
+      const updateData = {}
+      
+      // Update the specific badge column (toggle: if has badge, remove it; if doesn't have badge, add it)
+      if (badgeType === 'member') {
+        updateData.Member = currentlyHasBadge ? null : 'Yes'
+      } else if (badgeType === 'regular') {
+        updateData.Regular = currentlyHasBadge ? null : 'Yes'
+      } else if (badgeType === 'newcomer') {
+        updateData.Newcomer = currentlyHasBadge ? null : 'Yes'
       }
 
-      // Prepare update object
-      const updateData = { 'Manual Badges': JSON.stringify(updatedBadges) }
+      console.log('Update data:', updateData)
+      console.log('Updating member ID:', memberId)
       
-      // If current table is November_2025, also update role columns
-      if (currentTable === 'November_2025') {
-        // Clear all role columns first
-        updateData.Member = null
-        updateData.Regular = null
-        updateData.Newcomer = null
-        
-        // Set role columns based on selected badges
-        if (updatedBadges.includes('member')) {
-          updateData.Member = 'Yes'
-        }
-        if (updatedBadges.includes('regular')) {
-          updateData.Regular = 'Yes'
-        }
-        if (updatedBadges.includes('newcomer')) {
-          updateData.Newcomer = 'Yes'
-        }
-      }
-
       const { data, error } = await supabase
         .from(currentTable)
         .update(updateData)
         .eq('id', memberId)
         .select()
 
+      console.log('Supabase update result:', { data, error })
+      
       if (error) throw error
 
+      // Update local state to reflect the change
       setMembers(prev => prev.map(member => {
         if (member.id === memberId) {
-          const updatedMember = { 
-            ...member, 
-            'Manual Badges': updatedBadges,
-            // Update role columns for November_2025 table
-            ...(currentTable === 'November_2025' && {
-              'Member': updatedBadges.includes('member') ? 'Yes' : null,
-              'Regular': updatedBadges.includes('regular') ? 'Yes' : null,
-              'Newcomer': updatedBadges.includes('newcomer') ? 'Yes' : null
-            })
+          const updatedMember = { ...member }
+          
+          // Update the specific badge column in local state
+          if (badgeType === 'member') {
+            updatedMember.Member = currentlyHasBadge ? null : 'Yes'
+          } else if (badgeType === 'regular') {
+            updatedMember.Regular = currentlyHasBadge ? null : 'Yes'
+          } else if (badgeType === 'newcomer') {
+            updatedMember.Newcomer = currentlyHasBadge ? null : 'Yes'
           }
           
           return updatedMember
@@ -476,9 +495,27 @@ export const AppProvider = ({ children }) => {
         return member
       }))
 
+      // Show success message like attendance system
+      if (currentlyHasBadge) {
+        toast.success(`${badgeType.charAt(0).toUpperCase() + badgeType.slice(1)} badge removed for: ${memberName}`, {
+          style: {
+            background: '#f3f4f6',
+            color: '#374151'
+          }
+        })
+      } else {
+        toast.success(`${badgeType.charAt(0).toUpperCase() + badgeType.slice(1)} badge assigned to: ${memberName}`, {
+          style: {
+            background: '#10b981',
+            color: '#ffffff'
+          }
+        })
+      }
+
       return { success: true }
     } catch (error) {
-      console.error('Error assigning badge:', error)
+      console.error('Error toggling badge:', error)
+      toast.error('Failed to update badge. Please try again.')
       return { success: false, error }
     }
   }
@@ -542,18 +579,28 @@ export const AppProvider = ({ children }) => {
       const { data, error } = await supabase
         .from(currentTable)
         .update({
-          [attendanceColumn]: present ? 'Present' : 'Absent'
+          [attendanceColumn]: present === null ? null : (present ? 'Present' : 'Absent')
         })
         .eq('id', memberId)
 
       if (error) throw error
 
-      // Update local state
+      // Update local state for members
       setMembers(prev => prev.map(member => 
         member.id === memberId 
-          ? { ...member, [attendanceColumn]: present ? 'Present' : 'Absent' }
+          ? { ...member, [attendanceColumn]: present === null ? null : (present ? 'Present' : 'Absent') }
           : member
       ))
+
+      // Update local state for attendanceData (for real-time UI updates)
+      const dateKey = date.toISOString().split('T')[0]
+      setAttendanceData(prev => ({
+        ...prev,
+        [dateKey]: {
+          ...prev[dateKey],
+          [memberId]: present
+        }
+      }))
 
       return { success: true }
     } catch (error) {
@@ -609,12 +656,26 @@ export const AppProvider = ({ children }) => {
         throw new Error(`Failed to update ${errors.length} records`)
       }
 
-      // Update local state
+      // Update local state for members
       setMembers(prev => prev.map(member => 
         memberIds.includes(member.id)
           ? { ...member, [attendanceColumn]: attendanceValue }
           : member
       ))
+
+      // Update local state for attendanceData (for real-time UI updates)
+      const dateKey = date.toISOString().split('T')[0]
+      const updates = {}
+      memberIds.forEach(id => {
+        updates[id] = present
+      })
+      setAttendanceData(prev => ({
+        ...prev,
+        [dateKey]: {
+          ...prev[dateKey],
+          ...updates
+        }
+      }))
 
       toast.success(`Bulk attendance marked successfully for ${memberIds.length} members!`)
       return { success: true }
@@ -667,12 +728,45 @@ export const AppProvider = ({ children }) => {
     try {
       if (!isSupabaseConfigured()) {
         // Demo mode - update local state
-        const updatedMember = { ...members.find(m => m.id === id), ...updates }
+        const baseMember = members.find(m => m.id === id) || {}
+        const updatedMember = { ...baseMember, ...updates }
+        const updatedNameDemo = (
+          typeof updates.full_name === 'string' && updates.full_name.trim()
+        ) ? updates.full_name : (typeof updates['Full Name'] === 'string' ? updates['Full Name'] : undefined)
+        if (updatedNameDemo !== undefined) {
+          updatedMember['full_name'] = updatedNameDemo
+          updatedMember['Full Name'] = updatedNameDemo
+        }
         setMembers(prev => prev.map(m => m.id === id ? updatedMember : m))
         toast.success('Member updated successfully! (Demo Mode)')
-        // Refresh search results to ensure updated data is visible
-        setTimeout(() => refreshSearch(), 100)
         return updatedMember
+      }
+
+      // Normalize name field to match the current table schema
+      const targetMember = members.find(m => m.id === id)
+      if (targetMember) {
+        const hasPascalFullName = Object.prototype.hasOwnProperty.call(targetMember, 'Full Name')
+        const hasSnakeFullName = Object.prototype.hasOwnProperty.call(targetMember, 'full_name')
+
+        // If the table uses "Full Name", map incoming full_name to it
+        if (hasPascalFullName) {
+          if (updates.full_name && !updates['Full Name']) {
+            updates['Full Name'] = updates.full_name
+          }
+          delete updates.full_name
+        } else if (hasSnakeFullName) {
+          // If the table uses full_name, ensure we update that
+          if (updates['Full Name'] && !updates.full_name) {
+            updates.full_name = updates['Full Name']
+          }
+          delete updates['Full Name']
+        } else {
+          // Fallback: prefer "Full Name" as many monthly tables use it
+          if (updates.full_name && !updates['Full Name']) {
+            updates['Full Name'] = updates.full_name
+          }
+          delete updates.full_name
+        }
       }
 
       const { data, error } = await supabase
@@ -682,10 +776,33 @@ export const AppProvider = ({ children }) => {
         .select()
       
       if (error) throw error
-      setMembers(prev => prev.map(m => m.id === id ? data[0] : m))
+      
+      // Update members state with the returned data
+      setMembers(prev => {
+        const updatedRow = data[0] || {}
+        const updatedName = (
+          typeof updatedRow['full_name'] === 'string' && updatedRow['full_name'].trim()
+        ) ? updatedRow['full_name'] : (typeof updatedRow['Full Name'] === 'string' ? updatedRow['Full Name'] : undefined)
+        console.log('Updating member in state:', id, 'with name:', updatedName)
+        console.log('Updated row data:', updatedRow)
+        const updatedMembers = prev.map(m => {
+          if (m.id !== id) return m
+          const merged = { ...m, ...updatedRow }
+          if (updatedName !== undefined) {
+            merged['full_name'] = updatedName
+            merged['Full Name'] = updatedName
+          }
+          console.log('Merged member after update:', merged)
+          return merged
+        })
+        console.log('Updated members array:', updatedMembers)
+        return updatedMembers
+      })
+
+      // Update search term to trigger re-filtering
+      refreshSearch()
+      
       toast.success(`Member updated successfully in ${currentTable}!`)
-      // Refresh search results to ensure updated data is visible
-      setTimeout(() => refreshSearch(), 100)
       return data[0]
     } catch (error) {
       console.error('Error updating member:', error)
@@ -695,27 +812,31 @@ export const AppProvider = ({ children }) => {
   }
 
   // Delete member
-  const deleteMember = async (id) => {
-    try {
-      if (!isSupabaseConfigured()) {
-        // Demo mode - remove from local state
-        setMembers(prev => prev.filter(m => m.id !== id))
-        toast.success('Member deleted successfully! (Demo Mode)')
-        return
-      }
+  const deleteMember = async (memberId) => {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase is not configured. Cannot delete member in demo mode.')
+      return
+    }
 
+    setLoading(true)
+    try {
       const { error } = await supabase
         .from(currentTable)
         .delete()
-        .eq('id', id)
-      
-      if (error) throw error
-      setMembers(prev => prev.filter(m => m.id !== id))
-      toast.success(`Member deleted successfully from ${currentTable}!`)
+        .eq('id', memberId)
+
+      if (error) {
+        throw error
+      }
+
+      setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId))
+      refreshSearch() // Re-run search to update filtered list
+      console.log(`Member with ID ${memberId} deleted successfully.`)
     } catch (error) {
-      console.error('Error deleting member:', error)
-      toast.error('Failed to delete member')
-      throw error
+      console.error('Error deleting member:', error.message)
+      alert('Error deleting member: ' + error.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -783,7 +904,7 @@ export const AppProvider = ({ children }) => {
 
       const months = ['January', 'February', 'March', 'April', 'May', 'June', 
                      'July', 'August', 'September', 'October', 'November', 'December']
-      const years = ['2024', '2025', '2026']
+      const years = ['2025'] // Only check 2025 tables to avoid 404 errors
       const availableTables = []
 
       // Check each potential month table by trying to fetch from it
@@ -835,72 +956,139 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm)
-    }, 500) // 500ms debounce delay for better performance
+    }, 150) // Reduced debounce delay for faster response
 
     return () => clearTimeout(timer)
   }, [searchTerm])
 
-  // Enhanced filter members based on debounced search term with robust matching
-  // Pre-compute searchable data for better performance
-  const membersWithSearchData = useMemo(() => {
-    return members.map(member => {
-      const fullName = member['Full Name']?.toLowerCase() || ''
-      const gender = member.Gender?.toLowerCase() || ''
-      const phoneNumber = member['Phone Number']?.toString().toLowerCase() || ''
-      const currentLevel = member['Current Level']?.toLowerCase() || ''
-      const age = member.Age?.toString().toLowerCase() || ''
-      
-      // Pre-compute phone number without separators for faster matching
-      const cleanPhoneNumber = phoneNumber.replace(/[-\s()]/g, '')
-      
-      // Create a single searchable text for faster single-pass searching
-      const searchableText = `${fullName} ${gender} ${phoneNumber} ${currentLevel} ${age} ${cleanPhoneNumber}`
-      
-      return {
-        ...member,
-        _searchData: {
-          fullName,
-          gender,
-          phoneNumber,
-          currentLevel,
-          age,
-          cleanPhoneNumber,
-          searchableText,
-          nameWords: fullName.split(/\s+/).filter(word => word.length > 0)
-        }
-      }
-    })
-  }, [members])
-
+  // Optimized filter members based on debounced search term
   const filteredMembers = useMemo(() => {
+    console.log('=== SEARCH DEBUG START ===')
+    console.log('Current table being searched:', currentTable)
+    console.log('FilteredMembers calculation - members count:', members.length)
+    console.log('FilteredMembers calculation - search term:', debouncedSearchTerm)
+    console.log('All member names:', members.map(m => (m['Full Name'] || m['full_name'] || 'No Name')).join(', '))
+    console.log('=== MEMBER LIST START ===')
+    members.forEach((member, index) => {
+      console.log(`Member ${index + 1}:`, member['Full Name'] || member['full_name'] || 'No Name')
+    })
+    console.log('=== MEMBER LIST END ===')
+    
     if (!debouncedSearchTerm.trim()) {
-      return membersWithSearchData
+      console.log('No search term, returning all members:', members.length)
+      return members
     }
 
-    // Split search term into individual words for partial matching
-    const searchWords = debouncedSearchTerm.toLowerCase().trim().split(/\s+/)
+    // Simple and fast search implementation
+    const searchTerm = debouncedSearchTerm.toLowerCase().trim()
+    console.log('Searching for:', searchTerm)
     
-    return membersWithSearchData.filter(member => {
-      const { searchableText, nameWords } = member._searchData
+    const filtered = members.filter(member => {
+      // Check both full_name and Full Name fields to ensure compatibility
+      const fullName = (
+        (typeof member['full_name'] === 'string' ? member['full_name'] : '') || 
+        (typeof member['Full Name'] === 'string' ? member['Full Name'] : '') || 
+        ''
+      ).toLowerCase()
       
-      // Check if ALL search words match somewhere in the member data
-      return searchWords.every(searchWord => {
-        // First check the combined searchable text (fastest)
-        if (searchableText.includes(searchWord)) {
-          return true
-        }
-        
-        // If not found in combined text, check individual name words
-        return nameWords.some(nameWord => nameWord.includes(searchWord))
-      })
+      // Log for debugging
+      console.log(`Searching: "${searchTerm}" in "${fullName}"`, fullName.includes(searchTerm))
+      
+      // Match if the search term is found anywhere in the full name
+      return fullName.includes(searchTerm)
     })
-  }, [membersWithSearchData, debouncedSearchTerm])
+    
+    console.log('Filtered results count:', filtered.length)
+    console.log('Filtered member names:', filtered.map(m => (m['Full Name'] || m['full_name'] || 'No Name')).join(', '))
+    return filtered
+  }, [members, debouncedSearchTerm])
 
   // Function to refresh search results
   const refreshSearch = useCallback(() => {
-    // Force immediate update of debounced search term
-    setDebouncedSearchTerm(searchTerm)
+    // Force immediate update of debounced search term and trigger re-computation
+    const currentSearch = searchTerm
+    
+    // Directly update the debounced search term to ensure immediate filtering
+    setDebouncedSearchTerm(currentSearch)
+    
+    // Log for debugging
+    console.log('Refreshing search with term:', currentSearch)
   }, [searchTerm])
+
+  // Function to force refresh members from database
+  const forceRefreshMembers = useCallback(async () => {
+    console.log('Force refreshing members from database...')
+    toast.info('Refreshing member data...')
+    
+    try {
+      await fetchMembers(currentTable)
+      toast.success('Member data refreshed successfully!')
+      console.log('Members refreshed, new count:', members.length)
+    } catch (error) {
+      console.error('Error refreshing members:', error)
+      toast.error('Failed to refresh member data')
+    }
+  }, [currentTable, fetchMembers, members.length])
+
+  // Function to search for a member across all monthly tables
+  const searchMemberAcrossAllTables = useCallback(async (searchName) => {
+    console.log('=== SEARCHING ACROSS ALL TABLES ===')
+    console.log('Looking for:', searchName)
+    
+    const searchTerm = searchName.toLowerCase().trim()
+    const foundInTables = []
+    
+    for (const tableName of monthlyTables) {
+      try {
+        console.log(`Checking table: ${tableName}`)
+        
+        if (isSupabaseConfigured) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .select('*')
+          
+          if (error) {
+            console.log(`Error accessing ${tableName}:`, error.message)
+            continue
+          }
+          
+          const foundMembers = data?.filter(member => {
+            const fullName = (
+              (typeof member['full_name'] === 'string' ? member['full_name'] : '') || 
+              (typeof member['Full Name'] === 'string' ? member['Full Name'] : '') || 
+              ''
+            ).toLowerCase()
+            
+            return fullName.includes(searchTerm)
+          }) || []
+          
+          if (foundMembers.length > 0) {
+            console.log(`Found ${foundMembers.length} matches in ${tableName}:`)
+            foundMembers.forEach(member => {
+              console.log(`  - ${member['Full Name'] || member['full_name']}`)
+            })
+            foundInTables.push({ table: tableName, members: foundMembers })
+          }
+        }
+      } catch (error) {
+        console.log(`Error searching ${tableName}:`, error.message)
+      }
+    }
+    
+    console.log('=== SEARCH RESULTS ===')
+    if (foundInTables.length === 0) {
+      console.log('Member not found in any table')
+      toast.error(`"${searchName}" not found in any monthly table`)
+    } else {
+      console.log(`Found in ${foundInTables.length} table(s):`)
+      foundInTables.forEach(({ table, members }) => {
+        console.log(`  ${table}: ${members.length} match(es)`)
+      })
+      toast.success(`Found "${searchName}" in ${foundInTables.length} table(s)`)
+    }
+    
+    return foundInTables
+  }, [monthlyTables, isSupabaseConfigured])
 
   // Wrapper function to set attendance date and save to localStorage
   const setAndSaveAttendanceDate = useCallback((date) => {
@@ -946,9 +1134,193 @@ export const AppProvider = ({ children }) => {
 
   // Helper function to check if member has a specific badge
   const memberHasBadge = (member, badgeType) => {
-    const manualBadges = member['Manual Badges'] || []
-    return manualBadges.includes(badgeType)
+    // Check both the Supabase columns and Manual Badges array for compatibility
+    let hasSupabaseBadge = false
+    let hasManualBadge = false
+    
+    switch (badgeType) {
+      case 'member':
+        hasSupabaseBadge = member['Member'] === 'Yes'
+        hasManualBadge = (member['Manual Badges'] || []).includes('member')
+        break
+      case 'regular':
+        hasSupabaseBadge = member['Regular'] === 'Yes'
+        hasManualBadge = (member['Manual Badges'] || []).includes('regular')
+        break
+      case 'newcomer':
+        hasSupabaseBadge = member['Newcomer'] === 'Yes'
+        hasManualBadge = (member['Manual Badges'] || []).includes('newcomer')
+        break
+      default:
+        return false
+    }
+    
+    const result = hasSupabaseBadge || hasManualBadge
+    console.log(`memberHasBadge(${member?.['Full Name'] || member?.['full_name']}, ${badgeType}):`, {
+      hasSupabaseBadge,
+      hasManualBadge,
+      result,
+      supabaseValue: member[badgeType === 'member' ? 'Member' : badgeType === 'regular' ? 'Regular' : 'Newcomer'],
+      manualBadges: member['Manual Badges']
+    })
+    
+    return result
   }
+
+  // Load all attendance data for all Sunday dates in the current month
+  const loadAllAttendanceData = async () => {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('Demo mode - attendance data will be managed locally')
+        return
+      }
+
+      // Get all attendance columns for the current table
+      const attendanceColumns = await getAttendanceColumns()
+      
+      if (attendanceColumns.length === 0) {
+        console.log('No attendance columns found in current table')
+        return
+      }
+
+      // Build select query for all attendance columns
+      const selectColumns = ['id', ...attendanceColumns.map(col => `"${col.column_name}"`)]
+      
+      const { data, error } = await supabase
+        .from(currentTable)
+        .select(selectColumns.join(', '))
+
+      if (error) throw error
+
+      // Transform data into the format expected by the UI
+      const newAttendanceData = {}
+      
+      attendanceColumns.forEach(col => {
+        const columnName = col.column_name
+        const dateMatch = columnName.match(/(\d+)(st|nd|rd|th)/)
+        
+        if (dateMatch) {
+          const day = parseInt(dateMatch[1])
+          // Get current month and year from table name
+          const [monthName, year] = currentTable.split('_')
+          const monthIndex = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ].indexOf(monthName)
+          
+          if (monthIndex !== -1) {
+            const date = new Date(parseInt(year), monthIndex, day)
+            const dateKey = date.toISOString().split('T')[0]
+            
+            newAttendanceData[dateKey] = {}
+            
+            data.forEach(record => {
+              if (record[columnName]) {
+                newAttendanceData[dateKey][record.id] = record[columnName] === 'Present'
+              }
+            })
+          }
+        }
+      })
+
+      // Update attendance data state
+      setAttendanceData(newAttendanceData)
+      console.log('Loaded attendance data for all dates:', Object.keys(newAttendanceData))
+      
+    } catch (error) {
+      console.error('Error loading attendance data:', error)
+    }
+  }
+
+  // Load all badge data for the current table
+  const loadAllBadgeData = async () => {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('Demo mode - badge data will be managed locally')
+        return
+      }
+
+      console.log('Loading badge data from Supabase...')
+      
+      const { data, error } = await supabase
+        .from(currentTable)
+        .select('id, "Member", "Regular", "Newcomer", "Manual Badge", "Badge Type"')
+
+      if (error) {
+        console.error('Error loading badge data:', error)
+        return
+      }
+
+      console.log('Badge data loaded:', data?.slice(0, 3)) // Log first 3 records for debugging
+      
+      // Update members with badge data
+      setMembers(prev => prev.map(member => {
+        const badgeData = data.find(d => d.id === member.id)
+        if (badgeData) {
+          return {
+            ...member,
+            'Member': badgeData.Member,
+            'Regular': badgeData.Regular,
+            'Newcomer': badgeData.Newcomer,
+            'Manual Badge': badgeData['Manual Badge'],
+            'Badge Type': badgeData['Badge Type']
+          }
+        }
+        return member
+      }))
+      
+    } catch (error) {
+      console.error('Error loading badge data:', error)
+    }
+  }
+
+  // Load attendance and badge data when table changes
+  useEffect(() => {
+    if (currentTable) {
+      loadAllAttendanceData()
+      loadAllBadgeData()
+    }
+  }, [currentTable])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    const channel = supabase
+      .channel('public:members')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: currentTable,
+        },
+        (payload) => {
+          console.log('Change received!', payload);
+
+          if (payload.eventType === 'INSERT') {
+            // Add the new member to the local state
+            setMembers((prevMembers) => [...prevMembers, payload.new]);
+          } else if (payload.eventType === 'UPDATE') {
+            // Update the existing member in the local state
+            setMembers((prevMembers) =>
+              prevMembers.map((member) =>
+                member.id === payload.new.id ? payload.new : member
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            // Remove the deleted member from the local state
+            setMembers((prevMembers) =>
+              prevMembers.filter((member) => member.id !== payload.old.id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentTable]);
 
   const value = {
     members,
@@ -957,6 +1329,8 @@ export const AppProvider = ({ children }) => {
     searchTerm,
     setSearchTerm,
     refreshSearch,
+    forceRefreshMembers,
+    searchMemberAcrossAllTables,
     addMember,
     updateMember,
     deleteMember,
@@ -966,6 +1340,8 @@ export const AppProvider = ({ children }) => {
     markAttendance,
     bulkAttendance,
     fetchAttendanceForDate,
+    loadAllAttendanceData,
+    loadAllBadgeData,
     currentTable,
     monthlyTables,
     setCurrentTable: changeCurrentTable,
@@ -997,5 +1373,3 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   )
 }
-
-export default AppContext

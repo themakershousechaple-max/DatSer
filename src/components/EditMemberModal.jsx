@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext'
 import { X, User, Phone, Calendar, BookOpen } from 'lucide-react'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
-  const { updateMember, markAttendance, refreshSearch, currentTable } = useApp()
+  const { updateMember, markAttendance, refreshSearch, currentTable, attendanceData, fetchAttendanceForDate } = useApp()
   const { isDarkMode } = useTheme()
   
   // Helper function to get month display name from table name
@@ -71,7 +71,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
   useEffect(() => {
     if (member) {
       setFormData({
-        full_name: member['Full Name'] || '',
+        full_name: (member['full_name'] || member['Full Name'] || ''),
         gender: member['Gender'] || '',
         phone_number: member['Phone Number'] || '',
         age: member['Age'] || '',
@@ -80,16 +80,53 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     }
   }, [member])
 
+  // Load existing attendance data when modal opens
+  useEffect(() => {
+    if (isOpen && member && sundayDates.length > 0) {
+      // Load attendance for all Sunday dates
+      sundayDates.forEach(date => {
+        fetchAttendanceForDate(new Date(date))
+      })
+      
+      // Set initial attendance state from loaded data
+      const initialAttendance = {}
+      sundayDates.forEach(date => {
+        const dateKey = date
+        const memberAttendance = attendanceData[dateKey]?.[member.id]
+        if (memberAttendance !== undefined) {
+          initialAttendance[date] = memberAttendance
+        }
+      })
+      setSundayAttendance(initialAttendance)
+    }
+  }, [isOpen, member, sundayDates, attendanceData, fetchAttendanceForDate])
+
+  // Update attendance state when attendanceData changes
+  useEffect(() => {
+    if (member && sundayDates.length > 0) {
+      const updatedAttendance = {}
+      sundayDates.forEach(date => {
+        const dateKey = date
+        const memberAttendance = attendanceData[dateKey]?.[member.id]
+        if (memberAttendance !== undefined) {
+          updatedAttendance[date] = memberAttendance
+        }
+      })
+      setSundayAttendance(prev => ({ ...prev, ...updatedAttendance }))
+    }
+  }, [attendanceData, member, sundayDates])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     try {
       await updateMember(member.id, {
-        'Full Name': formData.full_name,
-        'Gender': formData.gender,
+        // Pass normalized fields; AppContext will map to the correct table column
+        full_name: formData.full_name,
+        Gender: formData.gender,
         'Phone Number': formData.phone_number || null,
-        'Age': formData.age ? parseInt(formData.age) : null,
+        Age: formData.age ? parseInt(formData.age) : null,
         'Current Level': formData.current_level
       })
 
@@ -282,9 +319,9 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                       <button
                         type="button"
                         onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: true }))}
-                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                        className={`px-3 py-1 text-xs rounded-full font-bold transition-all duration-200 ${
                           sundayAttendance[date] === true
-                            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700'
+                            ? 'bg-green-800 dark:bg-green-700 text-white shadow-xl ring-4 ring-green-300 dark:ring-green-400 border-2 border-green-900 dark:border-green-300 font-extrabold transform scale-110'
                             : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-green-50 dark:hover:bg-green-800'
                         }`}
                       >
@@ -293,9 +330,9 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                       <button
                         type="button"
                         onClick={() => setSundayAttendance(prev => ({ ...prev, [date]: false }))}
-                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                        className={`px-3 py-1 text-xs rounded-full font-bold transition-all duration-200 ${
                           sundayAttendance[date] === false
-                            ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700'
+                            ? 'bg-red-800 dark:bg-red-700 text-white shadow-xl ring-4 ring-red-300 dark:ring-red-400 border-2 border-red-900 dark:border-red-300 font-extrabold transform scale-110'
                             : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-red-50 dark:hover:bg-red-800'
                         }`}
                       >

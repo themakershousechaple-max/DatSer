@@ -61,7 +61,7 @@ const MonthlyExport = () => {
         
         return {
           id: member.id,
-          name: member['Full Name'],
+          name: member['full_name'] || member['Full Name'],
           gender: member['Gender'],
           phone: member['Phone Number'],
           age: member['Age'],

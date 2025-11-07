@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { Calendar, Database, Users, Activity, LogOut, RefreshCw, Filter, Edit, Search } from 'lucide-react'
+import { Calendar, Database, Users, Activity, LogOut, RefreshCw, Filter, Edit, Search, Trash2, X } from 'lucide-react'
 import EditMemberModal from './EditMemberModal'
 
 const AdminPanel = ({ onLogout }) => {
@@ -15,7 +15,9 @@ const AdminPanel = ({ onLogout }) => {
     searchTerm,
     setSearchTerm,
     filteredMembers,
-    refreshSearch
+    refreshSearch,
+    attendanceData,
+    changeCurrentTable
   } = useApp()
   const { isDarkMode } = useTheme()
   
@@ -47,12 +49,29 @@ const AdminPanel = ({ onLogout }) => {
 
 
 
-  // Filter members based on search term
+  // Helper function to get latest attendance status for a member
+  const getLatestAttendanceStatus = (member) => {
+    // Get all attendance dates and find the most recent one with data for this member
+    const attendanceDates = Object.keys(attendanceData).sort().reverse()
+    
+    for (const date of attendanceDates) {
+      const memberAttendance = attendanceData[date]?.[member.id]
+      if (memberAttendance !== undefined) {
+        return memberAttendance // true for present, false for absent
+      }
+    }
+    return null // No attendance data found
+  }
 
+  // Filter members based on search term
+  const filteredMembersList = members.filter(member => {
+    const fullName = (member['full_name'] || member['Full Name'] || '').toLowerCase()
+    return fullName.includes(searchTerm.toLowerCase())
+  })
 
   const handleTableSwitch = (tableName) => {
     console.log(`Switching to table: ${tableName}`)
-    setCurrentTable(tableName)
+    changeCurrentTable(tableName)
   }
 
   const getMonthDisplayName = (tableName) => {
@@ -343,7 +362,38 @@ const AdminPanel = ({ onLogout }) => {
                       <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="ml-3 flex-1">
-                      <h3 className="font-medium text-gray-900 dark:text-white">{member['Full Name']}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-gray-900 dark:text-white">{member['full_name'] || member['Full Name']}</h3>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent triggering the member edit modal
+                            if (window.confirm(`Are you sure you want to delete ${member['full_name'] || member['Full Name']}?`)) {
+                              deleteMember(member.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-600 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                          title="Delete Member"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {(() => {
+                        const attendanceStatus = getLatestAttendanceStatus(member)
+                        if (attendanceStatus === true) {
+                          return (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-800 dark:bg-green-700 text-white ring-2 ring-green-300 dark:ring-green-400">
+                              P
+                            </span>
+                          )
+                        } else if (attendanceStatus === false) {
+                          return (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-red-800 dark:bg-red-700 text-white ring-2 ring-red-300 dark:ring-red-400">
+                              A
+                            </span>
+                          )
+                        }
+                        return null
+                      })()}
                       <p className="text-sm text-gray-600 dark:text-gray-300">{member.Gender}</p>
                     </div>
                   </div>
