@@ -855,9 +855,21 @@ export const AppProvider = ({ children }) => {
 
   // Delete member
   const deleteMember = async (memberId) => {
+    // Support deletion in demo mode by updating local state so mobile users on static deployments can manage entries
     if (!isSupabaseConfigured()) {
-      console.warn('Supabase is not configured. Cannot delete member in demo mode.')
-      return
+      setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId))
+      // Also remove from attendanceData snapshots to keep UI consistent
+      setAttendanceData(prev => {
+        const next = {}
+        Object.entries(prev).forEach(([dateKey, map]) => {
+          const { [memberId]: _removed, ...rest } = map || {}
+          next[dateKey] = rest
+        })
+        return next
+      })
+      refreshSearch()
+      toast.success('Member deleted (Demo Mode)')
+      return { success: true }
     }
 
     setLoading(true)
@@ -874,9 +886,10 @@ export const AppProvider = ({ children }) => {
       setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId))
       refreshSearch() // Re-run search to update filtered list
       console.log(`Member with ID ${memberId} deleted successfully.`)
+      toast.success('Member deleted')
     } catch (error) {
       console.error('Error deleting member:', error.message)
-      alert('Error deleting member: ' + error.message)
+      toast.error('Error deleting member: ' + error.message)
     } finally {
       setLoading(false)
     }

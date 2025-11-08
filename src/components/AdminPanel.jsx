@@ -312,6 +312,8 @@ const AdminPanel = ({ onLogout }) => {
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-gray-900 dark:text-white">{member['full_name'] || member['Full Name']}</h3>
                         <button
+                          type="button"
+                          onTouchStart={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation(); // Prevent triggering the member edit modal
                             if (window.confirm(`Are you sure you want to delete ${member['full_name'] || member['Full Name']}?`)) {

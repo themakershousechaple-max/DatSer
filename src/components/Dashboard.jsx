@@ -1413,6 +1413,7 @@ const Dashboard = ({ isAdmin = false }) => {
                             <span>Edit Member</span>
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDelete(member)}
                             className="flex items-center space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
                           >
