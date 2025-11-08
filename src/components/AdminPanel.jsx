@@ -386,9 +386,9 @@ const AdminPanel = ({ onLogout }) => {
       </div>
 
       {/* Bottom Search Bar fills safe area with bar color */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 p-4 shadow-lg z-50 transition-colors safe-area-bottom">
-        <div className="max-w-7xl mx-auto pb-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
-          <div className="flex items-center gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors safe-area-bottom">
+        <div className="max-w-7xl mx-auto pb-2">
+          <div className="flex items-center gap-2">
             {/* Search Input */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />

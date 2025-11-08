@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext'
 import { X, User, Phone, Calendar, BookOpen, ChevronDown, Info } from 'lucide-react'
 
 const MemberModal = ({ isOpen, onClose }) => {
-  const { addMember, markAttendance, currentTable } = useApp()
+  const { addMember, markAttendance, currentTable, toggleMemberBadge, updateMemberBadges } = useApp()
   const { isDarkMode } = useTheme()
   
   // Helper function to get month display name from table name
@@ -71,6 +71,7 @@ const MemberModal = ({ isOpen, onClose }) => {
 
   const [sundayAttendance, setSundayAttendance] = useState(() => initializeSundayAttendance())
   const [previousIsOpen, setPreviousIsOpen] = useState(false)
+  const [selectedTags, setSelectedTags] = useState([]) // ['member','regular','newcomer']
   
   // Reset attendance state when modal opens (but not while it stays open) or current table changes
   React.useEffect(() => {
@@ -87,6 +88,13 @@ const MemberModal = ({ isOpen, onClose }) => {
     'COMPLETED', 'UNIVERSITY'
   ]
 
+  const toggleTagSelect = (tag) => {
+    setSelectedTags(prev => prev.includes(tag)
+      ? prev.filter(t => t !== tag)
+      : [...prev, tag]
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -97,7 +105,23 @@ const MemberModal = ({ isOpen, onClose }) => {
         age: formData.age ? parseInt(formData.age) : null,
         phone_number: formData.phone_number || null
       })
-      
+
+      // Assign selected tags (Member / Regular / Newcomer)
+      if (selectedTags.length > 0 && newMember?.id) {
+        for (const tag of selectedTags) {
+          try {
+            await toggleMemberBadge(newMember.id, tag, { suppressToast: true })
+          } catch (badgeError) {
+            console.error(`Error assigning ${tag} badge:`, badgeError)
+          }
+        }
+        try {
+          await updateMemberBadges()
+        } catch (updateError) {
+          console.warn('Badge update recalculation failed:', updateError)
+        }
+      }
+
       // Mark attendance for selected Sunday dates
       for (const [date, attendance] of Object.entries(sundayAttendance)) {
         if (attendance !== null) {
@@ -108,7 +132,7 @@ const MemberModal = ({ isOpen, onClose }) => {
           }
         }
       }
-      
+
       // Reset form and close modal
        setFormData({
          full_name: '',
@@ -118,6 +142,7 @@ const MemberModal = ({ isOpen, onClose }) => {
          current_level: ''
        })
        setSundayAttendance(initializeSundayAttendance())
+      setSelectedTags([])
       onClose()
       
       // Show success message (would use toast in real implementation)
@@ -345,6 +370,49 @@ const MemberModal = ({ isOpen, onClose }) => {
                     )
                 })}
                 </div>
+            </div>
+
+            {/* Tags selection */}
+            <div className="pt-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Assign Tags (Optional)
+              </label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => toggleTagSelect('member')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    selectedTags.includes('member')
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-800'
+                  }`}
+                >
+                  Member
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleTagSelect('regular')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    selectedTags.includes('regular')
+                      ? 'bg-green-600 text-white border-green-600 shadow-sm'
+                      : 'bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-800'
+                  }`}
+                >
+                  Regular
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleTagSelect('newcomer')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    selectedTags.includes('newcomer')
+                      ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                      : 'bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-800'
+                  }`}
+                >
+                  Newcomer
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Tap to select one or more tags to save with this member.</p>
             </div>
 
             {/* Form Actions */}
