@@ -63,8 +63,7 @@ const Dashboard = ({ isAdmin = false }) => {
   const [selectedSundayDate, setSelectedSundayDate] = useState(null)
   const [isSundayPopupOpen, setIsSundayPopupOpen] = useState(false)
 
-  // iOS keyboard handling for bottom search bar
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  // iOS detection (used for minor tweaks if needed)
   const searchInputRef = useRef(null)
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
   const isStandalone = typeof window !== 'undefined' && ((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone === true))
@@ -1018,8 +1017,8 @@ const Dashboard = ({ isAdmin = false }) => {
         </div>
       </div>
 
-      {/* Bottom Search Bar with iOS-safe behavior, filling safe area with bar color */}
-      <div className={`${(isIOS && isStandalone && isSearchFocused) ? 'sticky top-0' : 'fixed bottom-0'} left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 p-4 shadow-lg z-50 transition-colors duration-200 safe-area-bottom ${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''}`}>
+      {/* Bottom Search Bar with iOS-safe behavior, stays fixed at bottom */}
+      <div className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 p-4 shadow-lg z-50 transition-colors duration-200 safe-area-bottom ${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''}`}>
         <div className="max-w-7xl mx-auto pb-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
           <div className="flex items-center gap-3">
             {/* Search Input */}
@@ -1031,15 +1030,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') refreshSearch() }}
-                onFocus={(e) => {
-                  setIsSearchFocused(true)
-                  if (isIOS) {
-                    setTimeout(() => {
-                      try { searchInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }) } catch {}
-                    }, 75)
-                  }
-                }}
-                onBlur={() => setIsSearchFocused(false)}
+                onFocus={() => { /* keep bar fixed; no scroll adjustments on iOS */ }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                 ref={searchInputRef}
               />

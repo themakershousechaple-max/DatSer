@@ -31,7 +31,7 @@ function App() {
     <ThemeProvider>
       <ErrorBoundary>
         <AppProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <div className="min-app-vh bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ios-overscroll-none">
         <Header 
           currentView={currentView}
           setCurrentView={setCurrentView}

@@ -75,6 +75,10 @@
   .text-balance {
     text-wrap: balance;
   }
+  /* Dynamic viewport min-height utility using new units when available */
+  .min-app-vh {
+    min-height: var(--app-vh);
+  }
   
   /* iOS safe-area helpers */
   .safe-area-top {

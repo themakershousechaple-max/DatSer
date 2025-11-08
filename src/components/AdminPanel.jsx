@@ -397,12 +397,7 @@ const AdminPanel = ({ onLogout }) => {
                 placeholder="Search members by name or gender..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={(e) => {
-                  // Gently scroll input into view on iOS so it isn't obscured
-                  setTimeout(() => {
-                    try { e.target?.scrollIntoView({ block: 'center', behavior: 'smooth' }) } catch {}
-                  }, 75)
-                }}
+                onFocus={() => { /* keep bar fixed; avoid scroll jumps on iOS */ }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
               />
               {searchTerm && (
