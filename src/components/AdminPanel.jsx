@@ -387,8 +387,8 @@ const AdminPanel = ({ onLogout }) => {
 
       </div>
 
-      {/* Bottom Search Bar fills safe area with bar color */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors safe-area-bottom">
+      {/* Bottom Search Bar fills safe area with bar color and lifts above keyboard on iOS */}
+      <div className="fixed ios-bottom-bar left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors safe-area-bottom">
         <div className="max-w-7xl mx-auto pb-2">
           <div className="flex items-center gap-2">
             {/* Search Input */}

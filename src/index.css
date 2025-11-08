@@ -87,6 +87,11 @@
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  /* iOS keyboard-aware bottom bar offset (used by fixed bottom search) */
+  .ios-bottom-bar {
+    bottom: calc(env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
+  }
   
   /* Avoid odd overscroll glows in PWA */
   .ios-overscroll-none {

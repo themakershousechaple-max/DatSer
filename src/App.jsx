@@ -27,6 +27,33 @@ function App() {
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [showMonthModal, setShowMonthModal] = useState(false)
 
+  // iOS keyboard-aware offset and platform flag for safe-area positioning
+  useEffect(() => {
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    if (isIOS) {
+      document.documentElement.classList.add('is-ios')
+    }
+
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const applyOffset = () => {
+      const diff = Math.max(0, window.innerHeight - vv.height)
+      // Cap extremely large values to avoid layout jumps
+      const offset = Math.min(diff, 400)
+      document.documentElement.style.setProperty('--keyboard-offset', `${offset}px`)
+    }
+
+    vv.addEventListener('resize', applyOffset)
+    vv.addEventListener('scroll', applyOffset)
+    applyOffset()
+
+    return () => {
+      vv.removeEventListener('resize', applyOffset)
+      vv.removeEventListener('scroll', applyOffset)
+    }
+  }, [])
+
   return (
     <ThemeProvider>
       <ErrorBoundary>
