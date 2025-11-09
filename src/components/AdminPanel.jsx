@@ -21,6 +21,7 @@ const AdminPanel = ({ onLogout }) => {
     changeCurrentTable
   } = useApp()
   const { isDarkMode } = useTheme()
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   
   const [systemStats, setSystemStats] = useState({
     totalMembers: 0,
@@ -387,8 +388,8 @@ const AdminPanel = ({ onLogout }) => {
 
       </div>
 
-      {/* Bottom Search Bar fixed to the bottom on all screens */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors">
+      {/* Bottom Search Bar: sticks to bottom; rises above keyboard when focused on mobile */}
+      <div className={`fixed ${isSearchFocused ? 'ios-bottom-bar' : 'bottom-0'} left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors`}>
         <div className="max-w-7xl mx-auto pb-2">
           <div className="flex items-center gap-2">
             {/* Search Input */}
@@ -399,7 +400,8 @@ const AdminPanel = ({ onLogout }) => {
                 placeholder="Search members by name or gender..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => { /* keep bar fixed; avoid scroll jumps on iOS */ }}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
               />
               {searchTerm && (
