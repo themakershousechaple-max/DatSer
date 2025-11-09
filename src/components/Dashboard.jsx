@@ -797,7 +797,7 @@ const Dashboard = ({ isAdmin = false }) => {
             <div key={member.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200">
               {/* Compact Header Row */}
               <div className="p-3 sm:p-4">
-                <div className="flex items-center justify-start gap-1 sm:gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   {/* Left side: Name, badge, and expand button */}
                   <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
                     <button
@@ -862,8 +862,8 @@ const Dashboard = ({ isAdmin = false }) => {
                     </div>
                   </div>
 
-                  {/* Right side: Attendance and Badge buttons (closer to name with small gap) */}
-                  <div className="flex items-center space-x-1 flex-shrink-0 ml-1 sm:ml-2">
+                  {/* Right side: Attendance and Badge buttons aligned to far right */}
+                  <div className="flex items-center space-x-1 flex-shrink-0 ml-auto">
                     {/* Attendance buttons */}
                     <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-md py-1 px-2">
                       {(() => {
