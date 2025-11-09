@@ -256,7 +256,12 @@ const Dashboard = ({ isAdmin = false }) => {
     }
   }, [searchTerm])
 
-  const handleDelete = async (member) => {
+  const handleDelete = async (event, member) => {
+    // Prevent row-level click handlers from firing on mobile tap
+    if (event) {
+      event.stopPropagation()
+      event.preventDefault()
+    }
     if (window.confirm(`Are you sure you want to delete ${member['full_name'] || member['Full Name']}?`)) {
       try {
         await deleteMember(member.id)
@@ -1017,8 +1022,8 @@ const Dashboard = ({ isAdmin = false }) => {
         </div>
       </div>
 
-      {/* Bottom Search Bar with iOS-safe behavior and keyboard-aware offset */}
-      <div className={`fixed ios-bottom-bar left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors duration-200 safe-area-bottom ${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''}`}>
+      {/* Bottom Search Bar fixed to the bottom on all screens */}
+      <div className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors duration-200 ${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''}`}>
         <div className="max-w-7xl mx-auto pb-2">
           <div className="flex items-center gap-2">
             {/* Search Input */}
@@ -1110,7 +1115,10 @@ const Dashboard = ({ isAdmin = false }) => {
                       Clear
                     </button>
                     <button
-                      onClick={handleBulkDelete}
+                      type="button"
+                      onTouchStart={(e) => { e.stopPropagation() }}
+                      onClick={(e) => { e.stopPropagation(); handleBulkDelete() }}
+                      style={{ touchAction: 'manipulation' }}
                       disabled={isBulkApplying || isBulkDeleting}
                       className={`h-9 px-3 rounded-lg text-sm font-semibold shadow-sm ${isBulkApplying || isBulkDeleting ? 'bg-red-300 cursor-not-allowed' : 'bg-red-800 hover:bg-red-900'} text-white flex items-center gap-2`}
                       title="Delete selected members"
@@ -1414,7 +1422,9 @@ const Dashboard = ({ isAdmin = false }) => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(member)}
+                            onTouchStart={(e) => { e.stopPropagation() }}
+                            onClick={(e) => handleDelete(e, member)}
+                            style={{ touchAction: 'manipulation' }}
                             className="flex items-center space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
                           >
                             <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
