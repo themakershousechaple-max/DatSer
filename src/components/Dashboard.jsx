@@ -1022,53 +1022,14 @@ const Dashboard = ({ isAdmin = false }) => {
         </div>
       </div>
 
-      {/* Bottom Search Bar: always keyboard-aware on mobile */}
-      <div className={`fixed ios-bottom-bar left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors duration-200 ${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''}`}>
-        <div className="max-w-7xl mx-auto pb-2">
-          <div className="flex items-center gap-2">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search members by name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') refreshSearch() }}
-                onFocus={() => { /* keyboard-aware by default */ }}
-                onBlur={() => { /* keyboard-aware by default */ }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
-                ref={searchInputRef}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Clear search"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-            
-            {/* Refresh Button */}
-            <button
-              onClick={forceRefreshMembers}
-              className="p-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
-              title="Refresh member data"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Top sticky search bar moved to Header.jsx */}
 
 
 
 
 
       {/* Members List (hidden on mobile when a Sunday is selected) */}
-      <div className={`${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''} space-y-3 pb-24 sm:pb-20 safe-area-bottom`}>
+      <div className={`${activeTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''} space-y-3`}>
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
           // Get tab-filtered members first

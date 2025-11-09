@@ -388,38 +388,7 @@ const AdminPanel = ({ onLogout }) => {
 
       </div>
 
-      {/* Bottom Search Bar: always keyboard-aware on mobile */}
-      <div className={`fixed ios-bottom-bar left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 py-2 px-4 shadow-lg z-50 transition-colors`}>
-        <div className="max-w-7xl mx-auto pb-2">
-          <div className="flex items-center gap-2">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search members by name or gender..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => { /* keyboard-aware by default */ }}
-                onBlur={() => { /* keyboard-aware by default */ }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                  title="Clear search"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-
-            {/* Date Selector on the right side */}
-            <DateSelector />
-          </div>
-        </div>
-      </div>
+      {/* Top sticky search bar moved to Header.jsx */}
       
       {/* Edit Member Modal */}
       <EditMemberModal
