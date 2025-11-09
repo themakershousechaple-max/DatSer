@@ -17,7 +17,8 @@ import {
   Star,
   UserCheck,
   Check,
-  X
+  X,
+  Edit3
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useApp } from '../context/AppContext'
@@ -42,6 +43,29 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   const dropdownRef = useRef(null)
   const mobileDropdownRef = useRef(null)
   const [isBadgePopupOpen, setIsBadgePopupOpen] = useState(false)
+  // Close drawer with Escape key
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') setShowDropdown(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+  // Debounced search input for performance on low-end devices
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
+
+  // Keep local input in sync when external searchTerm changes (e.g., clear/search from elsewhere)
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm)
+  }, [searchTerm])
+
+  // Debounce updates to global search term to reduce re-renders during typing
+  useEffect(() => {
+    const tid = setTimeout(() => {
+      if (localSearchTerm !== searchTerm) {
+        setSearchTerm(localSearchTerm)
+      }
+    }, 250)
+    return () => clearTimeout(tid)
+  }, [localSearchTerm])
 
   // Close dropdown when clicking outside (supports desktop and mobile dropdowns)
   useEffect(() => {
@@ -90,6 +114,28 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
     }
   }, [filteredMembers, dashboardTab, attendanceData, searchTerm])
 
+  // Count of edited members (has attendance marked true/false for any date)
+  const editedCount = useMemo(() => {
+    try {
+      if (!filteredMembers || filteredMembers.length === 0) return 0
+      const dateKeys = Object.keys(attendanceData || {})
+      if (dateKeys.length === 0) return 0
+      let count = 0
+      for (const member of filteredMembers) {
+        let isEdited = false
+        for (const dk of dateKeys) {
+          const map = attendanceData[dk] || {}
+          const val = map[member.id]
+          if (val === true || val === false) { isEdited = true; break }
+        }
+        if (isEdited) count += 1
+      }
+      return count
+    } catch {
+      return 0
+    }
+  }, [filteredMembers, attendanceData])
+
   // Exclusive badge filter helper (replicates Dashboard behavior)
   const setExclusiveBadgeFilter = (badgeKey) => {
     const isOnlyThis = badgeFilter.length === 1 && badgeFilter[0] === badgeKey
@@ -102,6 +148,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   }
   
   const menuItems = [
+    { id: 'all_members', label: 'All Members', icon: Users, onClick: () => { setCurrentView('dashboard'); setDashboardTab('all') } },
+    { id: 'edited_members', label: `Edited Members (${editedCount})`, icon: Edit3, onClick: () => { setCurrentView('dashboard'); setDashboardTab('edited') } },
     { id: 'statistics', label: 'Statistics', icon: BarChart3 },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     // Action: Create new month goes into the menu
@@ -120,10 +168,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm md:border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 transition-colors duration-200 md:safe-area-top">
       <div className="container mx-auto px-4 py-0 md:py-1">
-        <div className="flex items-center justify-between min-h-[32px] md:min-h-[44px]">
+        <div className="flex items-center justify-center md:justify-between min-h-[32px] md:min-h-[44px]">
           {/* Compact brand label */}
           <div className="flex items-center">
-            <span className="hidden md:inline text-xs sm:text-sm font-bold text-gray-900 dark:text-white">Datsar</span>
+            <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">Datsar</span>
           </div>
 
           {/* Center Area - Desktop: left segmented control, right menu & badges */}
@@ -143,32 +191,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <span className="lg:hidden">Home</span>
               </button>
 
-              {currentView === 'dashboard' && (
-                <div className="inline-flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
-                  <button
-                    onClick={() => setDashboardTab('all')}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                      dashboardTab === 'all'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                    }`}
-                    title="Show All Members"
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setDashboardTab('edited')}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${
-                      dashboardTab === 'edited'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                    }`}
-                    title="Show Edited Members"
-                  >
-                    Edited
-                  </button>
-                </div>
-              )}
+              {/* Segmented control removed; use Menu entries for All/Edited */}
             </div>
 
             {/* Right group: Filter by Badge then far-right Menu */}
@@ -198,35 +221,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                   <span className="hidden lg:inline">Menu</span>
                 </button>
 
-                {/* Dropdown Menu */}
-                {showDropdown && (
-                <div className="absolute right-0 mt-1 w-44 lg:w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                  {menuItems.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          if (item.onClick) {
-                            item.onClick()
-                          } else {
-                            setCurrentView(item.id)
-                          }
-                          setShowDropdown(false)
-                        }}
-                        className={`w-full flex items-center space-x-2 px-3 py-2 text-sm font-medium transition-colors text-left ${
-                          currentView === item.id
-                            ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-                )}
+                {/* Dropdown replaced by right-side drawer */}
               </div>
             </div>
           </div>
@@ -239,102 +234,51 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
 
         {/* Mobile Navigation */}
         <div className="md:hidden pt-0 pb-1">
-          <div className="flex items-center justify-center space-x-1.5 sm:space-x-2">
-            {/* Home */}
-            <button
-              onClick={() => setCurrentView('dashboard')}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors ${
-                currentView === 'dashboard'
-                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline">Dashboard</span>
-              <span className="xs:hidden">Home</span>
-            </button>
-
-            {/* Segmented control: All / Edited */}
-            {currentView === 'dashboard' && (
-              <div className="inline-flex items-center gap-1.5 sm:gap-2">
-                <div className="inline-flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
-                  <button
-                    onClick={() => setDashboardTab('all')}
-                    className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                      dashboardTab === 'all'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                    }`}
-                    title="Show All Members"
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setDashboardTab('edited')}
-                    className={`px-2.5 py-1 text-xs font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${
-                      dashboardTab === 'edited'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                    }`}
-                    title="Show Edited Members"
-                  >
-                    Edited
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Filter by Badge */}
-            {currentView === 'dashboard' && (
+          <div className="flex items-center justify-between">
+            {/* Left: Home */}
+            <div className="flex items-center">
               <button
-                onClick={() => setIsBadgePopupOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-2 rounded-lg text-xs font-medium transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                title="Filter by Badge"
-              >
-                <Filter className="w-4 h-4" />
-                <span className="hidden xs:inline">Badges</span>
-              </button>
-            )}
-
-            {/* Menu icon-only (chevron removed) */}
-            <div className="relative" ref={mobileDropdownRef}>
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
-                  ['statistics', 'analytics', 'export', 'admin'].includes(currentView)
-                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
+                onClick={() => setCurrentView('dashboard')}
+                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors ${
+                  currentView === 'dashboard'
+                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
-                title="Menu"
               >
-                <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Dashboard</span>
+                <span className="xs:hidden">Home</span>
               </button>
+            </div>
 
-              {/* Mobile Dropdown Menu */}
-              {showDropdown && (
-                <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                  {menuItems.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setCurrentView(item.id)
-                          setShowDropdown(false)
-                        }}
-                        className={`w-full flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm font-medium transition-colors text-left ${
-                          currentView === item.id
-                            ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span>{item.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+            {/* Right: Filter and Menu */}
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              {currentView === 'dashboard' && (
+                <button
+                  onClick={() => setIsBadgePopupOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-2 rounded-lg text-xs font-medium transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Filter by Badge"
+                >
+                  <Filter className="w-4 h-4" />
+                  <span className="hidden xs:inline">Badges</span>
+                </button>
               )}
+
+              {/* Menu icon-only (chevron removed) */}
+              <div className="relative" ref={mobileDropdownRef}>
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
+                    ['statistics', 'analytics', 'export', 'admin'].includes(currentView)
+                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
+                  }`}
+                  title="Menu"
+                >
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+                {/* Mobile dropdown replaced by right-side drawer */}
+              </div>
             </div>
           </div>
         </div>
@@ -348,14 +292,14 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <input
                 type="text"
                 placeholder="Search members by name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') refreshSearch() }}
+                value={localSearchTerm}
+                onChange={(e) => setLocalSearchTerm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { setSearchTerm(localSearchTerm); refreshSearch() } }}
                 className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
               />
-              {searchTerm && (
+              {(searchTerm || localSearchTerm) && (
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={() => { setSearchTerm(''); setLocalSearchTerm('') }}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                   title="Clear search"
                 >
@@ -418,6 +362,54 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
           )}
         </div>
       </div>
+      {/* Right-side Drawer Menu */}
+      {showDropdown && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setShowDropdown(false)}
+          />
+          <div className="absolute right-0 top-0 z-10 h-full w-64 sm:w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Menu</span>
+              <button
+                onClick={() => setShowDropdown(false)}
+                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Close"
+              >
+                <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+              </button>
+            </div>
+            <div className="p-2">
+              {menuItems.map((item) => {
+                const Icon = item.icon
+                const active = currentView === item.id
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      if (item.onClick) {
+                        item.onClick()
+                      } else {
+                        setCurrentView(item.id)
+                      }
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors mb-1 ${
+                      active
+                        ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                        : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Badge Filter Popup (Header) */}
       {isBadgePopupOpen && currentView === 'dashboard' && (
         <div
