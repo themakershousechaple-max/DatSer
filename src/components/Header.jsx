@@ -16,6 +16,7 @@ import {
   Edit3
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import DateSelector from './DateSelector'
 import { useApp } from '../context/AppContext'
 
 const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember, onCreateMonth }) => {
@@ -32,11 +33,15 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
     currentTable,
     isSupabaseConfigured,
     badgeFilter,
-    toggleBadgeFilter
+    toggleBadgeFilter,
+    selectedAttendanceDate,
+    setAndSaveAttendanceDate
   } = useApp()
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showEditedDropdown, setShowEditedDropdown] = useState(false)
   const dropdownRef = useRef(null)
   const mobileDropdownRef = useRef(null)
+  const editedDropdownRef = useRef(null)
   // Badge filter moved to Edited page; header popup removed
   const drawerRef = useRef(null)
   // Close drawer with Escape key
@@ -69,8 +74,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
       const inDesktop = dropdownRef.current?.contains(event.target)
       const inMobile = mobileDropdownRef.current?.contains(event.target)
       const inDrawer = drawerRef.current?.contains(event.target)
-      if (!inDesktop && !inMobile && !inDrawer) {
+      const inEdited = editedDropdownRef.current?.contains(event.target)
+      if (!inDesktop && !inMobile && !inDrawer && !inEdited) {
         setShowDropdown(false)
+        setShowEditedDropdown(false)
       }
     }
 
@@ -81,6 +88,53 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
       document.removeEventListener('touchstart', handleOutside)
     }
   }, [])
+
+  const generateSundayDates = (table) => {
+    if (!table) return []
+    try {
+      const [monthName, yearStr] = table.split('_')
+      const year = parseInt(yearStr)
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+      const idx = months.indexOf(monthName)
+      if (idx === -1) return []
+      const res = []
+      const d = new Date(year, idx, 1)
+      while (d.getDay() !== 0) d.setDate(d.getDate() + 1)
+      while (d.getMonth() === idx) {
+        res.push(d.toISOString().split('T')[0])
+        d.setDate(d.getDate() + 7)
+      }
+      return res
+    } catch {
+      return []
+    }
+  }
+
+  const sundayDates = generateSundayDates(currentTable)
+
+  const isEditedMember = (member) => {
+    for (const dk of sundayDates) {
+      const map = attendanceData[dk] || {}
+      const val = map[member.id]
+      if (val === true || val === false) return true
+    }
+    return false
+  }
+
+  const perDayCounts = useMemo(() => {
+    const base = dashboardTab === 'edited' ? filteredMembers.filter(isEditedMember) : filteredMembers
+    const acc = {}
+    for (const dateStr of sundayDates) {
+      const map = attendanceData[dateStr] || {}
+      let p = 0
+      for (const m of base) {
+        const v = map[m.id]
+        if (v === true) p += 1
+      }
+      acc[dateStr] = p
+    }
+    return acc
+  }, [filteredMembers, attendanceData, sundayDates, dashboardTab])
 
   // Compute compact summary count: respects search and dashboard tab (All/Edited)
   const compactFoundCount = useMemo(() => {
@@ -347,12 +401,14 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
               </button>
             </div>
-            <div className="p-2">
+            <div className="p-2" ref={editedDropdownRef}>
+              <DateSelector variant="menu" />
               {menuItems.map((item) => {
                 const Icon = item.icon
                 const active = currentView === item.id
                 return (
-                  <button
+                  <div key={item.id} className="mb-1">
+                    <button
                     key={item.id}
                     onClick={() => {
                       if (item.onClick) {
@@ -363,15 +419,37 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                       // Close drawer after action/navigation for better UX
                       setShowDropdown(false)
                     }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors mb-1 ${
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       active
                         ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                         : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
+                    <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
+                    {item.id === 'edited_members' && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setShowEditedDropdown((prev) => !prev) }} className="px-2 py-0.5 rounded-full text-xs bg-blue-600 text-white" title="View Sunday counts">{editedCount}</button>
+                    )}
                   </button>
+                    {item.id === 'edited_members' && showEditedDropdown && (
+                      <div className="mt-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-2">
+                        {sundayDates.length === 0 ? (
+                          <div className="text-xs text-gray-600 dark:text-gray-300">No Sundays</div>
+                        ) : (
+                          sundayDates.map((d) => {
+                            const label = new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            const count = perDayCounts[d] || 0
+                            const selected = selectedAttendanceDate && d === selectedAttendanceDate.toISOString().split('T')[0]
+                            return (
+                              <button key={d} onClick={() => { setAndSaveAttendanceDate(new Date(d)) }} className={`w-full flex items-center justify-between px-2 py-1 rounded text-xs ${selected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                                <span>{label}</span>
+                                <span className={`${selected ? 'px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300' : 'px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>{count}</span>
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>

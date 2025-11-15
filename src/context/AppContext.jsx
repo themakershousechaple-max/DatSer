@@ -22,6 +22,10 @@ const FALLBACK_MONTHLY_TABLES = [
   'June_2025', 'July_2025', 'August_2025', 'September_2025', 'October_2025', 'November_2025'
 ]
 
+const DEFAULT_ATTENDANCE_DATES = {
+  'November_2025': '2025-11-16'
+}
+
 // Get the latest available table with persistence
 const getLatestTable = () => {
   // Force November_2025 as default (clear old localStorage)
@@ -370,8 +374,19 @@ export const AppProvider = ({ children }) => {
         }
       }
       
-      // Fallback: Set default to 2nd Sunday if available, otherwise first available Sunday
-      const defaultDate = sundays.length >= 2 ? sundays[1] : sundays[0]
+      const configured = DEFAULT_ATTENDANCE_DATES[currentTable]
+      let defaultDate = null
+      if (configured) {
+        const cfgDate = new Date(configured)
+        defaultDate = sundays.find(sunday => (
+          sunday.getFullYear() === cfgDate.getFullYear() &&
+          sunday.getMonth() === cfgDate.getMonth() &&
+          sunday.getDate() === cfgDate.getDate()
+        )) || null
+      }
+      if (!defaultDate) {
+        defaultDate = sundays.length >= 2 ? sundays[1] : sundays[0]
+      }
       setSelectedAttendanceDate(defaultDate)
     }
   }

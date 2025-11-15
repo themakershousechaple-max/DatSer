@@ -215,6 +215,13 @@ const Dashboard = ({ isAdmin = false }) => {
     setSelectedSundayDate(null)
   }, [currentTable])
 
+  useEffect(() => {
+    if (selectedAttendanceDate) {
+      const key = selectedAttendanceDate.toISOString().split('T')[0]
+      setSelectedSundayDate(key)
+    }
+  }, [selectedAttendanceDate])
+
   // Clear selections when month changes
   useEffect(() => {
     setSelectedMemberIds(new Set())
@@ -1166,12 +1173,16 @@ const Dashboard = ({ isAdmin = false }) => {
   </div>
 
       {/* Empty State */}
-      {filteredMembers.length === 0 && !loading && (
+      {((dashboardTab === 'edited' && getTabFilteredMembers().length === 0) || (dashboardTab !== 'edited' && filteredMembers.length === 0)) && !loading && (
         <div className="text-center py-12">
           <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No members found</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first member'}
+            {dashboardTab === 'edited'
+              ? 'No edited members yet. Mark Present or Absent to see them here.'
+              : searchTerm
+                ? 'Try adjusting your search terms'
+                : 'Get started by adding your first member'}
           </p>
           
           {/* Debug Information for Search Issues */}
