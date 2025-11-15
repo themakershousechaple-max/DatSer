@@ -123,11 +123,22 @@ const Dashboard = ({ isAdmin = false }) => {
 
   // Function to check if a member has been edited (has attendance marked for any date)
   const isEditedMember = (member) => {
-    return sundayDates.some(date => {
-      const dateKey = date
-      const dateAttendance = attendanceData[dateKey] || {}
-      return dateAttendance[member.id] === true || dateAttendance[member.id] === false
+    const editedViaMaps = sundayDates.some((date) => {
+      const map = attendanceData[date] || {}
+      const v = map[member.id]
+      return v === true || v === false
     })
+    if (editedViaMaps) return true
+    // Fallback: inspect member record columns in this monthly table
+    for (const key in member) {
+      if (key.startsWith('Attendance ')) {
+        const val = member[key]
+        if (val === true || val === false || val === 'Present' || val === 'Absent') {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   // Get filtered members based on active tab
@@ -140,7 +151,26 @@ const Dashboard = ({ isAdmin = false }) => {
     }
 
   if (dashboardTab === 'edited') {
-      return badgeFilteredMembers.filter(member => isEditedMember(member))
+      const editedOnly = badgeFilteredMembers.filter(member => isEditedMember(member))
+      const dateKey = selectedAttendanceDate ? selectedAttendanceDate.toISOString().split('T')[0] : null
+      if (!dateKey) {
+        return editedOnly.sort((a, b) => {
+          const an = (a['full_name'] || a['Full Name'] || '').toLowerCase()
+          const bn = (b['full_name'] || b['Full Name'] || '').toLowerCase()
+          return an.localeCompare(bn)
+        })
+      }
+      const map = attendanceData[dateKey] || {}
+      return editedOnly.sort((a, b) => {
+        const av = map[a.id]
+        const bv = map[b.id]
+        const rank = (v) => (v === true ? 0 : v === false ? 1 : 2)
+        const r = rank(av) - rank(bv)
+        if (r !== 0) return r
+        const an = (a['full_name'] || a['Full Name'] || '').toLowerCase()
+        const bn = (b['full_name'] || b['Full Name'] || '').toLowerCase()
+        return an.localeCompare(bn)
+      })
     }
 
     return badgeFilteredMembers
@@ -656,8 +686,8 @@ const Dashboard = ({ isAdmin = false }) => {
 
 
 
-      {/* Members List (hidden on mobile when a Sunday is selected) */}
-      <div className={`${dashboardTab === 'edited' && selectedSundayDate ? 'hidden sm:block' : ''} space-y-3`}>
+      {/* Members List */}
+      <div className={`space-y-3`}>
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
           // Get tab-filtered members first
