@@ -21,7 +21,7 @@
     width: 100%;
     max-width: 100%;
     overflow-x: hidden; /* Prevent page from moving left/right */
-    scrollbar-gutter: stable both-edges; /* Avoid layout shift when scrollbars appear */
+    scrollbar-gutter: stable; /* Reserve space only where the scrollbar renders to avoid left-edge gap */
   }
   
   /* Use dynamic viewport height when available */

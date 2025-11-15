@@ -155,7 +155,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm md:border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 z-50 w-full transition-colors duration-200 safe-area-top">
-      <div className="mx-auto px-0 sm:px-2 py-0 md:py-1">
+      <div className="mx-auto px-3 sm:px-4 py-0 md:py-1">
         <div className="flex items-center justify-center md:justify-between min-h-[32px] md:min-h-[44px]">
           {/* Compact brand label */}
           <div className="flex items-center">
@@ -252,7 +252,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
       </div>
       {/* Global sticky search bar (like Google) */}
       <div className="md:border-t border-gray-200 dark:border-gray-700">
-        <div className="mx-auto px-0 sm:px-2 py-1 md:py-2">
+        <div className="mx-auto px-3 sm:px-4 py-1 md:py-2">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
