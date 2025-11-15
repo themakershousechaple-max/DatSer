@@ -3,8 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  // Ensure assets resolve correctly when served under /DatSer/ on GitHub Pages
-  base: '/DatSer/',
+  base: process.env.VERCEL ? '/' : '/DatSer/',
   server: {
     port: 3000,
     host: true
