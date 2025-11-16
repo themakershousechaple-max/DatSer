@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { X, Calendar, Plus } from 'lucide-react'
+import { toast } from 'react-toastify'
 
 const MonthModal = ({ isOpen, onClose }) => {
   const { createNewMonth } = useApp()
@@ -67,7 +68,7 @@ const MonthModal = ({ isOpen, onClose }) => {
       setSelectedYear(new Date().getFullYear())
       onClose()
       
-      alert(`${monthName} ${selectedYear} created successfully with ${sundays.length} Sundays!`)
+      // Success toast handled by createNewMonth
     } catch (error) {
       console.error('Error creating month:', error)
       
@@ -92,7 +93,7 @@ const MonthModal = ({ isOpen, onClose }) => {
         fullError: error
       })
       
-      alert(errorMessage)
+      // Error toast handled by createNewMonth
     } finally {
       setLoading(false)
     }

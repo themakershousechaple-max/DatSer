@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { X, User, Phone, Calendar, BookOpen } from 'lucide-react'
+import { toast } from 'react-toastify'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
   const { updateMember, markAttendance, refreshSearch, currentTable, attendanceData, loadAllAttendanceData } = useApp()
@@ -139,11 +140,10 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
       // Refresh search results to show updated information
       setTimeout(() => refreshSearch(), 100)
       
-      // Show success message (would use toast in real implementation)
-      alert('Member updated successfully!')
+      // Success toast handled in global state
     } catch (error) {
       console.error('Error updating member:', error)
-      alert('Error updating member. Please try again.')
+      // Error toast handled in global state
     } finally {
       setLoading(false)
     }

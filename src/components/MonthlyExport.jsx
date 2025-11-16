@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { Download, Calendar, Users, FileText, Filter } from 'lucide-react'
+import { toast } from 'react-toastify'
 
 const MonthlyExport = () => {
   const { members, attendanceData, fetchAttendanceForDate } = useApp()
@@ -92,7 +93,9 @@ const MonthlyExport = () => {
       
     } catch (error) {
       console.error('Error fetching monthly data:', error)
-      alert('Error fetching monthly data. Please try again.')
+      toast.error('Error fetching monthly data. Please try again.', {
+        style: { background: '#ef4444', color: '#ffffff' }
+      })
     } finally {
       setLoading(false)
     }
@@ -101,7 +104,9 @@ const MonthlyExport = () => {
   // Export to CSV
   const exportToCSV = () => {
     if (exportData.length === 0) {
-      alert('No data to export. Please select a month and fetch data first.')
+      toast.warn('No data to export. Select a month and refresh first.', {
+        style: { background: '#f59e0b', color: '#ffffff' }
+      })
       return
     }
 

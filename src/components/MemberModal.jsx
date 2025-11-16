@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { X, User, Phone, Calendar, BookOpen, ChevronDown, Info } from 'lucide-react'
+import { toast } from 'react-toastify'
 
 const MemberModal = ({ isOpen, onClose }) => {
   const { addMember, markAttendance, currentTable, toggleMemberBadge, updateMemberBadges } = useApp()
@@ -145,11 +146,10 @@ const MemberModal = ({ isOpen, onClose }) => {
       setSelectedTags([])
       onClose()
       
-      // Show success message (would use toast in real implementation)
-      alert('Member added successfully!')
+      // Success toast handled in global state
     } catch (error) {
       console.error('Error adding member:', error)
-      alert('Error adding member. Please try again.')
+      // Error toast handled in global state
     } finally {
       setLoading(false)
     }

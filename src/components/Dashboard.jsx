@@ -425,10 +425,14 @@ const Dashboard = ({ isAdmin = false }) => {
       try {
         const memberIds = filteredMembers.map(member => member.id)
         await bulkAttendance(memberIds, new Date(dateToUse), present)
-        alert(`All members marked as ${present ? 'present' : 'absent'} successfully!`)
+        toast.success(`All members marked as ${present ? 'present' : 'absent'} successfully!`, {
+          style: { background: present ? '#10b981' : '#ef4444', color: '#ffffff' }
+        })
       } catch (error) {
         console.error('Error with bulk attendance:', error)
-        alert('Error updating attendance. Please try again.')
+        toast.error('Error updating attendance. Please try again.', {
+          style: { background: '#ef4444', color: '#ffffff' }
+        })
       }
     }
   }
@@ -553,10 +557,14 @@ const Dashboard = ({ isAdmin = false }) => {
           }
         }
         await updateMemberBadges()
-        alert(`Successfully assigned "${badgeName}" to ${memberCount} member${memberCount !== 1 ? 's' : ''}!`)
+        toast.success(`Successfully assigned "${badgeName}" to ${memberCount} member${memberCount !== 1 ? 's' : ''}!`, {
+          style: { background: '#3b82f6', color: '#ffffff' }
+        })
       } catch (error) {
         console.error('Error assigning badges:', error)
-        alert('Error assigning badges. Please try again.')
+        toast.error('Error assigning badges. Please try again.', {
+          style: { background: '#ef4444', color: '#ffffff' }
+        })
       } finally {
         setIsUpdatingBadges(false)
       }
