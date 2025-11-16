@@ -62,7 +62,9 @@ const AdminPanel = ({ onLogout }) => {
   // Filter members based on search term
   const filteredMembersList = members.filter(member => {
     const fullName = (member['full_name'] || member['Full Name'] || '').toLowerCase()
-    return fullName.includes(searchTerm.toLowerCase())
+    const tokens = searchTerm.toLowerCase().trim().split(/\s+/).filter(Boolean)
+    if (tokens.length === 0) return true
+    return tokens.every(t => fullName.includes(t))
   })
 
   const handleTableSwitch = (tableName) => {

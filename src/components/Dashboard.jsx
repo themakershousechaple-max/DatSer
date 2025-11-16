@@ -739,7 +739,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
 
       {/* Members List */}
-      <div className={`space-y-3`}>
+      <div className={`mt-2 sm:mt-3 space-y-3`}>
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
           // Get tab-filtered members first
@@ -1027,7 +1027,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       </label>
                     )}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate min-w-0">{member['full_name'] || member['Full Name']}</h3>
+                      <h3 className="mt-0.5 sm:mt-1 font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate min-w-0">{member['full_name'] || member['Full Name']}</h3>
                       {(() => {
                         const badge = calculateMemberBadge(member)
                         if (badge === 'newcomer') return null

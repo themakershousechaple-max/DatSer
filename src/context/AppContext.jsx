@@ -1059,20 +1059,14 @@ export const AppProvider = ({ children }) => {
     // Simple and fast search implementation
     const searchTerm = debouncedSearchTerm.toLowerCase().trim()
     console.log('Searching for:', searchTerm)
-    
+        const tokens = searchTerm.split(/\s+/).filter(Boolean)
     const filtered = members.filter(member => {
-      // Check both full_name and Full Name fields to ensure compatibility
       const fullName = (
         (typeof member['full_name'] === 'string' ? member['full_name'] : '') || 
         (typeof member['Full Name'] === 'string' ? member['Full Name'] : '') || 
         ''
       ).toLowerCase()
-      
-      // Log for debugging
-      console.log(`Searching: "${searchTerm}" in "${fullName}"`, fullName.includes(searchTerm))
-      
-      // Match if the search term is found anywhere in the full name
-      return fullName.includes(searchTerm)
+      return tokens.every(t => fullName.includes(t))
     })
     
     console.log('Filtered results count:', filtered.length)
@@ -1134,6 +1128,11 @@ export const AppProvider = ({ children }) => {
 
     const nameCol = await resolveNameColumn(currentTable)
     const isAge = /^\d{1,3}$/.test(trimmed)
+    const tokenized = trimmed.split(/\s+/).filter(Boolean)
+    if (tokenized.length > 1 && !isAge) {
+      setServerSearchResults(null)
+      return
+    }
     let query = supabase.from(currentTable).select('*')
     if (isAge) {
       query = query.eq('Age', parseInt(trimmed, 10))
