@@ -403,55 +403,103 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             </div>
             <div className="p-2" ref={editedDropdownRef}>
               <DateSelector variant="menu" />
-              {menuItems.map((item) => {
-                const Icon = item.icon
-                const active = currentView === item.id
-                return (
-                  <div key={item.id} className="mb-1">
-                    <button
-                    key={item.id}
-                    onClick={() => {
-                      if (item.onClick) {
-                        item.onClick()
-                      } else {
-                        setCurrentView(item.id)
-                      }
-                      // Close drawer after action/navigation for better UX
-                      setShowDropdown(false)
-                    }}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                        : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
-                    {item.id === 'edited_members' && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setShowEditedDropdown((prev) => !prev) }} className="px-2 py-0.5 rounded-full text-xs bg-blue-600 text-white" title="View Sunday counts">{editedCount}</button>
-                    )}
-                  </button>
-                    {item.id === 'edited_members' && showEditedDropdown && (
-                      <div className="mt-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-2">
-                        {sundayDates.length === 0 ? (
-                          <div className="text-xs text-gray-600 dark:text-gray-300">No Sundays</div>
-                        ) : (
-                          sundayDates.map((d) => {
-                            const label = new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                            const count = perDayCounts[d] || 0
-                            const selected = selectedAttendanceDate && d === selectedAttendanceDate.toISOString().split('T')[0]
-                            return (
-                              <button key={d} onClick={() => { setAndSaveAttendanceDate(new Date(d)) }} className={`w-full flex items-center justify-between px-2 py-1 rounded text-xs ${selected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
-                                <span>{label}</span>
-                                <span className={`${selected ? 'px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300' : 'px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>{count}</span>
-                              </button>
-                            )
-                          })
-                        )}
-                      </div>
-                    )}
+              <div className="space-y-3">
+                <div>
+                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Views</div>
+                  <div className="space-y-2">
+                    {menuItems.filter(i => ['all_members','edited_members'].includes(i.id)).map((item) => {
+                      const Icon = item.icon
+                      const active = currentView === item.id
+                      return (
+                        <div key={item.id}>
+                          <button
+                            onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                          >
+                            <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
+                            {item.id === 'edited_members' && (
+                              <button type="button" onClick={(e) => { e.stopPropagation(); setShowEditedDropdown((prev) => !prev) }} className="px-2 py-0.5 rounded-full text-xs bg-blue-600 text-white" title="View Sunday counts">{editedCount}</button>
+                            )}
+                          </button>
+                          {item.id === 'edited_members' && showEditedDropdown && (
+                            <div className="mt-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-2">
+                              {sundayDates.length === 0 ? (
+                                <div className="text-xs text-gray-600 dark:text-gray-300">No Sundays</div>
+                              ) : (
+                                sundayDates.map((d) => {
+                                  const label = new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                  const count = perDayCounts[d] || 0
+                                  const selected = selectedAttendanceDate && d === selectedAttendanceDate.toISOString().split('T')[0]
+                                  return (
+                                    <button key={d} onClick={() => { setAndSaveAttendanceDate(new Date(d)) }} className={`w-full flex items-center justify-between px-2 py-1 rounded text-xs ${selected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                                      <span>{label}</span>
+                                      <span className={`${selected ? 'px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300' : 'px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>{count}</span>
+                                    </button>
+                                  )
+                                })
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
-                )
-              })}
+                </div>
+                <div>
+                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Insights</div>
+                  <div className="space-y-2">
+                    {menuItems.filter(i => ['statistics','analytics'].includes(i.id)).map((item) => {
+                      const Icon = item.icon
+                      const active = currentView === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                        >
+                          <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</div>
+                  <div className="space-y-2">
+                    {menuItems.filter(i => ['create_month','export'].includes(i.id)).map((item) => {
+                      const Icon = item.icon
+                      const active = currentView === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                        >
+                          <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Access</div>
+                  <div className="space-y-2">
+                    {menuItems.filter(i => ['admin'].includes(i.id)).map((item) => {
+                      const Icon = item.icon
+                      const active = currentView === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                        >
+                          <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

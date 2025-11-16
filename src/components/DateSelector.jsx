@@ -28,15 +28,12 @@ const DateSelector = ({ variant = 'icon' }) => {
     }
   }, [])
 
-  // Format date for display
+  // Format date for display (short for menu, full elsewhere)
   const formatDate = (date) => {
     if (!date) return 'Select Date'
-    
-    const options = { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    }
+    const options = variant === 'menu'
+      ? { month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' }
     return date.toLocaleDateString('en-US', options)
   }
 
@@ -73,7 +70,7 @@ const DateSelector = ({ variant = 'icon' }) => {
       {variant === 'menu' ? (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600"
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600"
           title={selectedAttendanceDate ? `Selected: ${formatDate(selectedAttendanceDate)}` : 'Select Attendance Date'}
         >
           <span className="flex items-center gap-2">

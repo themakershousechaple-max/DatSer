@@ -43,7 +43,8 @@ const Dashboard = ({ isAdmin = false }) => {
     isSupabaseConfigured,
     // Global dashboard tab (controlled by mobile header)
     dashboardTab,
-    setDashboardTab
+    setDashboardTab,
+    setAndSaveAttendanceDate
   } = useApp()
   const { isDarkMode } = useTheme()
   const [editingMember, setEditingMember] = useState(null)
@@ -74,6 +75,40 @@ const Dashboard = ({ isAdmin = false }) => {
   const [selectedBulkSundayDates, setSelectedBulkSundayDates] = useState(new Set())
   const [isBulkApplying, setIsBulkApplying] = useState(false)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [swipeOpenId, setSwipeOpenId] = useState(null)
+  const [swipeOffset, setSwipeOffset] = useState({})
+  const swipeStartXRef = useRef(null)
+  const swipeActiveIdRef = useRef(null)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [memberToDelete, setMemberToDelete] = useState(null)
+  const [showDateDropdown, setShowDateDropdown] = useState(false)
+
+  const onRowTouchStart = (id, e) => {
+    swipeActiveIdRef.current = id
+    swipeStartXRef.current = e.touches[0]?.clientX || 0
+    setSwipeOffset(prev => ({ ...prev, [id]: 0 }))
+  }
+
+  const onRowTouchMove = (id, e) => {
+    if (swipeActiveIdRef.current !== id) return
+    const currentX = e.touches[0]?.clientX || 0
+    const dx = currentX - (swipeStartXRef.current || 0)
+    if (dx < 0) {
+      const v = Math.min(-dx, 96)
+      setSwipeOffset(prev => ({ ...prev, [id]: v }))
+    } else {
+      setSwipeOffset(prev => ({ ...prev, [id]: 0 }))
+    }
+  }
+
+  const onRowTouchEnd = (id) => {
+    const v = swipeOffset[id] || 0
+    if (v > 48) setSwipeOpenId(id)
+    else setSwipeOpenId(null)
+    setSwipeOffset(prev => ({ ...prev, [id]: 0 }))
+    swipeActiveIdRef.current = null
+    swipeStartXRef.current = null
+  }
 
   // Badge quick filter moved to Header popup
 
@@ -161,7 +196,8 @@ const Dashboard = ({ isAdmin = false }) => {
         })
       }
       const map = attendanceData[dateKey] || {}
-      return editedOnly.sort((a, b) => {
+      const filteredByDate = editedOnly.filter(m => map[m.id] === true || map[m.id] === false)
+      return filteredByDate.sort((a, b) => {
         const av = map[a.id]
         const bv = map[b.id]
         const rank = (v) => (v === true ? 0 : v === false ? 1 : 2)
@@ -276,19 +312,27 @@ const Dashboard = ({ isAdmin = false }) => {
     }
   }, [searchTerm])
 
-  const handleDelete = async (event, member) => {
-    // Prevent row-level click handlers from firing on mobile tap
+  const openDeleteConfirm = (event, member) => {
     if (event) {
       event.stopPropagation()
       event.preventDefault()
     }
-    if (window.confirm(`Are you sure you want to delete ${member['full_name'] || member['Full Name']}?`)) {
-      try {
-        await deleteMember(member.id)
-        // Show success toast (would be implemented with react-toastify)
-      } catch (error) {
-        console.error('Error deleting member:', error)
-      }
+    setMemberToDelete(member)
+    setIsDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!memberToDelete) return
+    try {
+      await deleteMember(memberToDelete.id)
+      const name = memberToDelete['full_name'] || memberToDelete['Full Name']
+      setSwipeOpenId(null)
+      setIsDeleteConfirmOpen(false)
+      setMemberToDelete(null)
+      toast.success(`Your ${name} has been deleted.`)
+    } catch (error) {
+      console.error('Error deleting member:', error)
+      setIsDeleteConfirmOpen(false)
     }
   }
 
@@ -747,6 +791,55 @@ const Dashboard = ({ isAdmin = false }) => {
                   )}
                 </div>
               )}
+              {/* Date Filter Indicator (Edited Members) */}
+              {dashboardTab === 'edited' && selectedAttendanceDate && (
+                <div className="sticky top-0 sm:top-2 z-20 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-2 sm:p-3 shadow-sm flex items-center gap-2 relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowDateDropdown((prev) => !prev)}
+                    className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 flex items-center gap-2"
+                    title="Select Sunday"
+                  >
+                    <span>Showing edits for {selectedAttendanceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </button>
+                  {showDateDropdown && (
+                    <div className="absolute left-2 right-24 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 max-h-56 overflow-auto">
+                      {sundayDates.length === 0 ? (
+                        <div className="text-xs text-gray-600 dark:text-gray-300 px-2 py-1">No Sundays</div>
+                      ) : (
+                        sundayDates.map((d) => {
+                          const label = new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          const counts = perDayCounts[d] || { present: 0, absent: 0 }
+                          const total = (counts.present || 0) + (counts.absent || 0)
+                          const selected = selectedAttendanceDate && d === selectedAttendanceDate.toISOString().split('T')[0]
+                          return (
+                            <button
+                              key={d}
+                              onClick={() => { setAndSaveAttendanceDate(new Date(d)); setShowDateDropdown(false) }}
+                              className={`w-full flex items-center justify-between px-2 py-1 rounded text-xs ${selected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                            >
+                              <span>{label}</span>
+                              <span className="flex items-center gap-1">
+                                <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-300">P {counts.present || 0}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-300">A {counts.absent || 0}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">{total}</span>
+                              </span>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setAndSaveAttendanceDate(null)}
+                    className="ml-auto px-2 py-1 rounded text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700"
+                    title="Clear date filter"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+
               {/* Bulk Selection Toolbar (only on Edited Members) */}
               {dashboardTab === 'edited' && selectedMemberIds.size > 1 && (
                 <div className="sticky top-0 sm:top-2 z-30 bg-primary-50/80 dark:bg-primary-900/50 border border-primary-300 dark:border-primary-700 rounded-xl p-3 sm:p-4 mb-3 shadow-md backdrop-blur flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -876,9 +969,28 @@ const Dashboard = ({ isAdmin = false }) => {
           const isExpanded = expandedMembers[member.id]
           
           return (
-            <div key={member.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200">
+            <div key={member.id} className="relative">
+              <div className="absolute inset-y-0 right-0 w-16 flex items-center justify-center bg-red-600 dark:bg-red-700 rounded-xl">
+                <button
+                  type="button"
+                  onTouchStart={(e) => { e.stopPropagation() }}
+                  onClick={(e) => { e.stopPropagation(); openDeleteConfirm(e, member) }}
+                  className="text-white flex items-center justify-center w-12 h-12 rounded-md"
+                  title="Delete"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+              <div
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 border-r-4 border-r-red-600 dark:border-r-red-700"
+                style={{ transform: swipeOpenId === member.id ? 'translateX(-64px)' : 'translateX(0)', touchAction: 'pan-y' }}
+                onTouchStart={(e) => onRowTouchStart(member.id, e)}
+                onTouchMove={(e) => onRowTouchMove(member.id, e)}
+                onTouchEnd={() => onRowTouchEnd(member.id)}
+              >
               {/* Compact Header Row */}
               <div className="p-3 sm:p-4">
+                
                 <div className="flex items-center gap-1 sm:gap-2">
                   {/* Left side: Name, badge, and expand button */}
                   <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
@@ -1088,7 +1200,7 @@ const Dashboard = ({ isAdmin = false }) => {
                           <button
                             type="button"
                             onTouchStart={(e) => { e.stopPropagation() }}
-                            onClick={(e) => handleDelete(e, member)}
+                            onClick={(e) => openDeleteConfirm(e, member)}
                             style={{ touchAction: 'manipulation' }}
                             className="flex items-center space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
                           >
@@ -1157,6 +1269,7 @@ const Dashboard = ({ isAdmin = false }) => {
                   </div>
                 </div>
               )}
+            </div>
             </div>
           )
         })}
@@ -1266,6 +1379,43 @@ const Dashboard = ({ isAdmin = false }) => {
         isOpen={showMemberModal}
         onClose={() => setShowMemberModal(false)}
       />
+
+      {/* Delete Confirm Modal */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm mx-4 overflow-hidden shadow-xl">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Member</h3>
+              <button
+                onClick={() => { setIsDeleteConfirmOpen(false); setMemberToDelete(null) }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+            <div className="px-4 py-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Are you sure you want to delete <span className="font-semibold">{memberToDelete?.['full_name'] || memberToDelete?.['Full Name']}</span>?
+              </p>
+              <p className="mt-2 text-xs text-red-600 dark:text-red-400">This action cannot be undone.</p>
+            </div>
+            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+              <button
+                onClick={() => { setIsDeleteConfirmOpen(false); setMemberToDelete(null) }}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Month Modal */}
       <MonthModal
