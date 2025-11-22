@@ -303,12 +303,21 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             {/* Left: Home */}
             <div className="flex items-center">
               <button
-                onClick={() => setCurrentView('dashboard')}
+                onClick={() => { 
+                  setCurrentView('dashboard'); 
+                  setDashboardTab('all');
+                  // Clear any search or filters when going home
+                  setSearchTerm('');
+                  setGenderFilter(null);
+                  setSelectedMemberIds(new Set());
+                  setSelectedDuplicateIds(new Set());
+                }}
                 className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors ${
                   currentView === 'dashboard' && dashboardTab === 'all'
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
+                title="Go to Home Dashboard"
               >
                 <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline sm:inline">Dashboard</span>
@@ -339,7 +348,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
       </div>
       {/* Global sticky search bar (like Google) */}
       <div className="md:border-t border-gray-200 dark:border-gray-700">
-        <div className="mx-auto px-3 sm:px-4 py-1 md:py-2">
+        <div className="mx-auto px-3 sm:px-4 py-3 md:py-2">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />

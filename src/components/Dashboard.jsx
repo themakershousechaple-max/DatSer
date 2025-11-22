@@ -6,6 +6,7 @@ import EditMemberModal from './EditMemberModal'
 import MemberModal from './MemberModal'
 import MonthModal from './MonthModal'
 import DateSelector from './DateSelector'
+import ConfirmModal from './ConfirmModal'
 import { toast } from 'react-toastify'
 
 // Helper function to get month display name from table name
@@ -84,6 +85,18 @@ const Dashboard = ({ isAdmin = false }) => {
   const swipeActiveIdRef = useRef(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [memberToDelete, setMemberToDelete] = useState(null)
+  
+  // Custom confirmation modals
+  const [confirmModalConfig, setConfirmModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    confirmButtonClass: "bg-red-600 hover:bg-red-700 text-white",
+    cancelButtonClass: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+  })
   const sundaysRef = useRef(null)
 
   // Duplicates management state
@@ -302,6 +315,14 @@ const Dashboard = ({ isAdmin = false }) => {
     return best || members[0]?.id
   }
 
+  // Helper function to show confirmation modal
+  const showConfirmModal = (config) => {
+    setConfirmModalConfig({
+      ...config,
+      isOpen: true
+    })
+  }
+
   // Toggle duplicate selection
   const toggleSelectDuplicate = (memberId) => {
     setSelectedDuplicateIds(prev => {
@@ -315,18 +336,24 @@ const Dashboard = ({ isAdmin = false }) => {
   // Bulk delete selected duplicates
   const deleteSelectedDuplicates = async () => {
     if (selectedDuplicateIds.size === 0) return
-    const confirmed = window.confirm(`Delete ${selectedDuplicateIds.size} selected duplicate member${selectedDuplicateIds.size !== 1 ? 's' : ''}? This cannot be undone.`)
-    if (!confirmed) return
-    try {
-      for (const id of Array.from(selectedDuplicateIds)) {
-        await deleteMember(id)
+    
+    showConfirmModal({
+      title: "Delete Duplicate Members",
+      message: `Delete ${selectedDuplicateIds.size} selected duplicate member${selectedDuplicateIds.size !== 1 ? 's' : ''}? This cannot be undone.`,
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          for (const id of Array.from(selectedDuplicateIds)) {
+            await deleteMember(id)
+          }
+          setSelectedDuplicateIds(new Set())
+          toast.success(`Deleted ${selectedDuplicateIds.size} duplicate member${selectedDuplicateIds.size !== 1 ? 's' : ''}.`)
+        } catch (error) {
+          console.error('Bulk delete failed:', error)
+          toast.error('Failed to delete selected duplicates. Please try again.')
+        }
       }
-      setSelectedDuplicateIds(new Set())
-      toast.success(`Deleted ${selectedDuplicateIds.size} duplicate member${selectedDuplicateIds.size !== 1 ? 's' : ''}.`)
-    } catch (error) {
-      console.error('Bulk delete failed:', error)
-      toast.error('Failed to delete selected duplicates. Please try again.')
-    }
+    })
   }
 
   // Per-Sunday counts for Edited Members (used in chips)
@@ -553,20 +580,26 @@ const Dashboard = ({ isAdmin = false }) => {
     const dateToUse = specificDate || selectedAttendanceDate
     const dateLabel = specificDate ? new Date(specificDate).toLocaleDateString() : selectedAttendanceDate
     
-    if (window.confirm(`Mark all members as ${present ? 'present' : 'absent'} on ${dateLabel}?`)) {
-      try {
-        const memberIds = filteredMembers.map(member => member.id)
-        await bulkAttendance(memberIds, new Date(dateToUse), present)
-        toast.success(`All members marked as ${present ? 'present' : 'absent'} successfully!`, {
-          style: { background: present ? '#10b981' : '#ef4444', color: '#ffffff' }
-        })
-      } catch (error) {
-        console.error('Error with bulk attendance:', error)
-        toast.error('Error updating attendance. Please try again.', {
-          style: { background: '#ef4444', color: '#ffffff' }
-        })
+    showConfirmModal({
+      title: "Bulk Attendance Update",
+      message: `Mark all members as ${present ? 'present' : 'absent'} on ${dateLabel}?`,
+      confirmText: "Update",
+      confirmButtonClass: present ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white",
+      onConfirm: async () => {
+        try {
+          const memberIds = filteredMembers.map(member => member.id)
+          await bulkAttendance(memberIds, new Date(dateToUse), present)
+          toast.success(`All members marked as ${present ? 'present' : 'absent'} successfully!`, {
+            style: { background: present ? '#10b981' : '#ef4444', color: '#ffffff' }
+          })
+        } catch (error) {
+          console.error('Error with bulk attendance:', error)
+          toast.error('Error updating attendance. Please try again.', {
+            style: { background: '#ef4444', color: '#ffffff' }
+          })
+        }
       }
-    }
+    })
   }
 
   const toggleMemberExpansion = (memberId) => {
@@ -650,21 +683,27 @@ const Dashboard = ({ isAdmin = false }) => {
   const handleBulkDelete = async () => {
     const memberIds = Array.from(selectedMemberIds)
     if (memberIds.length === 0) return
-    const confirmed = window.confirm(`Delete ${memberIds.length} selected member${memberIds.length !== 1 ? 's' : ''}? This cannot be undone.`)
-    if (!confirmed) return
-    setIsBulkDeleting(true)
-    try {
-      for (const id of memberIds) {
-        await deleteMember(id)
+    
+    showConfirmModal({
+      title: "Delete Members",
+      message: `Delete ${memberIds.length} selected member${memberIds.length !== 1 ? 's' : ''}? This cannot be undone.`,
+      confirmText: "Delete",
+      onConfirm: async () => {
+        setIsBulkDeleting(true)
+        try {
+          for (const id of memberIds) {
+            await deleteMember(id)
+          }
+          setSelectedMemberIds(new Set())
+          toast.success(`Deleted ${memberIds.length} member${memberIds.length !== 1 ? 's' : ''}.`)
+        } catch (error) {
+          console.error('Bulk delete failed:', error)
+          toast.error('Failed to delete selected members. Please try again.')
+        } finally {
+          setIsBulkDeleting(false)
+        }
       }
-      setSelectedMemberIds(new Set())
-      toast.success(`Deleted ${memberIds.length} member${memberIds.length !== 1 ? 's' : ''}.`)
-    } catch (error) {
-      console.error('Bulk delete failed:', error)
-      toast.error('Failed to delete selected members. Please try again.')
-    } finally {
-      setIsBulkDeleting(false)
-    }
+    })
   }
 
   const handleBulkBadgeAssignment = async (badgeType) => {
@@ -679,28 +718,34 @@ const Dashboard = ({ isAdmin = false }) => {
     const badgeName = badgeNames[badgeType]
     const memberCount = filteredMembers.length
     
-    if (window.confirm(`Assign "${badgeName}" to ${memberCount} member${memberCount !== 1 ? 's' : ''}?`)) {
-      setIsUpdatingBadges(true)
-      try {
-        for (const member of filteredMembers) {
-          // Only add the badge if the member doesn't already have it
-          if (!memberHasBadge(member, badgeType)) {
-            await toggleMemberBadge(member.id, badgeType)
+    showConfirmModal({
+      title: "Assign Badge",
+      message: `Assign "${badgeName}" to ${memberCount} member${memberCount !== 1 ? 's' : ''}?`,
+      confirmText: "Assign",
+      confirmButtonClass: "bg-blue-600 hover:bg-blue-700 text-white",
+      onConfirm: async () => {
+        setIsUpdatingBadges(true)
+        try {
+          for (const member of filteredMembers) {
+            // Only add the badge if the member doesn't already have it
+            if (!memberHasBadge(member, badgeType)) {
+              await toggleMemberBadge(member.id, badgeType)
+            }
           }
+          await updateMemberBadges()
+          toast.success(`Successfully assigned "${badgeName}" to ${memberCount} member${memberCount !== 1 ? 's' : ''}!`, {
+            style: { background: '#3b82f6', color: '#ffffff' }
+          })
+        } catch (error) {
+          console.error('Error assigning badges:', error)
+          toast.error('Error assigning badges. Please try again.', {
+            style: { background: '#ef4444', color: '#ffffff' }
+          })
+        } finally {
+          setIsUpdatingBadges(false)
         }
-        await updateMemberBadges()
-        toast.success(`Successfully assigned "${badgeName}" to ${memberCount} member${memberCount !== 1 ? 's' : ''}!`, {
-          style: { background: '#3b82f6', color: '#ffffff' }
-        })
-      } catch (error) {
-        console.error('Error assigning badges:', error)
-        toast.error('Error assigning badges. Please try again.', {
-          style: { background: '#ef4444', color: '#ffffff' }
-        })
-      } finally {
-        setIsUpdatingBadges(false)
       }
-    }
+    })
   }
 
   const getFilteredMembersByBadge = () => {
@@ -1744,6 +1789,19 @@ const Dashboard = ({ isAdmin = false }) => {
       <MonthModal
         isOpen={showMonthModal}
         onClose={() => setShowMonthModal(false)}
+      />
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModalConfig.isOpen}
+        onClose={() => setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModalConfig.onConfirm}
+        title={confirmModalConfig.title}
+        message={confirmModalConfig.message}
+        confirmText={confirmModalConfig.confirmText}
+        cancelText={confirmModalConfig.cancelText}
+        confirmButtonClass={confirmModalConfig.confirmButtonClass}
+        cancelButtonClass={confirmModalConfig.cancelButtonClass}
       />
     </div>
   )
