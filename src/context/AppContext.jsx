@@ -216,7 +216,12 @@ export const AppProvider = ({ children }) => {
         'Gender': gen,
         'Phone Number': sanitizePhoneToInt(memberData.phone_number ?? memberData.phoneNumber ?? memberData['Phone Number']),
         'Age': Number.isFinite(ageParsed) ? ageParsed : null,
-        'Current Level': memberData.current_level || memberData.currentLevel || memberData['Current Level']
+        'Current Level': memberData.current_level || memberData.currentLevel || memberData['Current Level'],
+        // Optional parent info fields
+        parent_name_1: memberData.parent_name_1 || null,
+        parent_phone_1: memberData.parent_phone_1 || null,
+        parent_name_2: memberData.parent_name_2 || null,
+        parent_phone_2: memberData.parent_phone_2 || null
       }
 
       const { data, error } = await supabase
@@ -374,6 +379,8 @@ export const AppProvider = ({ children }) => {
         }
       }
       
+      const twentyThird = sundays.find(sunday => sunday.getDate() === 23) || null
+
       const configured = DEFAULT_ATTENDANCE_DATES[currentTable]
       let defaultDate = null
       if (configured) {
@@ -385,9 +392,9 @@ export const AppProvider = ({ children }) => {
         )) || null
       }
       if (!defaultDate) {
-        defaultDate = sundays.length >= 2 ? sundays[1] : sundays[0]
+        defaultDate = twentyThird || (sundays.length >= 2 ? sundays[1] : sundays[0])
       }
-      setSelectedAttendanceDate(defaultDate)
+      setAndSaveAttendanceDate(defaultDate)
     }
   }
 

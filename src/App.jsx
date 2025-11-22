@@ -8,7 +8,6 @@ import Dashboard from './components/Dashboard'
 import MemberModal from './components/MemberModal'
 import MonthModal from './components/MonthModal'
 import MonthlyExport from './components/MonthlyExport'
-import Statistics from './components/Statistics'
 import AttendanceAnalytics from './components/AttendanceAnalytics'
 import AdminAuth from './components/AdminAuth'
 import AdminPanel from './components/AdminPanel'
@@ -87,9 +86,6 @@ function App() {
             <Dashboard isAdmin={isAdmin} />
           )}
           
-          {currentView === 'statistics' && (
-            <Statistics />
-          )}
           
           {currentView === 'analytics' && (
             <AttendanceAnalytics />

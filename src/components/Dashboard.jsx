@@ -37,6 +37,7 @@ const Dashboard = ({ isAdmin = false }) => {
     toggleMemberBadge,
     memberHasBadge,
     updateMemberBadges,
+    updateMember,
     selectedAttendanceDate,
     badgeFilter,
     toggleBadgeFilter,
@@ -44,7 +45,8 @@ const Dashboard = ({ isAdmin = false }) => {
     // Global dashboard tab (controlled by mobile header)
     dashboardTab,
     setDashboardTab,
-    setAndSaveAttendanceDate
+    setAndSaveAttendanceDate,
+    loadAllAttendanceData
   } = useApp()
   const { isDarkMode } = useTheme()
   const [editingMember, setEditingMember] = useState(null)
@@ -64,6 +66,7 @@ const Dashboard = ({ isAdmin = false }) => {
   // Tab state moved to AppContext: dashboardTab ('all' | 'edited')
   const [selectedSundayDate, setSelectedSundayDate] = useState(null)
   const [isSundayPopupOpen, setIsSundayPopupOpen] = useState(false)
+  const [genderFilter, setGenderFilter] = useState(null)
 
   // iOS detection (used for minor tweaks if needed)
   const searchInputRef = useRef(null)
@@ -180,13 +183,21 @@ const Dashboard = ({ isAdmin = false }) => {
   const getTabFilteredMembers = () => {
     const badgeFilteredMembers = getFilteredMembersByBadge()
 
+    // Apply gender filter (large-screen quick toggle)
+    const genderFilteredMembers = !genderFilter
+      ? badgeFilteredMembers
+      : badgeFilteredMembers.filter(member => {
+          const g = (member['Gender'] || member.gender || '').toString()
+          return g.toLowerCase() === genderFilter.toLowerCase()
+        })
+
     // When searching, ignore tab filters and show all matching results
     if (searchTerm && searchTerm.trim()) {
-      return badgeFilteredMembers
+      return genderFilteredMembers
     }
 
-  if (dashboardTab === 'edited') {
-      const editedOnly = badgeFilteredMembers.filter(member => isEditedMember(member))
+    if (dashboardTab === 'edited') {
+      const editedOnly = genderFilteredMembers.filter(member => isEditedMember(member))
       const dateKey = selectedAttendanceDate ? selectedAttendanceDate.toISOString().split('T')[0] : null
       if (!dateKey) {
         return editedOnly.sort((a, b) => {
@@ -209,7 +220,7 @@ const Dashboard = ({ isAdmin = false }) => {
       })
     }
 
-    return badgeFilteredMembers
+    return genderFilteredMembers
   }
 
   // Aggregated counts across selected/all Sundays for members in current view
@@ -235,13 +246,19 @@ const Dashboard = ({ isAdmin = false }) => {
     const editedMembers = members.filter(isEditedMember)
     const acc = {}
     for (const dateStr of sundayDates) {
-      const map = attendanceData[dateStr] || {}
+      const map = attendanceData[dateStr]
       let p = 0
       let a = 0
-      for (const m of editedMembers) {
-        const val = map[m.id]
-        if (val === true) p += 1
-        else if (val === false) a += 1
+      if (map) {
+        for (const m of editedMembers) {
+          const val = map[m.id]
+          if (val === true) p += 1
+          else if (val === false) a += 1
+        }
+      } else {
+        // Fallback: show total edited members before attendance map loads
+        p = editedMembers.length
+        a = 0
       }
       acc[dateStr] = { present: p, absent: a }
     }
@@ -254,6 +271,13 @@ const Dashboard = ({ isAdmin = false }) => {
       fetchAttendanceForDate(new Date(selectedAttendanceDate))
     }
   }, [selectedAttendanceDate, fetchAttendanceForDate])
+
+  // Preload attendance maps when switching to Edited tab
+  useEffect(() => {
+    if (dashboardTab === 'edited') {
+      loadAllAttendanceData()
+    }
+  }, [dashboardTab])
 
   // Fetch attendance for all Sunday dates
   useEffect(() => {
@@ -669,7 +693,11 @@ const Dashboard = ({ isAdmin = false }) => {
               const isSelected = selectedSundayDate === dateStr
               const dateObj = new Date(dateStr)
               const label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-              const presentCount = getTabFilteredMembers().filter(m => (attendanceData[dateStr] || {})[m.id] === true).length
+              const baseMembers = getTabFilteredMembers()
+              const map = attendanceData[dateStr]
+              const presentCount = map
+                ? baseMembers.filter(m => map[m.id] === true).length
+                : baseMembers.length
               return (
                 <button
                   key={dateStr}
@@ -788,11 +816,81 @@ const Dashboard = ({ isAdmin = false }) => {
                       </button>
                     )
                   })}
+                  <div className="hidden lg:inline-flex items-center gap-2 ml-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-300">Gender:</span>
+                    <button
+                      onClick={() => setGenderFilter(prev => (prev === 'Male' ? null : 'Male'))}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                        genderFilter === 'Male'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      title={genderFilter === 'Male' ? 'Show all genders' : 'Show Male only'}
+                    >
+                      Male
+                    </button>
+                    <button
+                      onClick={() => setGenderFilter(prev => (prev === 'Female' ? null : 'Female'))}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                        genderFilter === 'Female'
+                          ? 'bg-pink-600 text-white border-pink-600'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      title={genderFilter === 'Female' ? 'Show all genders' : 'Show Female only'}
+                    >
+                      Female
+                    </button>
+                    {genderFilter && (
+                      <button
+                        onClick={() => setGenderFilter(null)}
+                        className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        title="Clear gender filter"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                   {badgeFilter.length > 0 && (
                     <button
                       onClick={() => { badgeFilter.forEach(b => toggleBadgeFilter(b)) }}
                       className="ml-auto px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                       title="Clear all badge filters"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+              {dashboardTab !== 'edited' && (
+                <div className="hidden lg:flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2 sm:p-3 shadow-sm">
+                  <span className="text-xs text-gray-600 dark:text-gray-300">Gender:</span>
+                  <button
+                    onClick={() => setGenderFilter(prev => (prev === 'Male' ? null : 'Male'))}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                      genderFilter === 'Male'
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title={genderFilter === 'Male' ? 'Show all genders' : 'Show Male only'}
+                  >
+                    Male
+                  </button>
+                  <button
+                    onClick={() => setGenderFilter(prev => (prev === 'Female' ? null : 'Female'))}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                      genderFilter === 'Female'
+                        ? 'bg-pink-600 text-white border-pink-600'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title={genderFilter === 'Female' ? 'Show all genders' : 'Show Female only'}
+                  >
+                    Female
+                  </button>
+                  {genderFilter && (
+                    <button
+                      onClick={() => setGenderFilter(null)}
+                      className="ml-auto px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      title="Clear gender filter"
                     >
                       Clear
                     </button>
@@ -1109,10 +1207,29 @@ const Dashboard = ({ isAdmin = false }) => {
                         {attendanceLoading[member.id] ? '...' : <span className="hidden sm:inline">Absent</span>}
                         {attendanceLoading[member.id] ? '...' : <span className="sm:hidden">A</span>}
                       </button>
-                          </>
-                        )
-                      })()}
-                    </div>
+                      {/* Quick gender set buttons */}
+                      <div className="hidden lg:flex items-center gap-1 ml-2">
+                        <button
+                          onClick={() => updateMember(member.id, { gender: 'male' })}
+                          disabled={attendanceLoading[member.id]}
+                          className="px-2 py-1 rounded text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 border border-blue-300 dark:border-blue-700"
+                          title="Set gender to Male"
+                        >
+                          Male
+                        </button>
+                        <button
+                          onClick={() => updateMember(member.id, { gender: 'female' })}
+                          disabled={attendanceLoading[member.id]}
+                          className="px-2 py-1 rounded text-xs bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-800 border border-pink-300 dark:border-pink-700"
+                          title="Set gender to Female"
+                        >
+                          Female
+                        </button>
+                      </div>
+                      </>
+                    )
+                  })()}
+                </div>
 
                   {/* Badge assignment buttons */}
                   <div className="flex space-x-1 ml-2 border-l-2 border-gray-300 dark:border-gray-600 pl-2 bg-gray-100 dark:bg-gray-700 rounded-r-md py-1 px-2">
