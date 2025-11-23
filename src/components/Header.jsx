@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react'
-import { 
-  Users, 
-  Download, 
-  Shield, 
+import {
+  Users,
+  Download,
+  Shield,
   Plus,
   Calendar,
   Moon,
@@ -95,7 +95,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
     try {
       const [monthName, yearStr] = table.split('_')
       const year = parseInt(yearStr)
-      const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
       const idx = months.indexOf(monthName)
       if (idx === -1) return []
       const res = []
@@ -189,7 +189,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   }, [filteredMembers, attendanceData])
 
   // Exclusive badge filter helper removed; inline badge chips now live on the Edited page
-  
+
   const menuItems = [
     { id: 'edited_members', label: `Edited Members (${editedCount})`, icon: Edit3, onClick: () => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('edited') }) } },
     { id: 'duplicates', label: 'Duplicate Names', icon: Users, onClick: () => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('duplicates') }) } },
@@ -228,41 +228,41 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             <div className="flex items-center gap-2 lg:gap-3">
               <button
                 onClick={() => { setCurrentView('dashboard'); setDashboardTab('all') }}
-                className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  currentView === 'dashboard' && dashboardTab === 'all'
+                className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 <Users className="w-4 h-4" />
-              <span className="hidden lg:inline">Home</span>
-              <span className="lg:hidden">Home</span>
+                <span className="hidden lg:inline">Home</span>
+                <span className="lg:hidden">Home</span>
               </button>
               {/* Desktop-only quick nav */}
               <div className="hidden lg:flex items-center gap-2">
                 <button
                   onClick={() => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('edited') }) }}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentView === 'dashboard' && dashboardTab === 'edited'
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   Edited
                 </button>
                 <button
                   onClick={() => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('duplicates') }) }}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentView === 'dashboard' && dashboardTab === 'duplicates'
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'duplicates'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   Duplicates
                 </button>
                 <button
                   onClick={() => startTransition(() => setCurrentView('admin'))}
-                  className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'admin'
+                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
                 >
                   Admin
                 </button>
@@ -275,11 +275,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
-                    ['analytics', 'export', 'admin'].includes(currentView)
+                  className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${['analytics', 'export', 'admin'].includes(currentView)
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
-                  }`}
+                    }`}
                   title="Menu"
                 >
                   <Menu className="w-4 h-4" />
@@ -303,8 +302,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             {/* Left: Home */}
             <div className="flex items-center">
               <button
-                onClick={() => { 
-                  setCurrentView('dashboard'); 
+                onClick={() => {
+                  setCurrentView('dashboard');
                   setDashboardTab('all');
                   // Clear any search or filters when going home
                   setSearchTerm('');
@@ -312,11 +311,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                   setSelectedMemberIds(new Set());
                   setSelectedDuplicateIds(new Set());
                 }}
-                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors ${
-                  currentView === 'dashboard' && dashboardTab === 'all'
+                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
                 title="Go to Home Dashboard"
               >
                 <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -331,11 +329,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <div className="relative" ref={mobileDropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${
-                    ['analytics', 'export', 'admin'].includes(currentView)
+                  className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${['analytics', 'export', 'admin'].includes(currentView)
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
-                  }`}
+                    }`}
                   title="Menu"
                 >
                   <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -390,26 +387,26 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             )}
           </div>
 
-  {/* Summary pill with embedded Light/Dark toggle (single beautiful chip) */}
-  {currentView === 'dashboard' && (
-    <div className="mt-1">
-      <div className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-[11px] leading-4 text-gray-700 dark:text-gray-300 shadow-sm">
-        {/* Left: summary tokens */}
-        <div className="flex items-center gap-1">
-          {selectedAttendanceDate && (
-            <>
-              <span>{selectedAttendanceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-              <span className="text-gray-400">•</span>
-            </>
-          )}
-          <span>{compactFoundCount} found</span>
-          <span className="text-gray-400">•</span>
-          <span>{currentTable ? currentTable.replace('_', ' ') : ''}</span>
-          <span className="text-gray-400">•</span>
-          <span>{isSupabaseConfigured() ? 'Live' : 'Demo'}</span>
-          <span className="hidden md:inline text-gray-400">•</span>
-          <span className="hidden md:inline">Member Dashboard</span>
-        </div>
+          {/* Summary pill with embedded Light/Dark toggle (single beautiful chip) */}
+          {currentView === 'dashboard' && (
+            <div className="mt-1">
+              <div className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-[11px] leading-4 text-gray-700 dark:text-gray-300 shadow-sm">
+                {/* Left: summary tokens */}
+                <div className="flex items-center gap-1">
+                  {selectedAttendanceDate && (
+                    <>
+                      <span>{selectedAttendanceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span className="text-gray-400">•</span>
+                    </>
+                  )}
+                  <span>{compactFoundCount} found</span>
+                  <span className="text-gray-400">•</span>
+                  <span>{currentTable ? currentTable.replace('_', ' ') : ''}</span>
+                  <span className="text-gray-400">•</span>
+                  <span>{isSupabaseConfigured() ? 'Live' : 'Demo'}</span>
+                  <span className="hidden md:inline text-gray-400">•</span>
+                  <span className="hidden md:inline">Member Dashboard</span>
+                </div>
                 {/* Right: segmented toggle */}
                 <div className="inline-flex items-center overflow-hidden rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
                   <button
@@ -458,7 +455,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 <div>
                   <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Views</div>
                   <div className="space-y-2">
-                    {menuItems.filter(i => ['all_members','edited_members','duplicates'].includes(i.id)).map((item) => {
+                    {menuItems.filter(i => ['all_members', 'edited_members', 'duplicates'].includes(i.id)).map((item) => {
                       const Icon = item.icon
                       let active = false
                       if (item.id === 'all_members') {
@@ -524,7 +521,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 <div>
                   <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</div>
                   <div className="space-y-2">
-                    {menuItems.filter(i => ['create_month','export'].includes(i.id)).map((item) => {
+                    {menuItems.filter(i => ['create_month', 'export'].includes(i.id)).map((item) => {
                       const Icon = item.icon
                       const active = currentView === item.id
                       return (

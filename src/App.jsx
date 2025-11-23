@@ -71,73 +71,73 @@ function App() {
     <ThemeProvider>
       <ErrorBoundary>
         <AppProvider>
-        <div className={`min-app-vh bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ios-overscroll-none ${isMobile ? 'mobile-toast-top' : ''}`}>
-        <Header 
-          currentView={currentView}
-          setCurrentView={setCurrentView}
-          isAdmin={isAdmin}
-          setIsAdmin={setIsAdmin}
-          onAddMember={() => setShowMemberModal(true)}
-          onCreateMonth={() => setShowMonthModal(true)}
-        />
-        
-        <main className="container mx-auto px-4 py-8 pt-36 md:pt-40">
-          {currentView === 'dashboard' && (
-            <Dashboard isAdmin={isAdmin} />
-          )}
-          
-          
-          {currentView === 'analytics' && (
-            <AttendanceAnalytics />
-          )}
-          
-          {currentView === 'export' && (
-            <MonthlyExport />
-          )}
-          
-          {currentView === 'admin' && !isAdmin && (
-            <AdminAuth onLogin={setIsAdmin} />
-          )}
-          
-          {currentView === 'admin' && isAdmin && (
-            <AdminPanel 
-              onLogout={() => {
-                localStorage.removeItem('tmht_admin_session')
-                setIsAdmin(false)
-              }} 
+          <div className={`min-app-vh bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ios-overscroll-none ${isMobile ? 'mobile-toast-top' : ''}`}>
+            <Header
+              currentView={currentView}
+              setCurrentView={setCurrentView}
+              isAdmin={isAdmin}
+              setIsAdmin={setIsAdmin}
+              onAddMember={() => setShowMemberModal(true)}
+              onCreateMonth={() => setShowMonthModal(true)}
             />
-          )}
-        </main>
 
-        {showMemberModal && (
-          <MemberModal
-            isOpen={showMemberModal}
-            onClose={() => setShowMemberModal(false)}
-          />
-        )}
+            <main className={`container mx-auto px-4 py-8 ${currentView === 'admin' ? 'pt-8' : 'pt-36 md:pt-40'}`}>
+              {currentView === 'dashboard' && (
+                <Dashboard isAdmin={isAdmin} />
+              )}
 
-        {showMonthModal && (
-          <MonthModal
-            isOpen={showMonthModal}
-            onClose={() => setShowMonthModal(false)}
-          />
-        )}
 
-        <ToastContainer
-          position={isMobile ? 'top-center' : 'bottom-right'}
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          style={isMobile 
-            ? { top: 'calc(env(safe-area-inset-top) + 8px)' } 
-            : { bottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
-        />
-        </div>
+              {currentView === 'analytics' && (
+                <AttendanceAnalytics />
+              )}
+
+              {currentView === 'export' && (
+                <MonthlyExport />
+              )}
+
+              {currentView === 'admin' && !isAdmin && (
+                <AdminAuth onLogin={setIsAdmin} />
+              )}
+
+              {currentView === 'admin' && isAdmin && (
+                <AdminPanel
+                  onLogout={() => {
+                    localStorage.removeItem('tmht_admin_session')
+                    setIsAdmin(false)
+                  }}
+                />
+              )}
+            </main>
+
+            {showMemberModal && (
+              <MemberModal
+                isOpen={showMemberModal}
+                onClose={() => setShowMemberModal(false)}
+              />
+            )}
+
+            {showMonthModal && (
+              <MonthModal
+                isOpen={showMonthModal}
+                onClose={() => setShowMonthModal(false)}
+              />
+            )}
+
+            <ToastContainer
+              position={isMobile ? 'top-center' : 'bottom-right'}
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              style={isMobile
+                ? { top: 'calc(env(safe-area-inset-top) + 8px)' }
+                : { bottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
+            />
+          </div>
         </AppProvider>
       </ErrorBoundary>
     </ThemeProvider>
