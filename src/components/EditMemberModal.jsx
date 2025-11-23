@@ -120,9 +120,14 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     // Validate required fields
     const isFullNameValid = formData.full_name && formData.full_name.trim().length > 0
     const isGenderValid = !!formData.gender
+    const isLevelValid = !!formData.current_level
+    const phoneDigits = (formData.phone_number || '').replace(/\D/g, '')
+    const isPhoneValid = phoneDigits.length === 10
+    const ageNum = parseInt(formData.age)
+    const isAgeValid = formData.age && !isNaN(ageNum) && ageNum >= 1 && ageNum <= 120
 
-    if (!isFullNameValid || !isGenderValid) {
-      toast.error('Please fill in all required fields')
+    if (!isFullNameValid || !isGenderValid || !isLevelValid || !isPhoneValid || !isAgeValid) {
+      toast.error('Please fill in all required fields correctly')
       return
     }
 
@@ -202,8 +207,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 onChange={handleInputChange}
                 required
                 className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors ${hasAttemptedSave && (!formData.full_name || !formData.full_name.trim())
-                    ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
-                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                  ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
                   }`}
                 placeholder="Enter full name"
               />
@@ -220,10 +225,10 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${formData.gender === 'male'
-                  ? 'border-primary-500 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 ring-2 ring-primary-300 dark:ring-primary-800 shadow-sm font-semibold'
-                  : (hasAttemptedSave && !formData.gender
-                    ? 'border-red-500 ring-2 ring-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                    : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300')
+                ? 'border-primary-500 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 ring-2 ring-primary-300 dark:ring-primary-800 shadow-sm font-semibold'
+                : (hasAttemptedSave && !formData.gender
+                  ? 'border-red-500 ring-2 ring-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                  : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300')
                 }`}>
                 <input
                   type="radio"
@@ -238,10 +243,10 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
               </label>
 
               <label className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${formData.gender === 'female'
-                  ? 'border-primary-500 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 ring-2 ring-primary-300 dark:ring-primary-800 shadow-sm font-semibold'
-                  : (hasAttemptedSave && !formData.gender
-                    ? 'border-red-500 ring-2 ring-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                    : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300')
+                ? 'border-primary-500 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 ring-2 ring-primary-300 dark:ring-primary-800 shadow-sm font-semibold'
+                : (hasAttemptedSave && !formData.gender
+                  ? 'border-red-500 ring-2 ring-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                  : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300')
                 }`}>
                 <input
                   type="radio"
@@ -276,11 +281,16 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 onChange={handleInputChange}
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${hasAttemptedSave && ((formData.phone_number || '').replace(/\D/g, '').length !== 10)
+                  ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
+                  }`}
                 placeholder="Enter phone number"
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Tip: enter local digits only; long numbers are trimmed for saving.</p>
+            {hasAttemptedSave && ((formData.phone_number || '').replace(/\D/g, '').length !== 10) && (
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">Phone number must be 10 digits</p>
+            )}
           </div>
 
           {/* Age */}
@@ -300,10 +310,16 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 step="1"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${hasAttemptedSave && (!formData.age || isNaN(parseInt(formData.age)))
+                  ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
+                  }`}
                 placeholder="Enter age"
               />
             </div>
+            {hasAttemptedSave && (!formData.age || isNaN(parseInt(formData.age))) && (
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">Please enter age</p>
+            )}
           </div>
 
           {/* Current Level */}
@@ -317,7 +333,10 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 name="current_level"
                 value={formData.current_level}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 appearance-none transition-colors ${hasAttemptedSave && !formData.current_level
+                  ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                  }`}
               >
                 <option value="">Select level</option>
                 {levels.map(level => (
@@ -327,6 +346,9 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 ))}
               </select>
             </div>
+            {hasAttemptedSave && !formData.current_level && (
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">Please select current level</p>
+            )}
           </div>
 
           {/* Sunday Attendance */}
