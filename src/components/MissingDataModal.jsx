@@ -3,8 +3,8 @@ import { X, AlertCircle } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { toast } from 'react-toastify'
 
-const MissingDataModal = ({ member, missingFields, missingDates, onClose, onSave }) => {
-    const { updateMember, markAttendance } = useApp()
+const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendanceAction, selectedAttendanceDate, onClose, onSave }) => {
+    const { updateMember, markAttendance, selectedAttendanceDate: contextAttendanceDate } = useApp()
     const [formData, setFormData] = useState({})
     const [attendanceData, setAttendanceData] = useState({})
     const [isSaving, setIsSaving] = useState(false)
@@ -167,6 +167,53 @@ const MissingDataModal = ({ member, missingFields, missingDates, onClose, onSave
         } finally {
             setIsSaving(false)
         }
+    }
+
+    const handleSkip = async () => {
+        console.log('=== SKIP BUTTON CLICKED ===')
+        console.log('Pending attendance action:', pendingAttendanceAction)
+
+        // If there's a pending attendance action, save it immediately
+        if (pendingAttendanceAction) {
+            const { memberId, present } = pendingAttendanceAction
+            const dateToUse = selectedAttendanceDate || contextAttendanceDate
+
+            setIsSaving(true)
+            setSaveError(null)
+            console.log(`Saving pending attendance: ${present ? 'Present' : 'Absent'} for member ${memberId}`)
+
+            try {
+                // Save the original Present/Absent selection that triggered the modal
+                if (dateToUse) {
+                    await markAttendance(memberId, dateToUse, present)
+                    console.log(`Attendance saved: ${present}`)
+                    toast.success(`Marked as ${present ? 'present' : 'absent'}!`, {
+                        style: {
+                            background: present ? '#10b981' : '#ef4444',
+                            color: '#ffffff'
+                        }
+                    })
+                } else {
+                    console.warn('No attendance date available')
+                    toast.error('No attendance date selected')
+                }
+                onSave()
+                onClose()
+            } catch (error) {
+                console.error('Error saving pending attendance:', error)
+                const errorMsg = error.message || 'Unknown error occurred'
+                setSaveError(errorMsg)
+                toast.error(`Failed to save attendance: ${errorMsg}`)
+            } finally {
+                setIsSaving(false)
+            }
+            return
+        }
+
+        // If no pending action, just close
+        console.log('No pending attendance action, closing modal')
+        toast.info('No attendance to save')
+        onClose()
     }
 
     return (
@@ -441,24 +488,34 @@ const MissingDataModal = ({ member, missingFields, missingDates, onClose, onSave
                 </div>
 
                 {/* Footer with Save button */}
-                <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3 z-10">
+                <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center z-10">
                     <button
-                        onClick={onClose}
-                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                        onClick={handleSkip}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
                         disabled={isSaving}
+                        title="Save attendance and skip member information"
                     >
-                        Cancel
+                        Skip
                     </button>
-                    <button
-                        onClick={handleSave}
-                        className={`px-6 py-2 rounded-lg font-medium transition-colors ${isSaving
-                            ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
-                            : 'bg-primary-600 hover:bg-primary-700 text-white'
-                            }`}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? 'Saving...' : 'Save'}
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                            disabled={isSaving}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className={`px-6 py-2 rounded-lg font-medium transition-colors ${isSaving
+                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
+                                : 'bg-primary-600 hover:bg-primary-700 text-white'
+                                }`}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'Saving...' : 'Save'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

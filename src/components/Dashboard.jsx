@@ -1856,6 +1856,8 @@ const Dashboard = ({ isAdmin = false }) => {
           member={missingDataMember}
           missingFields={missingFields}
           missingDates={missingDates}
+          pendingAttendanceAction={pendingAttendanceAction}
+          selectedAttendanceDate={selectedAttendanceDate}
           onClose={() => {
             setShowMissingDataModal(false)
             setMissingDataMember(null)
