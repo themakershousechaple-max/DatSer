@@ -6,39 +6,48 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none;    /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 @layer base {
   * {
     box-sizing: border-box;
   }
-  
+
   html {
     scroll-behavior: smooth;
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden; /* Prevent page from moving left/right */
-    scrollbar-gutter: stable; /* Reserve space only where the scrollbar renders to avoid left-edge gap */
+    overflow-x: hidden;
+    /* Prevent page from moving left/right */
+    scrollbar-gutter: stable;
+    /* Reserve space only where the scrollbar renders to avoid left-edge gap */
   }
-  
+
   /* Use dynamic viewport height when available */
   :root {
     --app-vh: 100vh;
   }
+
   @supports (height: 100dvh) {
-    :root { --app-vh: 100dvh; }
+    :root {
+      --app-vh: 100dvh;
+    }
   }
-  
+
   /* Slightly increase base font size on small screens for readability */
   @media (max-width: 640px) {
     html {
-      font-size: 17px; /* was browser default ~16px */
+      font-size: 17px;
+      /* was browser default ~16px */
     }
   }
-  
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -46,10 +55,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     @apply bg-gray-50 dark:bg-gray-900 transition-colors duration-200;
-    overscroll-behavior-x: none; /* Disable sideways overscroll bounce */
+    overscroll-behavior-x: none;
+    /* Disable sideways overscroll bounce */
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden; /* Belt-and-suspenders to ensure no horizontal scroll */
+    overflow-x: hidden;
+    /* Belt-and-suspenders to ensure no horizontal scroll */
   }
 }
 
@@ -57,23 +68,23 @@
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
   }
-  
+
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200;
   }
-  
+
   .card {
     @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-colors duration-200;
   }
-  
+
   .modal-overlay {
     @apply fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center p-4 z-50;
   }
-  
+
   .modal-content {
     @apply bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto transition-colors duration-200;
   }
@@ -81,47 +92,55 @@
 
 @layer utilities {
   .sticky-header {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     z-index: 50;
     background: var(--color-bg, #fff);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: background-color 0.2s;
   }
 
   .text-balance {
     text-wrap: balance;
   }
+
   /* Dynamic viewport min-height utility using new units when available */
   .min-app-vh {
     min-height: var(--app-vh);
   }
-  
-/* iOS safe-area helpers */
-.safe-area-top {
-  padding-top: env(safe-area-inset-top);
-}
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
+
+  /* iOS safe-area helpers */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 
   /* iOS keyboard-aware bottom bar offset (used by fixed bottom search) */
   .ios-bottom-bar {
     bottom: calc(env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
     will-change: bottom;
-    transform: translateZ(0); /* promote to its own layer to reduce jank */
+    transform: translateZ(0);
+    /* promote to its own layer to reduce jank */
   }
-  
+
   /* Avoid odd overscroll glows in PWA */
   .ios-overscroll-none {
     overscroll-behavior: none;
   }
 }
+
 /* Force toasts to render at the top on mobile when root has .mobile-toast-top */
 .mobile-toast-top .Toastify__toast-container {
   top: calc(env(safe-area-inset-top) + 8px) !important;
   bottom: auto !important;
 }
+
 .mobile-toast-top .Toastify__toast-container--bottom-right,
 .mobile-toast-top .Toastify__toast-container--bottom-left,
 .mobile-toast-top .Toastify__toast-container--bottom-center {
