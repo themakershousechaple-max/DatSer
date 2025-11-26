@@ -1540,6 +1540,37 @@ const Dashboard = ({ isAdmin = false }) => {
                                     </span>
                                   </div>
                                 </div>
+
+                                {/* Parent Information (if available) */}
+                                {(member['parent_name_1'] || member['parent_name_2']) && (
+                                  <div className="mt-4 pt-3 border-t border-blue-200 dark:border-blue-700">
+                                    <h4 className="font-medium text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Parent Information</h4>
+                                    <div className="space-y-2 text-xs sm:text-sm">
+                                      {member['parent_name_1'] && (
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-gray-600 dark:text-gray-300">Parent 1:</span>
+                                          <div className="text-right">
+                                            <span className="block font-medium text-gray-900 dark:text-white">{member['parent_name_1']}</span>
+                                            {member['parent_phone_1'] && (
+                                              <span className="block text-xs text-gray-500 dark:text-gray-400">{member['parent_phone_1']}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {member['parent_name_2'] && (
+                                        <div className="flex justify-between items-center mt-2">
+                                          <span className="text-gray-600 dark:text-gray-300">Parent 2:</span>
+                                          <div className="text-right">
+                                            <span className="block font-medium text-gray-900 dark:text-white">{member['parent_name_2']}</span>
+                                            {member['parent_phone_2'] && (
+                                              <span className="block text-xs text-gray-500 dark:text-gray-400">{member['parent_phone_2']}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
 
                               {/* Actions */}

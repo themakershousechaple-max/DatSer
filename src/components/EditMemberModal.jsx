@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { X, User, Phone, Calendar, BookOpen } from 'lucide-react'
+import { X, User, Phone, Calendar, BookOpen, ChevronDown } from 'lucide-react'
 import { toast } from 'react-toastify'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
@@ -112,6 +112,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
   }, [attendanceData, member?.id, sundayDates])
 
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false)
+  const [isLevelOpen, setIsLevelOpen] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -323,28 +324,45 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
           </div>
 
           {/* Current Level */}
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Current Level
             </label>
             <div className="relative">
-              <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <select
-                name="current_level"
-                value={formData.current_level}
-                onChange={handleInputChange}
-                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 appearance-none transition-colors ${hasAttemptedSave && !formData.current_level
-                  ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
-                  }`}
+              <button
+                type="button"
+                onClick={() => setIsLevelOpen(!isLevelOpen)}
+                className={`w-full pl-10 pr-4 py-2 text-left rounded-lg focus:outline-none focus:ring-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 border flex items-center justify-between ${hasAttemptedSave && !formData.current_level ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'}`}
               >
-                <option value="">Select level</option>
-                {levels.map(level => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </select>
+                <div className="flex items-center">
+                  <BookOpen className="w-4 h-4 text-gray-500 dark:text-gray-400 mr-3" />
+                  <span className={!formData.current_level ? 'text-gray-500 dark:text-gray-400' : ''}>
+                    {formData.current_level || 'Select level'}
+                  </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isLevelOpen ? 'transform rotate-180' : ''}`} />
+              </button>
+
+              {isLevelOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  {levels.map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange({ target: { name: 'current_level', value: level } })
+                        setIsLevelOpen(false)
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${formData.current_level === level
+                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium'
+                        : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {hasAttemptedSave && !formData.current_level && (
               <p className="mt-1 text-xs text-red-600 dark:text-red-400">Please select current level</p>
