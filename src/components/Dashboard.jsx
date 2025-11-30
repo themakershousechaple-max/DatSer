@@ -115,6 +115,9 @@ const Dashboard = ({ isAdmin = false }) => {
   const [openQrModal, setOpenQrModal] = useState(false)
   const [qrMember, setQrMember] = useState(null)
 
+  // Badge dropdown state (tracks which member's dropdown is open)
+  const [badgeDropdownOpen, setBadgeDropdownOpen] = useState(null)
+
   // Custom confirmation modals
   const [confirmModalConfig, setConfirmModalConfig] = useState({
     isOpen: false,
@@ -1314,7 +1317,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 const isSelected = longPressSelectedIds.has(member.id)
 
                 return (
-                  <div key={member.id} className="relative">
+                  <div key={member.id} className={`relative ${badgeDropdownOpen === member.id ? 'z-40' : ''}`}>
                     {/* Selection checkmark */}
                     {isSelected && (
                       <div className="selection-checkmark">
@@ -1326,7 +1329,7 @@ const Dashboard = ({ isAdmin = false }) => {
                         type="button"
                         onTouchStart={(e) => { e.stopPropagation() }}
                         onClick={(e) => { e.stopPropagation(); setQrMember(member); setOpenQrModal(true) }}
-                        className="text-white flex items-center justify-center w-12 h-12 rounded-md bg-blue-600 hover:bg-blue-700"
+                        className="text-white flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 shadow-lg"
                         title="Share / QR"
                       >
                         <Feather className="w-5 h-5" />
@@ -1335,14 +1338,14 @@ const Dashboard = ({ isAdmin = false }) => {
                         type="button"
                         onTouchStart={(e) => { e.stopPropagation() }}
                         onClick={(e) => { e.stopPropagation(); openDeleteConfirm(e, member) }}
-                        className="text-white flex items-center justify-center w-12 h-12 rounded-md bg-red-600 dark:bg-red-700 hover:bg-red-700"
+                        className="text-white flex items-center justify-center w-12 h-12 rounded-xl bg-red-600 dark:bg-red-700 hover:bg-red-700 shadow-lg"
                         title="Delete"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
                     <div
-                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 border-r-4 border-r-red-600 dark:border-r-red-700 ${isSelected ? 'selection-highlight' : ''
+                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 border-r-4 border-r-red-600 dark:border-r-red-700 ${isSelected ? 'selection-highlight' : ''
                         }`}
                       style={{ transform: swipeOpenId === member.id ? 'translateX(-64px)' : 'translateX(0)', touchAction: 'pan-y', userSelect: 'none' }}
                       onTouchStart={(e) => {
@@ -1379,189 +1382,146 @@ const Dashboard = ({ isAdmin = false }) => {
                         }
                       }}
                     >
-                      {/* Compact Header Row */}
-                      <div className="pl-3 pr-2 py-3 sm:pl-6 sm:pr-3 sm:py-3.5">
+                      {/* Mobile-friendly stacked layout */}
+                      <div className="px-3 py-3 sm:px-4 sm:py-3.5">
+                        {/* Row 1: Expand button + Name + Selection indicator */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <button
+                            onClick={() => toggleMemberExpansion(member.id)}
+                            className="p-1 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors flex-shrink-0"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="w-5 h-5" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5" />
+                            )}
+                          </button>
+                          {dashboardTab === 'edited' && isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate flex-1">
+                            {member['full_name'] || member['Full Name']}
+                          </h3>
+                        </div>
 
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          {/* Left side: Name, badge, and expand button */}
-                          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                        {/* Row 2: Badge dropdown + Present/Absent buttons */}
+                        <div className="flex items-center gap-2 ml-7">
+                          {/* Badge dropdown */}
+                          <div className="relative">
                             <button
-                              onClick={() => toggleMemberExpansion(member.id)}
-                              className="p-1 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setBadgeDropdownOpen(badgeDropdownOpen === member.id ? null : member.id)
+                              }}
+                              className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 transition-colors whitespace-nowrap md:px-6 md:py-3 md:text-sm"
                             >
-                              {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                              )}
+                              <Award className="w-4 h-4" />
+                              <span>Badge</span>
+                              <ChevronDown className={`w-3 h-3 transition-transform ${badgeDropdownOpen === member.id ? 'rotate-180' : ''}`} />
                             </button>
-                            {/* Round checkbox replaces avatar, only on Edited Members - USE LONG-PRESS */}
-                            {dashboardTab === 'edited' && (
-                              <div className="flex-shrink-0 text-gray-400 dark:text-gray-500 text-xs font-medium">
-                                {isSelected && (
-                                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
-                                    <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
-                                  </div>
-                                )}
+                            
+                            {/* Dropdown menu */}
+                            {badgeDropdownOpen === member.id && (
+                              <div className="absolute top-full left-0 mt-1 w-full min-w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-[100] py-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleIndividualBadgeAssignment(member.id, 'newcomer')
+                                    setBadgeDropdownOpen(null)
+                                  }}
+                                  disabled={badgeAssignmentLoading[member.id]}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${memberHasBadge(member, 'newcomer')
+                                    ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                  <Star className={`w-4 h-4 ${memberHasBadge(member, 'newcomer') ? 'text-yellow-500' : 'text-gray-400'}`} />
+                                  <span>Newcomer</span>
+                                  {memberHasBadge(member, 'newcomer') && <Check className="w-4 h-4 ml-auto text-yellow-600" />}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleIndividualBadgeAssignment(member.id, 'member')
+                                    setBadgeDropdownOpen(null)
+                                  }}
+                                  disabled={badgeAssignmentLoading[member.id]}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${memberHasBadge(member, 'member')
+                                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                  <Award className={`w-4 h-4 ${memberHasBadge(member, 'member') ? 'text-blue-500' : 'text-gray-400'}`} />
+                                  <span>Member</span>
+                                  {memberHasBadge(member, 'member') && <Check className="w-4 h-4 ml-auto text-blue-600" />}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleIndividualBadgeAssignment(member.id, 'regular')
+                                    setBadgeDropdownOpen(null)
+                                  }}
+                                  disabled={badgeAssignmentLoading[member.id]}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${memberHasBadge(member, 'regular')
+                                    ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                  <UserCheck className={`w-4 h-4 ${memberHasBadge(member, 'regular') ? 'text-green-500' : 'text-gray-400'}`} />
+                                  <span>Regular</span>
+                                  {memberHasBadge(member, 'regular') && <Check className="w-4 h-4 ml-auto text-green-600" />}
+                                </button>
                               </div>
                             )}
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0">
-                              <h3 className="mt-0.5 sm:mt-1 font-semibold text-gray-900 dark:text-white text-xs sm:text-sm truncate min-w-0">{member['full_name'] || member['Full Name']}</h3>
-                              {(() => {
-                                const badge = calculateMemberBadge(member)
-                                if (badge === 'newcomer') return null
-                                const badgeConfig = {
-                                  'member': { color: 'blue', icon: Award, display: 'Member Badge' },
-                                  'regular': { color: 'green', icon: UserCheck, display: 'Regular Attendee' },
-                                  'VIP Member': { color: 'purple', icon: Award, display: 'VIP Member' },
-                                  'Youth Leader': { color: 'indigo', icon: Award, display: 'Youth Leader' }
-                                }
-                                const config = badgeConfig[badge] || { color: 'gray', icon: Award, display: badge }
-                                const Icon = config.icon
-
-                                return (
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' :
-                                    config.color === 'green' ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' :
-                                      config.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300' :
-                                        config.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' :
-                                          config.color === 'indigo' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' :
-                                            'bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300'
-                                    }`}>
-                                    <Icon className="w-3 h-3" />
-                                    <span className="hidden sm:inline">{config.display}</span>
-                                    <span className="sm:hidden">
-                                      {badge === 'member' ? 'Member' :
-                                        badge === 'regular' ? 'Regular' :
-                                          badge === 'newcomer' ? 'New' :
-                                            badge === 'VIP Member' ? 'VIP' :
-                                              badge === 'Youth Leader' ? 'Leader' : badge}
-                                    </span>
-                                  </span>
-                                )
-                              })()}
-                            </div>
                           </div>
 
-                          {/* Right side: Attendance and Badge buttons aligned to far right */}
-                          <div className="flex items-center space-x-1 flex-shrink-0 ml-auto">
-                            {/* Attendance buttons */}
-                            <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-md py-1 px-2">
-                              {(() => {
-                                const date30th = get30thDate(currentTable)
-                                const rowStatus = date30th && attendanceData[date30th] ? attendanceData[date30th][member.id] : undefined
-                                const isPresentSelected = rowStatus === true
-                                const isAbsentSelected = rowStatus === false
-                                return (
-                                  <>
-                                    <button
-                                      onClick={() => handleAttendance(member.id, true)}
-                                      disabled={attendanceLoading[member.id]}
-                                      className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm font-bold transition-all duration-200 ${isPresentSelected
-                                        ? 'bg-green-800 dark:bg-green-700 text-white shadow-xl transform scale-105 ring-2 ring-green-300 dark:ring-green-400 border-2 border-green-900 dark:border-green-300 font-extrabold'
-                                        : attendanceLoading[member.id]
-                                          ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                          : isAbsentSelected
-                                            ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-green-100 dark:hover:bg-green-900 hover:text-green-700 dark:hover:text-green-300'
-                                            : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 border border-green-300 dark:border-green-700'
-                                        }`}
-                                      title={isPresentSelected ? "Click to clear attendance" : "Mark present"}
-                                    >
-                                      {attendanceLoading[member.id] ? '...' : <span className="hidden sm:inline">Present</span>}
-                                      {attendanceLoading[member.id] ? '...' : <span className="sm:hidden">P</span>}
-                                    </button>
-                                    <button
-                                      onClick={() => handleAttendance(member.id, false)}
-                                      disabled={attendanceLoading[member.id]}
-                                      className={`px-2 py-1 sm:px-3 sm:py-1 rounded text-xs sm:text-sm font-bold transition-all duration-200 ${isAbsentSelected
-                                        ? 'bg-red-800 dark:bg-red-700 text-white shadow-xl transform scale-105 ring-2 ring-red-300 dark:ring-red-400 border-2 border-red-900 dark:border-red-300 font-extrabold'
-                                        : attendanceLoading[member.id]
-                                          ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                          : isPresentSelected
-                                            ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-700 dark:hover:text-red-300'
-                                            : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 border border-red-300 dark:border-red-700'
-                                        }`}
-                                      title={isAbsentSelected ? "Click to clear attendance" : "Mark absent"}
-                                    >
-                                      {attendanceLoading[member.id] ? '...' : <span className="hidden sm:inline">Absent</span>}
-                                      {attendanceLoading[member.id] ? '...' : <span className="sm:hidden">A</span>}
-                                    </button>
-                                    {/* Quick gender set buttons */}
-                                    <div className="hidden lg:flex items-center gap-1 ml-2">
-                                      <button
-                                        onClick={() => updateMember(member.id, { gender: 'male' })}
-                                        disabled={attendanceLoading[member.id]}
-                                        className={`px-2 py-1 rounded text-xs transition-all duration-200 ${((member['Gender'] || member.gender || '').toString().toLowerCase() === 'male')
-                                          ? 'bg-blue-800 dark:bg-blue-700 text-white shadow-xl transform scale-105 ring-2 ring-blue-300 dark:ring-blue-400 border-2 border-blue-900 dark:border-blue-300 font-extrabold'
-                                          : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 border border-blue-300 dark:border-blue-700'}`}
-                                        title="Set gender to Male"
-                                      >
-                                        Male
-                                      </button>
-                                      <button
-                                        onClick={() => updateMember(member.id, { gender: 'female' })}
-                                        disabled={attendanceLoading[member.id]}
-                                        className={`px-2 py-1 rounded text-xs transition-all duration-200 ${((member['Gender'] || member.gender || '').toString().toLowerCase() === 'female')
-                                          ? 'bg-pink-800 dark:bg-pink-700 text-white shadow-xl transform scale-105 ring-2 ring-pink-300 dark:ring-pink-400 border-2 border-pink-900 dark:border-pink-300 font-extrabold'
-                                          : 'bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-800 border border-pink-300 dark:border-pink-700'}`}
-                                        title="Set gender to Female"
-                                      >
-                                        Female
-                                      </button>
-                                    </div>
-                                  </>
-                                )
-                              })()}
-                            </div>
+                          {/* Present/Absent buttons - positioned on right for large screens */}
+                          <div className="flex items-center gap-2 md:ml-auto">
+                            {/* Present/Absent buttons - compact on mobile, full on desktop */}
+                            {(() => {
+                              const date30th = get30thDate(currentTable)
+                              const rowStatus = date30th && attendanceData[date30th] ? attendanceData[date30th][member.id] : undefined
+                              const isPresentSelected = rowStatus === true
+                              const isAbsentSelected = rowStatus === false
+                              return (
+                                <>
+                                  <button
+                                    onClick={() => handleAttendance(member.id, true)}
+                                    disabled={attendanceLoading[member.id]}
+                                    className={`px-2 py-2 rounded-md text-xs font-semibold transition-all duration-200 whitespace-nowrap md:px-6 md:py-3 md:text-base ${isPresentSelected
+                                      ? 'bg-green-600 dark:bg-green-700 text-white shadow ring-1 ring-green-300 dark:ring-green-500'
+                                      : attendanceLoading[member.id]
+                                        ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
+                                        : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 md:bg-green-600 md:text-white md:hover:bg-green-700'
+                                      }`}
+                                    title={isPresentSelected ? "Click to clear" : "Mark present"}
+                                  >
+                                    {attendanceLoading[member.id] ? '...' : 'Present'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleAttendance(member.id, false)}
+                                    disabled={attendanceLoading[member.id]}
+                                    className={`px-2 py-2 rounded-md text-xs font-semibold transition-all duration-200 whitespace-nowrap md:px-6 md:py-3 md:text-base ${isAbsentSelected
+                                      ? 'bg-red-600 dark:bg-red-700 text-white shadow ring-1 ring-red-300 dark:ring-red-500'
+                                      : attendanceLoading[member.id]
+                                        ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
+                                        : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 md:bg-red-600 md:text-white md:hover:bg-red-700'
+                                      }`}
+                                    title={isAbsentSelected ? "Click to clear" : "Mark absent"}
+                                  >
+                                    {attendanceLoading[member.id] ? '...' : 'Absent'}
+                                  </button>
+                                </>
+                              )
+                            })()}
 
-                            {/* Badge assignment buttons */}
-                            <div className="flex space-x-1 ml-2 border-l-2 border-gray-300 dark:border-gray-600 pl-2 bg-gray-100 dark:bg-gray-700 rounded-r-md py-1 px-2">
-                              <button
-                                onClick={() => handleIndividualBadgeAssignment(member.id, 'member')}
-                                disabled={badgeAssignmentLoading[member.id]}
-                                className={`p-1 rounded transition-all duration-200 ${memberHasBadge(member, 'member')
-                                  ? 'bg-blue-800 dark:bg-blue-700 text-white shadow-xl transform scale-110 ring-2 ring-blue-300 dark:ring-blue-400 border-2 border-blue-900 dark:border-blue-300 font-extrabold'
-                                  : badgeAssignmentLoading[member.id] === 'member'
-                                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                    : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 border border-blue-300 dark:border-blue-700'
-                                  }`}
-                                title={memberHasBadge(member, 'member') ? "Click to remove Member badge" : "Assign Member Badge"}
-                              >
-                                {badgeAssignmentLoading[member.id] === 'member' ? '...' : <Award className="w-3 h-3 sm:w-4 sm:h-4" />}
-                              </button>
-                              <button
-                                onClick={() => handleIndividualBadgeAssignment(member.id, 'regular')}
-                                disabled={badgeAssignmentLoading[member.id]}
-                                className={`p-1 rounded transition-all duration-200 ${memberHasBadge(member, 'regular')
-                                  ? 'bg-green-800 dark:bg-green-700 text-white shadow-xl transform scale-110 ring-2 ring-green-300 dark:ring-green-400 border-2 border-green-900 dark:border-green-300 font-extrabold'
-                                  : badgeAssignmentLoading[member.id] === 'regular'
-                                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                    : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 border border-green-300 dark:border-green-700'
-                                  }`}
-                                title={memberHasBadge(member, 'regular') ? "Click to remove Regular badge" : "Assign Regular Badge"}
-                              >
-                                {badgeAssignmentLoading[member.id] === 'regular' ? '...' : <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />}
-                              </button>
-                              <button
-                                onClick={() => handleIndividualBadgeAssignment(member.id, 'newcomer')}
-                                disabled={badgeAssignmentLoading[member.id]}
-                                className={`p-1 rounded transition-all duration-200 ${memberHasBadge(member, 'newcomer')
-                                  ? 'bg-yellow-800 dark:bg-yellow-700 text-white shadow-xl transform scale-110 ring-2 ring-yellow-300 dark:ring-yellow-400 border-2 border-yellow-900 dark:border-yellow-300 font-extrabold'
-                                  : badgeAssignmentLoading[member.id] === 'newcomer'
-                                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                    : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 border border-yellow-300 dark:border-yellow-700'
-                                  }`}
-                                title={memberHasBadge(member, 'newcomer') ? "Click to remove Newcomer badge" : "Assign Newcomer Badge"}
-                              >
-                                {badgeAssignmentLoading[member.id] === 'newcomer' ? '...' : <Star className="w-3 h-3 sm:w-4 sm:h-4" />}
-                              </button>
-
-                            </div>
-                            {/* Desktop delete button (always visible on large screens) */}
+                            {/* Desktop delete button - same height as attendance buttons */}
                             <button
                               type="button"
-                              onTouchStart={(e) => { e.stopPropagation() }}
                               onClick={(e) => { e.stopPropagation(); openDeleteConfirm(e, member) }}
-                              className="hidden md:inline-flex items-center gap-1 ml-2 px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
+                              className="hidden md:inline-flex items-center gap-2 px-6 py-3 rounded-md bg-red-600 text-white hover:bg-red-700 text-base font-medium"
                               title="Delete member"
                             >
                               <Trash2 className="w-4 h-4" />

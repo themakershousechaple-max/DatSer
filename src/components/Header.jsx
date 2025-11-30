@@ -277,7 +277,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 className="flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 title="Refresh members"
               >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white md:bg-transparent md:dark:bg-transparent md:text-gray-700 md:dark:text-gray-300 hover:md:bg-gray-100 hover:md:dark:bg-gray-700">
                   <RefreshCw className="w-4 h-4" />
                 </span>
                 <span className="hidden lg:inline">Refresh</span>
@@ -286,10 +286,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               {/* Add New Member (moved to the right of Refresh) */}
               <button
                 onClick={() => { if (onAddMember) onAddMember(); }}
-                className="ml-8 flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
                 title="Add New Member"
               >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white md:bg-transparent md:dark:bg-transparent md:text-gray-700 md:dark:text-gray-300 hover:md:bg-gray-100 hover:md:dark:bg-gray-700">
                   <Plus className="w-4 h-4" />
                 </span>
                 <span className="hidden lg:inline">Add Member</span>
