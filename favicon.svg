@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <!-- Brand background gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+
+    <!-- Soft top gloss like iOS icons -->
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55" />
+      <stop offset="45%" stop-color="#FFFFFF" stop-opacity="0.20" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Subtle shadow for the logo letters -->
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#0F172A" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="2" y="2" width="28" height="28" rx="6.5" fill="url(#bgGrad)" />
+  <!-- Gloss layer -->
+  <rect x="2" y="2" width="28" height="14" rx="6.5" fill="url(#gloss)" />
+
+  <!-- DS monogram (Data + Service) -->
+  <g filter="url(#textShadow)">
+    <text x="16" y="20" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="12" font-weight="800" fill="#FFFFFF" letter-spacing="0.5">
+      DS
+    </text>
+  </g>
+</svg>
