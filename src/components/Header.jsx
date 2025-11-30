@@ -209,8 +209,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm md:border-b border-gray-200 dark:border-gray-700 z-50 w-full safe-area-top fixed top-0 left-0 right-0">
-      <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-1 md:py-2 w-full">
-        <div className="flex items-center justify-center md:justify-between min-h-[44px] md:min-h-[52px]">
+      <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-0 md:py-1 w-full">
+        <div className="flex items-center justify-center md:justify-between min-h-[40px] md:min-h-[48px]">
           {/* Compact brand label */}
           <div className="flex items-center">
             <button
@@ -225,10 +225,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
           {/* Center Area - Desktop: left segmented control, right menu & badges */}
           <div className="hidden md:flex items-center flex-1 justify-between mx-2 lg:mx-4">
             {/* Dashboard Button */}
-            <div className="flex items-center gap-2 lg:gap-3">
+            <div className="flex items-center gap-1 lg:gap-2">
               <button
                 onClick={() => { setCurrentView('dashboard'); setDashboardTab('all') }}
-                className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
+                className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
@@ -241,7 +241,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <div className="hidden lg:flex items-center gap-2">
                 <button
                   onClick={() => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('edited') }) }}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
@@ -250,7 +250,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 </button>
                 <button
                   onClick={() => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('duplicates') }) }}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'duplicates'
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'duplicates'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
@@ -259,7 +259,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 </button>
                 <button
                   onClick={() => startTransition(() => setCurrentView('admin'))}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'admin'
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'admin'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
@@ -270,14 +270,16 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             </div>
 
             {/* Right group: Add member + Refresh + Menu (badge filter moved to Edited page) */}
-            <div className="flex items-center gap-2 lg:gap-3">
+            <div className="flex items-center gap-1 lg:gap-2">
               {/* Add New Member */}
               <button
                 onClick={() => { if (onAddMember) onAddMember(); }}
-                className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex items-center space-x-1.5 px-3 lg:px-4 py-1 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
                 title="Add New Member"
               >
-                <Plus className="w-4 h-4" />
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white">
+                  <Plus className="w-4 h-4" />
+                </span>
                 <span className="hidden lg:inline">Add Member</span>
               </button>
  
@@ -287,7 +289,9 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 title="Refresh members"
               >
-                <RefreshCw className="w-4 h-4" />
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white">
+                  <RefreshCw className="w-4 h-4" />
+                </span>
                 <span className="hidden lg:inline">Refresh</span>
               </button>
  
@@ -295,7 +299,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${['analytics', 'export', 'admin'].includes(currentView)
+                  className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-1 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${['analytics', 'export', 'admin'].includes(currentView)
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
                     }`}
@@ -343,8 +347,30 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               </button>
             </div>
 
-            {/* Right: Menu only (badge filter moved to Edited page) */}
+            {/* Right: Menu and actions (mobile) */}
             <div className="flex items-center space-x-1.5 sm:space-x-2">
+              {/* Add Member (mobile icon-only) */}
+              <button
+                onClick={() => { if (onAddMember) onAddMember(); }}
+                className="p-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Add Member"
+              >
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white">
+                  <Plus className="w-4 h-4" />
+                </span>
+              </button>
+
+              {/* Refresh (mobile icon-only) */}
+              <button
+                onClick={() => { forceRefreshMembers() }}
+                className="p-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Refresh"
+              >
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-600 hover:text-white">
+                  <RefreshCw className="w-4 h-4" />
+                </span>
+              </button>
+
               {/* Menu icon-only (chevron removed) */}
               <div className="relative" ref={mobileDropdownRef}>
                 <button
