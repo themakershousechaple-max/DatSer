@@ -121,6 +121,9 @@ const Dashboard = ({ isAdmin = false }) => {
   // Duplicates management state
   const [selectedDuplicateIds, setSelectedDuplicateIds] = useState(new Set())
 
+  // Ref to track the last fetched table to prevent re-fetching on every render
+  const lastFetchedTableRef = useRef(null)
+
   // Missing data validation state
   const [showMissingDataModal, setShowMissingDataModal] = useState(false)
   const [missingDataMember, setMissingDataMember] = useState(null)
@@ -481,13 +484,19 @@ const Dashboard = ({ isAdmin = false }) => {
     return acc
   }, [attendanceData, members, sundayDates])
 
-  // Fetch attendance for the 30th date when table changes
+  // Fetch attendance for the target date when table changes
   useEffect(() => {
     const targetDate = getTargetDate(currentTable)
-    if (targetDate) {
-      fetchAttendanceForDate(new Date(targetDate))
+    if (targetDate && lastFetchedTableRef.current !== currentTable) {
+      lastFetchedTableRef.current = currentTable
+      fetchAttendanceForDate(new Date(targetDate)).then(map => {
+        setAttendanceData(prev => ({
+          ...prev,
+          [targetDate]: map
+        }))
+      })
     }
-  }, [currentTable, fetchAttendanceForDate])
+  }, [currentTable, fetchAttendanceForDate, setAttendanceData])
 
   // Preload attendance maps when switching to Edited tab
   useEffect(() => {
@@ -666,8 +675,10 @@ const Dashboard = ({ isAdmin = false }) => {
   }
 
   const handleBulkAttendance = async (present, specificDate = null) => {
-    const dateToUse = specificDate || selectedAttendanceDate
-    const dateLabel = specificDate ? new Date(specificDate).toLocaleDateString() : selectedAttendanceDate
+    // Force target date to be the 23rd as requested
+    const targetString = getTargetDate(currentTable)
+    const dateToUse = specificDate ? new Date(specificDate) : new Date(targetString)
+    const dateLabel = dateToUse.toLocaleDateString()
 
     showConfirmModal({
       title: "Bulk Attendance Update",
@@ -677,7 +688,7 @@ const Dashboard = ({ isAdmin = false }) => {
       onConfirm: async () => {
         try {
           const memberIds = filteredMembers.map(member => member.id)
-          await bulkAttendance(memberIds, new Date(dateToUse), present)
+          await bulkAttendance(memberIds, dateToUse, present)
           toast.success(`All members marked as ${present ? 'present' : 'absent'} successfully!`, {
             style: { background: present ? '#10b981' : '#ef4444', color: '#ffffff' }
           })
