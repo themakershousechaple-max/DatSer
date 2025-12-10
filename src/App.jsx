@@ -97,6 +97,7 @@ function App() {
 
               {currentView === 'admin' && isAdmin && (
                 <AdminPanel
+                  setCurrentView={setCurrentView}
                   onLogout={() => {
                     localStorage.removeItem('tmht_admin_session')
                     setIsAdmin(false)

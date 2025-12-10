@@ -1,0 +1,21 @@
+# Badge Processing Code to Add to AttendanceAnalytics.jsx
+
+## 1. Add these imports at the top (merge with existing imports):
+import { toast } from 'react-toastify'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+
+## 2. Add to useApp destructuring:
+availableSundayDates,
+isMonthAttendanceComplete,
+updateMember
+
+## 3. Add these state variables:
+const [badgeResults, setBadgeResults] = useState(null)
+const [isProcessingBadges, setIsProcessingBadges] = useState(false)
+const [isBadgeResultsOpen, setIsBadgeResultsOpen] = useState(false)
+
+## 4. Add the processBadgesManually function (copy from BADGE_PROCESSING_FUNCTION.js)
+
+## 5. Add the Badge Processing UI (copy from BADGE_PROCESSING_UI.jsx but use the collapsible version from AdminPanel)
+
+The complete Badge Processing section with collapsible results is ready to be added to the Analytics page.

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { Calendar, Database, Users, Activity, LogOut, RefreshCw, Filter, Edit, Search, Trash2, X, ChevronDown, ChevronUp, Check } from 'lucide-react'
+import { Calendar, Database, Users, Activity, LogOut, RefreshCw, Filter, Edit, Search, Trash2, X, ChevronDown, ChevronUp, Check, TrendingUp, Edit3, Award, Phone } from 'lucide-react'
+import { toast } from 'react-toastify'
 import EditMemberModal from './EditMemberModal'
 import DateSelector from './DateSelector'
 
-const AdminPanel = ({ onLogout }) => {
+const AdminPanel = ({ onLogout, setCurrentView }) => {
   const { 
     monthlyTables, 
     currentTable, 
@@ -19,7 +20,11 @@ const AdminPanel = ({ onLogout }) => {
     refreshSearch,
     attendanceData,
     selectedAttendanceDate,
-    deleteMember
+    deleteMember,
+    setDashboardTab,
+    availableSundayDates,
+    isMonthAttendanceComplete,
+    updateMember
   } = useApp()
   const { isDarkMode } = useTheme()
   // Bottom search bar is always keyboard-aware via visualViewport offset
@@ -34,6 +39,14 @@ const AdminPanel = ({ onLogout }) => {
   // Edit member modal state
   const [editingMember, setEditingMember] = useState(null)
   const [isMonthMenuOpen, setIsMonthMenuOpen] = useState(false)
+  
+  // Badge processing state
+  const [badgeResults, setBadgeResults] = useState(null)
+  const [isProcessingBadges, setIsProcessingBadges] = useState(false)
+  const [isBadgeResultsOpen, setIsBadgeResultsOpen] = useState(false)
+  
+  // Statistics dropdown state
+  const [isStatsOpen, setIsStatsOpen] = useState(false)
 
   useEffect(() => {
     setSystemStats({
@@ -117,121 +130,195 @@ const AdminPanel = ({ onLogout }) => {
     }))
   }
 
+  // Process badges manually and show results
+  const processBadgesManually = async () => {
+    setIsProcessingBadges(true)
+    setBadgeResults(null)
+    
+    try {
+      console.log('Starting badge processing...')
+      console.log('Available Sunday dates:', availableSundayDates)
+      console.log('Attendance data:', attendanceData)
+      console.log('Members count:', members.length)
+      
+      // Check if month is complete
+      const monthComplete = isMonthAttendanceComplete()
+      console.log('Is month complete?', monthComplete)
+      
+      if (!monthComplete) {
+        toast.error('Month is not complete yet. All Sundays must have attendance data.')
+        setIsProcessingBadges(false)
+        return
+      }
+
+      const results = {
+        qualified: [],
+        notQualified: [],
+        totalProcessed: 0
+      }
+
+      // Check each member for 3 consecutive Sundays
+      for (const member of members) {
+        results.totalProcessed++
+        
+        // Check for 3 consecutive Present attendances
+        const sortedSundays = [...availableSundayDates].sort((a, b) => a - b)
+        let consecutiveCount = 0
+        let hasThreeConsecutive = false
+        
+        for (const sunday of sortedSundays) {
+          const dateKey = sunday.toISOString().split('T')[0]
+          const memberStatus = attendanceData[dateKey]?.[member.id]
+          
+          if (memberStatus === true) {
+            consecutiveCount++
+            if (consecutiveCount >= 3) {
+              hasThreeConsecutive = true
+              break
+            }
+          } else if (memberStatus === false) {
+            consecutiveCount = 0
+          } else {
+            consecutiveCount = 0
+          }
+        }
+
+        // Build Sunday attendance breakdown
+        const sundayAttendance = sortedSundays.map(sunday => {
+          const dateKey = sunday.toISOString().split('T')[0]
+          const status = attendanceData[dateKey]?.[member.id]
+          return {
+            date: sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            status: status === true ? 'Present' : status === false ? 'Absent' : 'Not Marked'
+          }
+        })
+
+        const memberInfo = {
+          id: member.id,
+          name: member['full_name'] || member['Full Name'],
+          phone: member['Phone Number'] || member['phone_number'] || 'No phone',
+          currentBadge: member['Badge Type'] || 'newcomer',
+          sundayAttendance: sundayAttendance
+        }
+
+        if (hasThreeConsecutive) {
+          // Only update if not already regular or vip
+          if (member['Badge Type'] !== 'regular' && member['Badge Type'] !== 'vip') {
+            await updateMember(member.id, {
+              'Badge Type': 'regular'
+            })
+            memberInfo.badgeAssigned = true
+          } else {
+            memberInfo.badgeAssigned = false
+            memberInfo.reason = 'Already has regular or vip badge'
+          }
+          results.qualified.push(memberInfo)
+        } else {
+          memberInfo.reason = 'Did not attend 3 consecutive Sundays'
+          results.notQualified.push(memberInfo)
+        }
+      }
+
+      setBadgeResults(results)
+      setIsBadgeResultsOpen(true) // Auto-open results after processing
+      toast.success(`Badge processing complete! ${results.qualified.filter(m => m.badgeAssigned).length} badges assigned.`)
+    } catch (error) {
+      console.error('Error processing badges:', error)
+      console.error('Error details:', error.message, error.stack)
+      // Show the actual error message to the user
+      toast.error(`Failed to process badges: ${error.message || error.toString()}`)
+    } finally {
+      setIsProcessingBadges(false)
+    }
+  }
+
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 pb-24 transition-colors">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6 transition-colors">
+        {/* Header - Compact */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 mb-4 transition-colors">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-1">Datsar Administration • Data Search Hub</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Datsar Administration</span>
             </div>
             <button
               onClick={onLogout}
-              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="flex items-center px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-3 h-3 mr-1.5" />
               Logout
             </button>
           </div>
         </div>
 
-        {/* System Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 transition-colors">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Members</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{systemStats.totalMembers}</p>
-              </div>
+        {/* System Statistics - Compact Dropdown */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6 transition-colors">
+          <button
+            onClick={() => setIsStatsOpen(!isStatsOpen)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white">System Overview</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">({systemStats.totalMembers} members • {getMonthDisplayName(systemStats.activeMonth)})</span>
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 transition-colors">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
-                <Calendar className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Month</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{getMonthDisplayName(systemStats.activeMonth)}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 transition-colors">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
-                <Database className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Databases</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{systemStats.totalTables}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 transition-colors">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-full">
-                <Activity className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div className="ml-4 flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">System Status</p>
-                  <button
-                    onClick={refreshStats}
-                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                    title="Refresh"
-                  >
-                    <RefreshCw className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  </button>
+            {isStatsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          
+          {isStatsOpen && (
+            <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                {/* Total Members */}
+                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                  <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Members</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{systemStats.totalMembers}</p>
+                  </div>
                 </div>
-                <p className="text-lg font-bold text-green-600 dark:text-green-400">Online</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Updated: {systemStats.lastUpdated}</p>
+
+                {/* Active Month */}
+                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                  <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Month</p>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white">{getMonthDisplayName(systemStats.activeMonth)}</p>
+                  </div>
+                </div>
+
+                {/* Total Databases */}
+                <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                  <Database className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Databases</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{systemStats.totalTables}</p>
+                  </div>
+                </div>
+
+                {/* System Status */}
+                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Status</p>
+                    <p className="text-xs font-bold text-green-600 dark:text-green-400">Online</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Database Connection Info */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6 transition-colors">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Database Connection</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-medium text-gray-900 dark:text-white mb-2">Connection Status</h3>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-green-600 dark:text-green-400 font-medium">Connected to Supabase</span>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                Project: Datsar Data Hub
-              </p>
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-900 dark:text-white mb-2">Current Configuration</h3>
-              <div className="text-sm text-gray-600 dark:text-gray-300">
-                <p>Environment: Production</p>
-                <p>Region: US East</p>
-                <p>Last Sync: {new Date().toLocaleTimeString()}</p>
-              </div>
+        {/* Monthly Databases - Compact */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4 transition-colors">
+          <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Monthly Databases</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{monthlyTables.length} available</span>
             </div>
           </div>
-        </div>
-
-        {/* Monthly Databases - Styled Dropdown */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6 transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Monthly Databases</h2>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              {monthlyTables.length} database{monthlyTables.length !== 1 ? 's' : ''} available
-            </div>
-          </div>
+          <div className="p-3">
 
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700 dark:text-white">Select Month</label>
@@ -303,6 +390,7 @@ const AdminPanel = ({ onLogout }) => {
               Active: {getMonthDisplayName(currentTable)} • {members.length} members
             </div>
           </div>
+          </div>
 
           {monthlyTables.length === 0 && (
             <div className="text-center py-12">
@@ -318,6 +406,8 @@ const AdminPanel = ({ onLogout }) => {
         {/* Sunday Attendance section removed as requested */}
 
         {/* Bulk Attendance Actions removed as requested */}
+
+        {/* Badge Processing moved to Analytics page */}
 
         {/* Member Names Display */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6 transition-colors">

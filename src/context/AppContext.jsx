@@ -683,36 +683,25 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  // Check if month has significant attendance data (40+ members marked)
+  // Check if ALL Sundays from first to last in the month are filled
   const isMonthAttendanceComplete = () => {
     if (availableSundayDates.length === 0) return false
     
-    // Count unique members who have been marked across all Sundays
-    const markedMemberIds = new Set()
-    
+    // Check that EVERY Sunday has attendance data for at least 1 member
     for (const sunday of availableSundayDates) {
       const dateKey = sunday.toISOString().split('T')[0]
       const attendanceForDate = attendanceData[dateKey]
       
-      if (attendanceForDate) {
-        // Add all member IDs who have attendance marked (Present or Absent)
-        Object.keys(attendanceForDate).forEach(memberId => {
-          if (attendanceForDate[memberId] !== undefined && attendanceForDate[memberId] !== null) {
-            markedMemberIds.add(memberId)
-          }
-        })
+      // If this Sunday has no attendance data at all, month is not complete
+      if (!attendanceForDate || Object.keys(attendanceForDate).length === 0) {
+        console.log(`Month not complete: Sunday ${dateKey} has no attendance data`)
+        return false
       }
     }
     
-    // Consider month complete if 40+ members have been marked
-    const threshold = 40
-    const isComplete = markedMemberIds.size >= threshold
-    
-    if (isComplete) {
-      console.log(`Month attendance complete: ${markedMemberIds.size} members marked (threshold: ${threshold})`)
-    }
-    
-    return isComplete
+    // All Sundays from first to last have attendance data
+    console.log(`Month attendance complete: All ${availableSundayDates.length} Sundays have attendance data`)
+    return true
   }
 
   // Check for 3 consecutive Sunday attendances for a member in current month

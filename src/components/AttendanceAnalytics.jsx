@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
+import { toast } from 'react-toastify'
 import { 
   Users, 
   TrendingUp, 
@@ -15,7 +16,9 @@ import {
   Bell,
   Phone,
   AlertTriangle,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 
 const AttendanceAnalytics = () => {
@@ -28,7 +31,10 @@ const AttendanceAnalytics = () => {
     calculateAttendanceRate, 
     calculateMemberBadge,
     updateMemberBadges,
-    toggleMemberBadge
+    toggleMemberBadge,
+    availableSundayDates,
+    isMonthAttendanceComplete,
+    updateMember
   } = useApp()
   const { isDarkMode } = useTheme()
 
@@ -84,6 +90,11 @@ const AttendanceAnalytics = () => {
     longAbsent: [],
     newcomersNeedingFollowup: []
   })
+
+  // Badge processing state
+  const [badgeResults, setBadgeResults] = useState(null)
+  const [isProcessingBadges, setIsProcessingBadges] = useState(false)
+  const [isBadgeResultsOpen, setIsBadgeResultsOpen] = useState(false)
 
   // Calculate analytics from local member data
   const calculateAnalytics = () => {
@@ -236,6 +247,108 @@ const AttendanceAnalytics = () => {
       console.error('Error calculating analytics:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Process badges manually and show results
+  const processBadgesManually = async () => {
+    setIsProcessingBadges(true)
+    setBadgeResults(null)
+    
+    try {
+      console.log('Starting badge processing...')
+      console.log('Available Sunday dates:', availableSundayDates)
+      console.log('Attendance data:', attendanceData)
+      console.log('Members count:', members.length)
+      
+      // Check if month is complete
+      const monthComplete = isMonthAttendanceComplete()
+      console.log('Is month complete?', monthComplete)
+      
+      if (!monthComplete) {
+        toast.error('Month is not complete yet. All Sundays must have attendance data.')
+        setIsProcessingBadges(false)
+        return
+      }
+
+      const results = {
+        qualified: [],
+        notQualified: [],
+        totalProcessed: 0
+      }
+
+      // Check each member for 3 consecutive Sundays
+      for (const member of members) {
+        results.totalProcessed++
+        
+        // Check for 3 consecutive Present attendances
+        const sortedSundays = [...availableSundayDates].sort((a, b) => a - b)
+        let consecutiveCount = 0
+        let hasThreeConsecutive = false
+        
+        for (const sunday of sortedSundays) {
+          const dateKey = sunday.toISOString().split('T')[0]
+          const memberStatus = attendanceData[dateKey]?.[member.id]
+          
+          if (memberStatus === true) {
+            consecutiveCount++
+            if (consecutiveCount >= 3) {
+              hasThreeConsecutive = true
+              break
+            }
+          } else if (memberStatus === false) {
+            consecutiveCount = 0
+          } else {
+            consecutiveCount = 0
+          }
+        }
+
+        // Build Sunday attendance breakdown
+        const sundayAttendance = sortedSundays.map(sunday => {
+          const dateKey = sunday.toISOString().split('T')[0]
+          const status = attendanceData[dateKey]?.[member.id]
+          return {
+            date: sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            status: status === true ? 'Present' : status === false ? 'Absent' : 'Not Marked'
+          }
+        })
+
+        const memberInfo = {
+          id: member.id,
+          name: member['full_name'] || member['Full Name'],
+          phone: member['Phone Number'] || member['phone_number'] || 'No phone',
+          currentBadge: member['Badge Type'] || 'newcomer',
+          sundayAttendance: sundayAttendance
+        }
+
+        if (hasThreeConsecutive) {
+          // Only update if not already regular or vip
+          if (member['Badge Type'] !== 'regular' && member['Badge Type'] !== 'vip') {
+            await updateMember(member.id, {
+              'Badge Type': 'regular'
+            })
+            memberInfo.badgeAssigned = true
+          } else {
+            memberInfo.badgeAssigned = false
+            memberInfo.reason = 'Already has regular or vip badge'
+          }
+          results.qualified.push(memberInfo)
+        } else {
+          memberInfo.reason = 'Did not attend 3 consecutive Sundays'
+          results.notQualified.push(memberInfo)
+        }
+      }
+
+      setBadgeResults(results)
+      setIsBadgeResultsOpen(true) // Auto-open results after processing
+      toast.success(`Badge processing complete! ${results.qualified.filter(m => m.badgeAssigned).length} badges assigned.`)
+    } catch (error) {
+      console.error('Error processing badges:', error)
+      console.error('Error details:', error.message, error.stack)
+      // Show the actual error message to the user
+      toast.error(`Failed to process badges: ${error.message || error.toString()}`)
+    } finally {
+      setIsProcessingBadges(false)
     }
   }
 
@@ -730,6 +843,209 @@ const AttendanceAnalytics = () => {
           <p className={`transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Track attendance patterns, identify regular attendees, and discover trends
           </p>
+        </div>
+
+        {/* Badge Processing Section - Compact */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6 transition-colors">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Badge Processing</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">3 consecutive Sundays</span>
+            </div>
+            <button
+              onClick={processBadgesManually}
+              disabled={isProcessingBadges}
+              className="flex items-center px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <Award className="w-3 h-3 mr-1.5" />
+              {isProcessingBadges ? 'Processing...' : 'Process Badges'}
+            </button>
+          </div>
+          {badgeResults && (
+            <div className="p-4">
+              {/* Summary Bar - Always Visible */}
+              <button
+                onClick={() => setIsBadgeResultsOpen(!isBadgeResultsOpen)}
+                className="w-full px-4 py-3 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-between"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {badgeResults.totalProcessed} Processed
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                      {badgeResults.qualified.filter(m => m.badgeAssigned).length} Got Badges
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                      {badgeResults.notQualified.length} Didn't Get
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {isBadgeResultsOpen ? 'Hide Details' : 'View Details'}
+                  </span>
+                  {isBadgeResultsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </button>
+
+              {/* Detailed Results - Collapsible */}
+              {isBadgeResultsOpen && (
+                <div className="space-y-4 mt-4">
+                  {/* Sunday Attendance Counts */}
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                    <h3 className="text-lg font-bold text-purple-900 dark:text-purple-100 mb-3 flex items-center">
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Sunday Attendance Breakdown
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {availableSundayDates.sort((a, b) => a - b).map((sunday, idx) => {
+                        const dateKey = sunday.toISOString().split('T')[0]
+                        const attendanceForDate = attendanceData[dateKey] || {}
+                        const presentCount = Object.values(attendanceForDate).filter(status => status === true).length
+                        const absentCount = Object.values(attendanceForDate).filter(status => status === false).length
+                        const totalMarked = presentCount + absentCount
+                        
+                        return (
+                          <div
+                            key={idx}
+                            className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-300 dark:border-purple-700"
+                          >
+                            <p className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                              {sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </p>
+                            <div className="mt-2 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-green-600 dark:text-green-400">Present:</span>
+                                <span className="text-sm font-bold text-green-700 dark:text-green-300">{presentCount}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-red-600 dark:text-red-400">Absent:</span>
+                                <span className="text-sm font-bold text-red-700 dark:text-red-300">{absentCount}</span>
+                              </div>
+                              <div className="flex items-center justify-between pt-1 border-t border-purple-200 dark:border-purple-700">
+                                <span className="text-xs text-purple-600 dark:text-purple-400">Total:</span>
+                                <span className="text-sm font-bold text-purple-700 dark:text-purple-300">{totalMarked}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Members Who Didn't Get Badges - With Contact Numbers */}
+                  {badgeResults.notQualified.length > 0 && (
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                      <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-3 flex items-center">
+                        <Phone className="w-5 h-5 mr-2" />
+                        Members to Contact ({badgeResults.notQualified.length})
+                      </h3>
+                      <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                        These members didn't attend 3 consecutive Sundays. Call them to encourage attendance!
+                      </p>
+                      <div className="max-h-96 overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {badgeResults.notQualified.map((member) => (
+                            <div
+                              key={member.id}
+                              className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-red-300 dark:border-red-700"
+                            >
+                              <p className="font-semibold text-gray-900 dark:text-white">{member.name}</p>
+                              <a
+                                href={`tel:${member.phone}`}
+                                className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline mt-1"
+                              >
+                                <Phone className="w-3 h-3 mr-1" />
+                                {member.phone}
+                              </a>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{member.reason}</p>
+                              {/* Sunday Attendance Breakdown */}
+                              <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800">
+                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sundays:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {member.sundayAttendance?.map((sunday, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={`text-xs px-2 py-1 rounded ${
+                                        sunday.status === 'Present'
+                                          ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                                          : sunday.status === 'Absent'
+                                          ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                      }`}
+                                      title={sunday.status}
+                                    >
+                                      {sunday.date}: {sunday.status === 'Present' ? '✓' : sunday.status === 'Absent' ? '✗' : '?'}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Members Who Got Badges */}
+                  {badgeResults.qualified.length > 0 && (
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                      <h3 className="text-lg font-bold text-green-900 dark:text-green-100 mb-3 flex items-center">
+                        <Award className="w-5 h-5 mr-2" />
+                        Members Who Qualified ({badgeResults.qualified.length})
+                      </h3>
+                      <div className="max-h-64 overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                          {badgeResults.qualified.map((member) => (
+                            <div
+                              key={member.id}
+                              className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-300 dark:border-green-700"
+                            >
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">{member.name}</p>
+                              {member.badgeAssigned ? (
+                                <p className="text-xs text-green-600 dark:text-green-400">✓ Badge assigned</p>
+                              ) : (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{member.reason}</p>
+                              )}
+                              {/* Sunday Attendance Breakdown */}
+                              <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                                <div className="flex flex-wrap gap-1">
+                                  {member.sundayAttendance?.map((sunday, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={`text-xs px-1.5 py-0.5 rounded ${
+                                        sunday.status === 'Present'
+                                          ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                                          : sunday.status === 'Absent'
+                                          ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                      }`}
+                                      title={`${sunday.date}: ${sunday.status}`}
+                                    >
+                                      {sunday.status === 'Present' ? '✓' : sunday.status === 'Absent' ? '✗' : '?'}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Notification Panel */}
