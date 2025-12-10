@@ -191,19 +191,47 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   // Exclusive badge filter helper removed; inline badge chips now live on the Edited page
 
   const menuItems = [
-    { id: 'edited_members', label: `Edited Members (${editedCount})`, icon: Edit3, onClick: () => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('edited') }) } },
-    { id: 'duplicates', label: 'Duplicate Names', icon: Users, onClick: () => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('duplicates') }) } },
-    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+    {
+      id: 'edited_members',
+      label: `Edited Members (${editedCount})`,
+      icon: Edit3,
+      onClick: () => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('edited') }) }
+    },
+    {
+      id: 'duplicates',
+      label: 'Duplicate Names',
+      icon: Users,
+      onClick: () => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('duplicates') }) }
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: TrendingUp,
+      onClick: () => { startTransition(() => { setCurrentView('analytics') }) }
+    },
     // Action: Create new month goes into the menu
-    { id: 'create_month', label: 'Create New Month', icon: Calendar, onClick: onCreateMonth }
+    {
+      id: 'create_month',
+      label: 'Create New Month',
+      icon: Calendar,
+      onClick: onCreateMonth
+    }
   ]
 
   if (isAdmin) {
-    menuItems.push(
-      { id: 'admin', label: 'Admin', icon: Shield }
-    )
+    menuItems.push({
+      id: 'admin',
+      label: 'Admin',
+      icon: Shield,
+      onClick: () => { startTransition(() => { setCurrentView('admin') }) }
+    })
   } else {
-    menuItems.push({ id: 'admin', label: 'Login', icon: Shield })
+    menuItems.push({
+      id: 'admin',
+      label: 'Login',
+      icon: Shield,
+      onClick: () => { startTransition(() => { setCurrentView('admin') }) }
+    })
   }
 
   return (
@@ -227,12 +255,14 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             <div className="flex items-center gap-1 lg:gap-2">
               <button
                 onClick={() => { setCurrentView('dashboard'); setDashboardTab('all') }}
-                className={`flex items-center space-x-1.5 lg:space-x-2 px-3 lg:px-4 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
+                className={`flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
-                <Users className="w-4 h-4" />
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-700 dark:text-gray-300">
+                  <Users className="w-4 h-4" />
+                </span>
                 <span className="hidden lg:inline">Home</span>
                 <span className="lg:hidden">Home</span>
               </button>
@@ -240,40 +270,42 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               <div className="hidden lg:flex items-center gap-2">
                 <button
                   onClick={() => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('edited') }) }}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
+                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                 >
-                  Edited
+                  <span>Edited</span>
                 </button>
                 <button
                   onClick={() => { startTransition(() => { setCurrentView('dashboard'); setDashboardTab('duplicates') }) }}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'duplicates'
+                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'duplicates'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                 >
-                  Duplicates
+                  <span>Duplicates</span>
                 </button>
                 <button
                   onClick={() => startTransition(() => setCurrentView('analytics'))}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'analytics'
+                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'analytics'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                 >
-                  <TrendingUp className="w-4 h-4" />
-                  Analytics
+                  <span className="inline-flex items-center justify-center w-5 h-5">
+                    <TrendingUp className="w-4 h-4" />
+                  </span>
+                  <span>Analytics</span>
                 </button>
                 <button
                   onClick={() => startTransition(() => setCurrentView('admin'))}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'admin'
+                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'admin'
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                 >
-                  Admin
+                  <span>Admin</span>
                 </button>
               </div>
             </div>
@@ -346,13 +378,15 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                   setSelectedMemberIds(new Set());
                   setSelectedDuplicateIds(new Set());
                 }}
-                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
+                className={`flex items-center space-x-1 pl-2 pr-3 lg:px-2 py-1 rounded-lg text-xs font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 title="Go to Home Dashboard"
               >
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-700 dark:text-gray-300">
+                  <Users className="w-4 h-4" />
+                </span>
                 <span className="hidden xs:inline sm:inline">Dashboard</span>
                 <span className="xs:hidden">Home</span>
               </button>

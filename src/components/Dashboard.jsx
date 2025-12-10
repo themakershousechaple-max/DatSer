@@ -1209,27 +1209,31 @@ const Dashboard = ({ isAdmin = false }) => {
                     >
                       {/* Mobile-friendly stacked layout */}
                       <div className="px-3 py-3 sm:px-4 sm:py-3.5">
-                        {/* Row 1: Expand button + Name + Selection indicator */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <button
-                            onClick={() => toggleMemberExpansion(member.id)}
-                            className="p-1 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors flex-shrink-0"
-                          >
+                        {/* Row 1: Expand toggle row (chevron + name + hint) */}
+                        <button
+                          type="button"
+                          onClick={() => toggleMemberExpansion(member.id)}
+                          className="w-full flex items-center gap-2 mb-2 text-left hover:bg-primary-50 dark:hover:bg-primary-900/40 rounded px-1 py-1 transition-colors"
+                        >
+                          <div className="p-1 text-gray-500 dark:text-gray-400 rounded flex-shrink-0 flex items-center justify-center">
                             {isExpanded ? (
                               <ChevronDown className="w-5 h-5" />
                             ) : (
                               <ChevronRight className="w-5 h-5" />
                             )}
-                          </button>
+                          </div>
                           {dashboardTab === 'edited' && isSelected && (
                             <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
                               <Check className="w-3 h-3 text-white" />
                             </div>
                           )}
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-lg sm:text-xl truncate flex-1">
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg truncate flex-1">
                             {member['full_name'] || member['Full Name']}
                           </h3>
-                        </div>
+                          <span className="hidden xs:inline text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 ml-1">
+                            {isExpanded ? 'Hide details' : 'Details'}
+                          </span>
+                        </button>
 
                         {/* Row 2: Present/Absent (and desktop Delete) buttons */}
                         <div className="flex items-stretch gap-2 ml-0 w-full">
