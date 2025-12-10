@@ -7,7 +7,6 @@ import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import MemberModal from './components/MemberModal'
 import MonthModal from './components/MonthModal'
-import MonthlyExport from './components/MonthlyExport'
 import AttendanceAnalytics from './components/AttendanceAnalytics'
 import AdminAuth from './components/AdminAuth'
 import AdminPanel from './components/AdminPanel'
@@ -91,9 +90,6 @@ function App() {
                 <AttendanceAnalytics />
               )}
 
-              {currentView === 'export' && (
-                <MonthlyExport />
-              )}
 
               {currentView === 'admin' && !isAdmin && (
                 <AdminAuth onLogin={setIsAdmin} />

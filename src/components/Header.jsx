@@ -200,7 +200,6 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
 
   if (isAdmin) {
     menuItems.push(
-      { id: 'export', label: 'Monthly Export', icon: Download },
       { id: 'admin', label: 'Admin', icon: Shield }
     )
   } else {

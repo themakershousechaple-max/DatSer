@@ -339,9 +339,28 @@ export const AppProvider = ({ children }) => {
       // Filter Sundays that have corresponding attendance columns
       const availableSundays = allSundays.filter(sunday => {
         const dayOfMonth = sunday.getDate()
+        const month = sunday.getMonth() + 1 // 0-indexed to 1-indexed
+        const year = sunday.getFullYear()
+        
         return attendanceColumns.some(col => {
-          const match = col.column_name.match(/Attendance (\d+)(st|nd|rd|th)/)
-          return match && parseInt(match[1]) === dayOfMonth
+          const colName = col.column_name.toLowerCase()
+          
+          // Check for new format: attendance_2025_03_02
+          const newFormatMatch = colName.match(/attendance_(\d{4})_(\d{2})_(\d{2})/)
+          if (newFormatMatch) {
+            const [, colYear, colMonth, colDay] = newFormatMatch
+            return parseInt(colYear) === year && 
+                   parseInt(colMonth) === month && 
+                   parseInt(colDay) === dayOfMonth
+          }
+          
+          // Check for old format: Attendance 5th or attendance_5th
+          const oldFormatMatch = col.column_name.match(/[Aa]ttendance[_ ](\d+)(st|nd|rd|th)?/)
+          if (oldFormatMatch) {
+            return parseInt(oldFormatMatch[1]) === dayOfMonth
+          }
+          
+          return false
         })
       })
 
@@ -653,11 +672,112 @@ export const AppProvider = ({ children }) => {
         }
       }))
 
+      // Check if month is complete and process badges
+      setTimeout(() => processEndOfMonthBadges(), 500)
+
       return { success: true }
     } catch (error) {
       console.error('Error marking attendance:', error)
       toast.error('Failed to mark attendance')
       return { success: false, error }
+    }
+  }
+
+  // Check if month has significant attendance data (40+ members marked)
+  const isMonthAttendanceComplete = () => {
+    if (availableSundayDates.length === 0) return false
+    
+    // Count unique members who have been marked across all Sundays
+    const markedMemberIds = new Set()
+    
+    for (const sunday of availableSundayDates) {
+      const dateKey = sunday.toISOString().split('T')[0]
+      const attendanceForDate = attendanceData[dateKey]
+      
+      if (attendanceForDate) {
+        // Add all member IDs who have attendance marked (Present or Absent)
+        Object.keys(attendanceForDate).forEach(memberId => {
+          if (attendanceForDate[memberId] !== undefined && attendanceForDate[memberId] !== null) {
+            markedMemberIds.add(memberId)
+          }
+        })
+      }
+    }
+    
+    // Consider month complete if 40+ members have been marked
+    const threshold = 40
+    const isComplete = markedMemberIds.size >= threshold
+    
+    if (isComplete) {
+      console.log(`Month attendance complete: ${markedMemberIds.size} members marked (threshold: ${threshold})`)
+    }
+    
+    return isComplete
+  }
+
+  // Check for 3 consecutive Sunday attendances for a member in current month
+  const checkMemberConsecutiveAttendance = (memberId) => {
+    if (availableSundayDates.length < 3) return false
+    
+    const sortedSundays = [...availableSundayDates].sort((a, b) => a - b)
+    let consecutiveCount = 0
+    
+    for (const sunday of sortedSundays) {
+      const dateKey = sunday.toISOString().split('T')[0]
+      const memberStatus = attendanceData[dateKey]?.[memberId]
+      
+      if (memberStatus === true) {
+        consecutiveCount++
+        if (consecutiveCount >= 3) {
+          return true // Found 3 consecutive
+        }
+      } else if (memberStatus === false) {
+        consecutiveCount = 0 // Reset on absent
+      }
+      // If undefined/null, treat as absent and reset
+      else {
+        consecutiveCount = 0
+      }
+    }
+    
+    return false
+  }
+
+  // Process all members at end of month and assign badges
+  const processEndOfMonthBadges = async () => {
+    try {
+      if (!isSupabaseConfigured()) return
+      if (!isMonthAttendanceComplete()) {
+        console.log('Month attendance not complete yet, skipping badge assignment')
+        return
+      }
+
+      console.log('Processing end-of-month badges for', currentTable)
+      let badgesAssigned = 0
+
+      for (const member of members) {
+        // Check if member has 3 consecutive Sundays
+        const hasThreeConsecutive = checkMemberConsecutiveAttendance(member.id)
+        
+        if (hasThreeConsecutive) {
+          // Only update if not already a regular or higher badge
+          if (member['Badge Type'] !== 'regular' && member['Badge Type'] !== 'vip') {
+            await updateMember(member.id, {
+              'Badge Type': 'regular',
+              'Member Status': 'Member'
+            })
+            badgesAssigned++
+            console.log(`Assigned regular badge to ${member['full_name'] || member['Full Name']}`)
+          }
+        }
+        // If they don't have 3 consecutive, keep their current badge (don't downgrade)
+      }
+
+      if (badgesAssigned > 0) {
+        toast.success(`🎉 End of month: ${badgesAssigned} member${badgesAssigned > 1 ? 's' : ''} earned Regular Member badge!`)
+      }
+    } catch (error) {
+      console.error('Error processing end-of-month badges:', error)
     }
   }
 
@@ -727,6 +847,9 @@ export const AppProvider = ({ children }) => {
           ...updates
         }
       }))
+
+      // Check if month is complete and process badges
+      setTimeout(() => processEndOfMonthBadges(), 500)
 
       toast.success(`Bulk attendance marked successfully for ${memberIds.length} members!`)
       return { success: true }
@@ -1372,6 +1495,22 @@ export const AppProvider = ({ children }) => {
     initializeAttendanceDates()
   }, [currentTable])
 
+  // Load all attendance data and check for badge processing when table changes
+  useEffect(() => {
+    const loadAndCheckBadges = async () => {
+      await loadAllAttendanceData()
+      // Wait a bit for attendance data to be loaded, then check badges
+      setTimeout(() => {
+        if (isMonthAttendanceComplete()) {
+          console.log('Month has 40+ members marked, processing badges...')
+          processEndOfMonthBadges()
+        }
+      }, 1000)
+    }
+    
+    loadAndCheckBadges()
+  }, [currentTable])
+
   // Wrapper function for setCurrentTable with localStorage persistence
   const changeCurrentTable = (tableName) => {
     setCurrentTable(tableName)
@@ -1684,6 +1823,8 @@ export const AppProvider = ({ children }) => {
     calculateAttendanceRate,
     calculateMemberBadge,
     updateMemberBadges,
+    processEndOfMonthBadges,
+    isMonthAttendanceComplete,
 
     toggleMemberBadge,
     memberHasBadge,

@@ -18,7 +18,8 @@ const AdminPanel = ({ onLogout }) => {
     filteredMembers,
     refreshSearch,
     attendanceData,
-    changeCurrentTable
+    selectedAttendanceDate,
+    deleteMember
   } = useApp()
   const { isDarkMode } = useTheme()
   // Bottom search bar is always keyboard-aware via visualViewport offset
@@ -42,6 +43,32 @@ const AdminPanel = ({ onLogout }) => {
       lastUpdated: new Date().toLocaleString()
     })
   }, [members, currentTable, monthlyTables])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMonthMenuOpen && !event.target.closest('[aria-haspopup="listbox"]') && !event.target.closest('[role="listbox"]')) {
+        setIsMonthMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isMonthMenuOpen])
+
+  // Aggregate attendance stats for the currently selected date
+  const selectedDateKey = selectedAttendanceDate
+    ? selectedAttendanceDate.toISOString().split('T')[0]
+    : null
+
+  const attendanceMapForSelectedDate = selectedDateKey
+    ? (attendanceData[selectedDateKey] || {})
+    : {}
+
+  const presentCount = Object.values(attendanceMapForSelectedDate).filter(v => v === true).length
+  const absentCount = Object.values(attendanceMapForSelectedDate).filter(v => v === false).length
+  const markedCount = presentCount + absentCount
+  const unmarkedCount = members.length - markedCount
 
 
 
@@ -69,7 +96,9 @@ const AdminPanel = ({ onLogout }) => {
 
   const handleTableSwitch = (tableName) => {
     console.log(`Switching to table: ${tableName}`)
-    changeCurrentTable(tableName)
+    // Use setCurrentTable from context (already mapped to the persistent changer)
+    setCurrentTable(tableName)
+    setIsMonthMenuOpen(false) // Close the dropdown after selection
   }
 
   const getMonthDisplayName = (tableName) => {
@@ -243,9 +272,10 @@ const AdminPanel = ({ onLogout }) => {
                       <button
                         key={table}
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
                           handleTableSwitch(table)
-                          setIsMonthMenuOpen(false)
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${
                           isDarkMode
