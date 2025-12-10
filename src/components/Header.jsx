@@ -441,7 +441,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
       {showDropdown && (
         <div className="fixed inset-0 z-50">
           <div
-            className={`absolute inset-0 transition-colors ${isDarkMode ? 'bg-black/60' : 'bg-black/30 backdrop-blur-sm'}`}
+            className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-all"
             onClick={() => setShowDropdown(false)}
           />
           <div ref={drawerRef} className="absolute right-0 top-0 z-10 h-full w-64 sm:w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl" onClick={(e) => e.stopPropagation()}>

@@ -11,6 +11,7 @@ const MonthModal = ({ isOpen, onClose }) => {
   const [selectedMonth, setSelectedMonth] = useState('')
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [showYearDropdown, setShowYearDropdown] = useState(false)
 
   const months = [
     { value: 1, label: 'January' },
@@ -105,7 +106,7 @@ const MonthModal = ({ isOpen, onClose }) => {
   const previewSundays = selectedMonth && selectedYear ? getSundaysInMonth(parseInt(selectedMonth), selectedYear) : []
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div
         className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md mx-4 overflow-y-auto no-scrollbar transition-colors duration-200"
         style={{
@@ -194,18 +195,58 @@ const MonthModal = ({ isOpen, onClose }) => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Year *
             </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-            >
-              {years.map(year => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+              {/* Custom dropdown trigger */}
+              <button
+                type="button"
+                onClick={() => setShowYearDropdown(prev => !prev)}
+                className="w-full min-w-0 pl-10 pr-10 py-2 text-left border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors flex items-center justify-between"
+              >
+                <span>{selectedYear}</span>
+                <span className="ml-2 inline-flex items-center justify-center text-gray-400 dark:text-gray-400">
+                  {/* simple chevron indicator */}
+                  <svg
+                    className={`w-4 h-4 transform transition-transform ${showYearDropdown ? 'rotate-180' : ''}`}
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+              </button>
+
+              {/* Downward-opening dropdown list (scrollable inside, hidden scrollbar) */}
+              {showYearDropdown && (
+                <div className="absolute left-0 right-0 mt-1 z-20 max-h-60 overflow-y-auto no-scrollbar rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg">
+                  {years.map(year => {
+                    const isActive = selectedYear === year
+                    return (
+                      <button
+                        key={year}
+                        type="button"
+                        onClick={() => {
+                          setSelectedYear(year)
+                          setShowYearDropdown(false)
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                          isActive
+                            ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                            : 'text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {year}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Preview Sundays */}

@@ -1200,114 +1200,20 @@ const Dashboard = ({ isAdmin = false }) => {
               )}
               {/* Date Filter Indicator removed; use Sundays header Edit Date dropdown */}
 
-              {/* Bulk Selection Toolbar (only on Edited Members) - GREEN with only Sunday selector */}
-              {dashboardTab === 'edited' && selectedMemberIds.size > 0 && (
-                <div className="sticky top-0 sm:top-2 z-30 bg-green-50/95 dark:bg-green-900/50 border-2 border-green-400 dark:border-green-600 rounded-xl p-3 sm:p-4 mb-3 shadow-lg backdrop-blur">
-                  {/* Member Count + Action Buttons */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm">
-                        {selectedMemberIds.size}
-                      </div>
-                      <span className="text-sm font-semibold text-green-900 dark:text-green-100">{selectedMemberIds.size} name{selectedMemberIds.size !== 1 ? 's' : ''} selected</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-                      <button
-                        onClick={() => handleMultiAttendanceAction(true)}
-                        disabled={isBulkApplying || isBulkDeleting}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${isBulkApplying || isBulkDeleting ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 active:scale-95'} text-white`}
-                        style={{ minHeight: '40px' }}
-                      >
-                        <Check className="w-4 h-4" />
-                        Present
-                      </button>
-                      <button
-                        onClick={() => handleMultiAttendanceAction(false)}
-                        disabled={isBulkApplying || isBulkDeleting}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${isBulkApplying || isBulkDeleting ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 active:scale-95'} text-white`}
-                        style={{ minHeight: '40px' }}
-                      >
-                        <X className="w-4 h-4" />
-                        Absent
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleBulkDelete() }}
-                        disabled={isBulkApplying || isBulkDeleting}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${isBulkApplying || isBulkDeleting ? 'bg-red-300 cursor-not-allowed' : 'bg-red-700 hover:bg-red-800 active:scale-95'} text-white`}
-                        style={{ minHeight: '40px' }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                      <button
-                        onClick={clearMemberSelection}
-                        className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
-                        style={{ minHeight: '40px' }}
-                      >
-                        Cancel
-                      </button>
-                      {(isBulkApplying || isBulkDeleting) && (
-                        <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin dark:border-green-400" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Sunday Selection */}
-                  <div className="pt-3 border-t border-green-300 dark:border-green-700">
-                    <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-                      <h4 className="text-xs font-semibold text-green-900 dark:text-green-100">Select Sundays:</h4>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={selectAllSundays}
-                          className="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-700 whitespace-nowrap"
-                        >
-                          Select all
-                        </button>
-                        <button
-                          onClick={clearSundayBulkSelection}
-                          className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 whitespace-nowrap"
-                        >
-                          Clear days
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 overflow-x-auto px-1 py-1 no-scrollbar mb-2">
-                      {sundayDates.map(dateStr => {
-                        const checked = selectedBulkSundayDates.has(dateStr)
-                        const label = new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        return (
-                          <button
-                            key={dateStr}
-                            onClick={() => toggleSundayBulkSelection(dateStr)}
-                            className={`min-w-fit px-2 py-1 rounded text-xs font-medium transition-colors ${checked ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-green-900 dark:text-green-100">Totals:</span>
-                      <div className="flex gap-3">
-                        <span className="px-3 py-1 rounded-full bg-green-200 dark:bg-green-900/60 text-green-800 dark:text-green-200 text-xs font-semibold">
-                          Present: {presentCount}
-                        </span>
-                        <span className="px-3 py-1 rounded-full bg-red-200 dark:bg-red-900/60 text-red-800 dark:text-red-200 text-xs font-semibold">
-                          Absent: {absentCount}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
               {/* Long-Press Selection Toolbar */}
               <SelectionToolbar
                 selectedCount={longPressSelectedIds.size}
                 onPresent={() => handleLongPressBulkAction(true)}
                 onAbsent={() => handleLongPressBulkAction(false)}
                 onCancel={clearSelection}
-                isLoading={isBulkApplying}
+                onDelete={handleBulkDelete}
+                onSelectAll={selectAllSundays}
+                onClearDays={clearSundayBulkSelection}
+                sundayDates={sundayDates}
+                selectedSundayDates={selectedBulkSundayDates}
+                onToggleSunday={toggleSundayBulkSelection}
+                isLoading={isBulkApplying || isBulkDeleting}
+                showSundaySelection={dashboardTab === 'edited' && longPressSelectedIds.size > 0}
               />
 
               {membersToShow.map((member) => {

@@ -920,7 +920,7 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  // Create new month by copying October's structure
+  // Create new month by copying from the most recent month
   const createNewMonth = async ({ month, year, monthName, sundays }) => {
     try {
       const monthIdentifier = `${monthName}_${year}`
@@ -931,13 +931,50 @@ export const AppProvider = ({ children }) => {
         return { success: true, tableName: monthIdentifier }
       }
 
-      console.log(`Creating new month table: ${monthIdentifier}`)
+      // Determine the source table: use currentTable if set, otherwise find the most recent month
+      let sourceTable = currentTable
+      
+      // If no current table or we want to ensure we use the most recent, find it
+      if (!sourceTable || monthlyTables.length > 0) {
+        // Sort tables to find the most recent one
+        const sortedTables = [...monthlyTables].sort((a, b) => {
+          const [monthA, yearA] = a.split('_')
+          const [monthB, yearB] = b.split('_')
+          
+          // Compare years first
+          if (yearA !== yearB) {
+            return parseInt(yearB) - parseInt(yearA) // Descending (most recent first)
+          }
+          
+          // Then compare months
+          const months = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December']
+          const monthIndexA = months.indexOf(monthA)
+          const monthIndexB = months.indexOf(monthB)
+          return monthIndexB - monthIndexA // Descending (most recent first)
+        })
+        
+        // Use the most recent table as source
+        if (sortedTables.length > 0) {
+          sourceTable = sortedTables[0]
+        }
+      }
 
-      // Use our new function to create month table by copying October's structure
+      console.log(`Creating new month table: ${monthIdentifier}`)
+      console.log(`Copying from most recent table: ${sourceTable}`)
+      console.log(`New month will have ${sundays.length} Sundays:`, sundays.map(s => s.toISOString().split('T')[0]))
+
+      // Format Sunday dates as YYYY-MM-DD strings for the database function
+      const sundayDates = sundays.map(sunday => sunday.toISOString().split('T')[0])
+
+      // Use RPC function to create month table by copying from most recent month
+      // This will also enable RLS and copy all policies automatically
       const { data: result, error: createError } = await supabase.rpc(
-        'create_new_month_table',
+        'create_month_from_current',
         {
-          new_month_name: monthIdentifier
+          source_table: sourceTable,
+          new_table_name: monthIdentifier,
+          sunday_dates: sundayDates
         }
       )
 
@@ -948,7 +985,7 @@ export const AppProvider = ({ children }) => {
 
       console.log('Month table creation result:', result)
 
-      toast.success(`Month ${monthName} ${year} created successfully! Table copied from October template.`)
+      toast.success(`Month ${monthName} ${year} created successfully! Copied ${result?.members_copied || 0} members from ${sourceTable}. RLS enabled with all policies.`)
 
       // Refresh the monthly tables list from database
       await fetchMonthlyTables()
