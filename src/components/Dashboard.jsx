@@ -908,7 +908,7 @@ const Dashboard = ({ isAdmin = false }) => {
   }
 
   return (
-    <div className="space-y-2 pb-12 max-w-5xl mx-auto px-3 sm:px-4">
+    <div className="space-y-2 pb-12 max-w-7xl mx-auto px-3 sm:px-4">
       {/* Header removed; summary now shown in sticky Header */}
 
       {/* Desktop tab navigation removed; use mobile segmented control in Header */}
@@ -1099,7 +1099,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
 
       {/* Members List */}
-      <div className={`mt-8 sm:mt-10 grid grid-cols-1 lg:grid-cols-2 gap-3`}>
+      <div className={`mt-8 sm:mt-10 grid grid-cols-1 lg:grid-cols-3 gap-3`}>
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
           // Get tab-filtered members first
@@ -1170,7 +1170,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       </button>
                     </div>
                     <div
-                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 border-r-4 border-r-red-600 dark:border-r-red-700 ${isSelected ? 'selection-highlight' : ''
+                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 border-r-4 border-r-red-600 dark:border-r-red-700 md:border-r-0 ${isSelected ? 'selection-highlight' : ''
                         }`}
                       style={{ transform: swipeOpenId === member.id ? 'translateX(-64px)' : 'translateX(0)', touchAction: 'pan-y', userSelect: 'none' }}
                       onTouchStart={(e) => {
@@ -1439,39 +1439,41 @@ const Dashboard = ({ isAdmin = false }) => {
                 )
               })}
 
-              {/* Load More Button */}
-              {hasMoreMembers && (
-                <div className="flex justify-center mt-3 mb-2">
-                  <button
-                    onClick={async () => {
-                      setIsLoadingMore(true)
-                      // Simulate a small delay for better UX
-                      await new Promise(resolve => setTimeout(resolve, 300))
-                      setDisplayLimit(prev => prev + 20)
-                      setIsLoadingMore(false)
-                    }}
-                    disabled={isLoadingMore}
-                    className="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Loading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4" />
-                        <span>Load More ({Math.max(tabFilteredMembers.length - displayLimit, 0)} remaining)</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+              {(hasMoreMembers || (!searchTerm && tabFilteredMembers.length > 0)) && (
+                <div className="lg:col-span-3 mt-4 mb-4 flex flex-col items-center justify-center space-y-2">
+                  {/* Load More Button */}
+                  {hasMoreMembers && (
+                    <button
+                      onClick={async () => {
+                        setIsLoadingMore(true)
+                        // Simulate a small delay for better UX
+                        await new Promise(resolve => setTimeout(resolve, 300))
+                        setDisplayLimit(prev => prev + 20)
+                        setIsLoadingMore(false)
+                      }}
+                      disabled={isLoadingMore}
+                      className="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                    >
+                      {isLoadingMore ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4" />
+                          <span>Load More ({Math.max(tabFilteredMembers.length - displayLimit, 0)} remaining)</span>
+                        </>
+                      )}
+                    </button>
+                  )}
 
-              {/* Members count info */}
-              {!searchTerm && tabFilteredMembers.length > 0 && (
-                <div className="text-center mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  Showing {Math.min(displayLimit, tabFilteredMembers.length)} of {tabFilteredMembers.length} members
+                  {/* Members count info */}
+                  {!searchTerm && tabFilteredMembers.length > 0 && (
+                    <div className="text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
+                      Showing {Math.min(displayLimit, tabFilteredMembers.length)} of {tabFilteredMembers.length} members
+                    </div>
+                  )}
                 </div>
               )}
 
