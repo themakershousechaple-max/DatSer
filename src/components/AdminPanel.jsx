@@ -206,7 +206,7 @@ const AdminPanel = ({ onLogout, setCurrentView }) => {
           if (member['Badge Type'] !== 'regular' && member['Badge Type'] !== 'vip') {
             await updateMember(member.id, {
               'Badge Type': 'regular'
-            })
+            }, { silent: true })
             memberInfo.badgeAssigned = true
           } else {
             memberInfo.badgeAssigned = false

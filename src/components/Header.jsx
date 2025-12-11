@@ -336,6 +336,18 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 <span className="hidden lg:inline">Add Member</span>
               </button>
 
+              {/* Create New Month */}
+              <button
+                onClick={() => { if (onCreateMonth) onCreateMonth(); }}
+                className="flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors bg-green-600 hover:bg-green-700 text-white"
+                title="Create New Month"
+              >
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md">
+                  <Calendar className="w-4 h-4" />
+                </span>
+                <span className="hidden lg:inline">New Month</span>
+              </button>
+
               {/* Desktop Menu (icon-only on small screens, full name on large) */}
               <div className="relative" ref={dropdownRef}>
                 <button

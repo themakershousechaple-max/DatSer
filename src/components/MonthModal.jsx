@@ -108,13 +108,13 @@ const MonthModal = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md mx-4 overflow-y-auto no-scrollbar transition-colors duration-200"
+        className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md mx-4 overflow-visible no-scrollbar transition-colors duration-200"
         style={{
           maxHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem)'
         }}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-4 sm:p-6 border-b border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-4 sm:p-6 border-b border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-t-lg">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Create New Month</h2>
           <button
             onClick={onClose}

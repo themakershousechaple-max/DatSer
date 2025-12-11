@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, AlertCircle } from 'lucide-react'
+import { X, AlertCircle, ChevronDown } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { toast } from 'react-toastify'
 
@@ -11,6 +11,15 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
     const [saveError, setSaveError] = useState(null)
     const [hasAttemptedSave, setHasAttemptedSave] = useState(false)
     const [isOverrideMode, setIsOverrideMode] = useState(false)
+    const [showLevelDropdown, setShowLevelDropdown] = useState(false)
+
+    const levelOptions = [
+        'JHS1', 'JHS2', 'JHS3',
+        'SHS1', 'SHS2', 'SHS3',
+        'COMPLETED', 'UNIVERSITY'
+    ]
+    const [showGenderDropdown, setShowGenderDropdown] = useState(false)
+    const genderOptions = ['Male', 'Female']
 
     // Local selection for which missing Sunday should be considered the "selectedAttendanceDate"
     // This lets the admin choose a date from the missingDates dropdown inside the modal.
@@ -315,18 +324,48 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             Gender *
                                         </label>
-                                        <select
-                                            value={formData.gender || ''}
-                                            onChange={(e) => handleInputChange('gender', e.target.value)}
-                                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white ${isFieldInvalid('Gender')
-                                                ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
-                                                : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
-                                                }`}
-                                        >
-                                            <option value="">Select gender</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                        </select>
+                                        <div className="relative">
+                                            {/* Custom dropdown trigger */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowGenderDropdown(prev => !prev)}
+                                                className={`w-full px-3 py-2 text-left border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors flex items-center justify-between ${isFieldInvalid('Gender')
+                                                    ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
+                                                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                                                    }`}
+                                            >
+                                                <span className={formData.gender ? '' : 'text-gray-400 dark:text-gray-400'}>
+                                                    {formData.gender || 'Select gender'}
+                                                </span>
+                                                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showGenderDropdown ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {/* Dropdown list - opens downward */}
+                                            {showGenderDropdown && (
+                                                <div className="absolute left-0 right-0 mt-1 z-50 max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg">
+                                                    {genderOptions.map(gender => {
+                                                        const isActive = formData.gender === gender
+                                                        return (
+                                                            <button
+                                                                key={gender}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    handleInputChange('gender', gender)
+                                                                    setShowGenderDropdown(false)
+                                                                }}
+                                                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                                                                    isActive
+                                                                        ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                                                                        : 'text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                                }`}
+                                                            >
+                                                                {gender}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                         {isFieldInvalid('Gender') && (
                                             <p className="text-xs text-red-600 dark:text-red-400 mt-1">Gender is required</p>
                                         )}
@@ -359,16 +398,48 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             Current Level *
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={formData.currentLevel || ''}
-                                            onChange={(e) => handleInputChange('currentLevel', e.target.value)}
-                                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white ${isFieldInvalid('Current Level')
-                                                ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
-                                                : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
-                                                }`}
-                                            placeholder="e.g., JHS1, SHS2, Primary 3"
-                                        />
+                                        <div className="relative">
+                                            {/* Custom dropdown trigger */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowLevelDropdown(prev => !prev)}
+                                                className={`w-full px-3 py-2 text-left border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors flex items-center justify-between ${isFieldInvalid('Current Level')
+                                                    ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
+                                                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                                                    }`}
+                                            >
+                                                <span className={formData.currentLevel ? '' : 'text-gray-400 dark:text-gray-400'}>
+                                                    {formData.currentLevel || 'Select level'}
+                                                </span>
+                                                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showLevelDropdown ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {/* Dropdown list - opens downward */}
+                                            {showLevelDropdown && (
+                                                <div className="absolute left-0 right-0 mt-1 z-50 max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg">
+                                                    {levelOptions.map(level => {
+                                                        const isActive = formData.currentLevel === level
+                                                        return (
+                                                            <button
+                                                                key={level}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    handleInputChange('currentLevel', level)
+                                                                    setShowLevelDropdown(false)
+                                                                }}
+                                                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                                                                    isActive
+                                                                        ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                                                                        : 'text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                                }`}
+                                                            >
+                                                                {level}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                         {isFieldInvalid('Current Level') && (
                                             <p className="text-xs text-red-600 dark:text-red-400 mt-1">Current level is required</p>
                                         )}

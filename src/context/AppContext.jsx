@@ -754,7 +754,7 @@ export const AppProvider = ({ children }) => {
             await updateMember(member.id, {
               'Badge Type': 'regular',
               'Member Status': 'Member'
-            })
+            }, { silent: true })
             badgesAssigned++
             console.log(`Assigned regular badge to ${member['full_name'] || member['Full Name']}`)
           }
@@ -887,7 +887,9 @@ export const AppProvider = ({ children }) => {
   }
 
   // Update member
-  const updateMember = async (id, updates) => {
+  // Options: { silent: boolean } - if true, suppresses toast notifications (for batch operations)
+  const updateMember = async (id, updates, options = {}) => {
+    const { silent = false } = options
     try {
       if (!isSupabaseConfigured()) {
         // Demo mode - update local state
@@ -901,7 +903,7 @@ export const AppProvider = ({ children }) => {
           updatedMember['Full Name'] = updatedNameDemo
         }
         setMembers(prev => prev.map(m => m.id === id ? updatedMember : m))
-        toast.success('Member updated successfully! (Demo Mode)')
+        if (!silent) toast.success('Member updated successfully! (Demo Mode)')
         return updatedMember
       }
 
@@ -948,6 +950,44 @@ export const AppProvider = ({ children }) => {
         delete normalized.age
       }
 
+      // Normalize Current Level field
+      const incomingLevel = normalized.current_level ?? normalized['Current Level']
+      if (incomingLevel !== undefined) {
+        normalized = { ...normalized, 'Current Level': incomingLevel }
+        delete normalized.current_level
+      }
+
+      // Get existing columns from the table to filter out non-existent fields
+      let validColumns = null
+      try {
+        const { data: sampleRow } = await supabase.from(currentTable).select('*').limit(1)
+        if (sampleRow && sampleRow.length > 0) {
+          validColumns = new Set(Object.keys(sampleRow[0]))
+        }
+      } catch (e) {
+        console.warn('Could not fetch table schema, proceeding with all fields:', e)
+      }
+
+      // Filter normalized object to only include valid columns if we know them
+      if (validColumns) {
+        const filteredNormalized = {}
+        for (const key of Object.keys(normalized)) {
+          if (validColumns.has(key)) {
+            filteredNormalized[key] = normalized[key]
+          } else {
+            console.warn(`Skipping field "${key}" - column does not exist in table ${currentTable}`)
+          }
+        }
+        normalized = filteredNormalized
+      }
+
+      // Ensure we have something to update
+      if (Object.keys(normalized).length === 0) {
+        console.warn('No valid fields to update after filtering')
+        if (!silent) toast.info('No changes to save')
+        return members.find(m => m.id === id)
+      }
+
       const { data, error } = await supabase
         .from(currentTable)
         .update(normalized)
@@ -981,7 +1021,7 @@ export const AppProvider = ({ children }) => {
       // Update search term to trigger re-filtering
       refreshSearch()
 
-      toast.success(`Member updated successfully in ${currentTable}!`)
+      if (!silent) toast.success(`Member updated successfully in ${currentTable}!`)
       return data[0]
     } catch (error) {
       console.error('Error updating member:', error)
