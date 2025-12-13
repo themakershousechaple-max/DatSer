@@ -27,6 +27,14 @@ const DEFAULT_ATTENDANCE_DATES = {
   'November_2025': '2025-11-23'
 }
 
+// Helper function for timezone-safe date string formatting (YYYY-MM-DD)
+const getLocalDateString = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Get the latest available table (fallback only - does NOT modify localStorage)
 const getLatestTable = () => {
   // Default to current month if available, otherwise use December_2025
@@ -671,7 +679,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!isSupabaseConfigured()) {
         // Demo mode - update local state
-        const dateKey = date.toISOString().split('T')[0]
+        const dateKey = getLocalDateString(date)
         setAttendanceData(prev => ({
           ...prev,
           [dateKey]: {
@@ -707,7 +715,11 @@ export const AppProvider = ({ children }) => {
       ))
 
       // Update local state for attendanceData (for real-time UI updates)
-      const dateKey = date.toISOString().split('T')[0]
+      // Use local date format to avoid timezone issues
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const dateKey = `${year}-${month}-${day}`
       setAttendanceData(prev => ({
         ...prev,
         [dateKey]: {
@@ -733,7 +745,7 @@ export const AppProvider = ({ children }) => {
     
     // Check that EVERY Sunday has attendance data for at least 1 member
     for (const sunday of availableSundayDates) {
-      const dateKey = sunday.toISOString().split('T')[0]
+      const dateKey = getLocalDateString(sunday)
       const attendanceForDate = attendanceData[dateKey]
       
       // If this Sunday has no attendance data at all, month is not complete
@@ -756,7 +768,7 @@ export const AppProvider = ({ children }) => {
     let consecutiveCount = 0
     
     for (const sunday of sortedSundays) {
-      const dateKey = sunday.toISOString().split('T')[0]
+      const dateKey = getLocalDateString(sunday)
       const memberStatus = attendanceData[dateKey]?.[memberId]
       
       if (memberStatus === true) {
@@ -819,7 +831,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!isSupabaseConfigured()) {
         // Demo mode - update local state
-        const dateKey = date.toISOString().split('T')[0]
+        const dateKey = getLocalDateString(date)
         const updates = {}
         memberIds.forEach(id => {
           updates[id] = present
@@ -868,7 +880,7 @@ export const AppProvider = ({ children }) => {
       ))
 
       // Update local state for attendanceData (for real-time UI updates)
-      const dateKey = date.toISOString().split('T')[0]
+      const dateKey = getLocalDateString(date)
       const updates = {}
       memberIds.forEach(id => {
         updates[id] = present
@@ -898,7 +910,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (!isSupabaseConfigured()) {
         // Demo mode - return mock attendance data
-        const dateKey = date.toISOString().split('T')[0]
+        const dateKey = getLocalDateString(date)
         return attendanceData[dateKey] || {}
       }
 
@@ -1549,7 +1561,7 @@ export const AppProvider = ({ children }) => {
     const missingDates = []
 
     pastSundays.forEach(sunday => {
-      const dateKey = sunday.toISOString().split('T')[0]
+      const dateKey = getLocalDateString(sunday)
       const attendanceMap = attendanceData[dateKey] || {}
       const status = attendanceMap[memberId]
 
@@ -1726,7 +1738,7 @@ export const AppProvider = ({ children }) => {
 
           if (monthIndex !== -1) {
             const date = new Date(parseInt(year), monthIndex, day)
-            const dateKey = date.toISOString().split('T')[0]
+            const dateKey = getLocalDateString(date)
 
             newAttendanceData[dateKey] = {}
 

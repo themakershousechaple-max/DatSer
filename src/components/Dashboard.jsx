@@ -19,9 +19,15 @@ const getMonthDisplayName = (tableName) => {
   return tableName.replace('_', ' ')
 }
 
-// Helper function to get the target date (Nov 23)
-const getTargetDate = (currentTable) => {
-  return '2025-11-23'
+// Helper function to get target date string from selectedAttendanceDate (timezone-safe)
+const getDateString = (date) => {
+  if (!date) return null
+  if (typeof date === 'string') return date
+  // Use local date to avoid timezone shifting the day
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 const Dashboard = ({ isAdmin = false }) => {
@@ -163,7 +169,7 @@ const Dashboard = ({ isAdmin = false }) => {
   const handleLongPressBulkAction = async (present) => {
     if (longPressSelectedIds.size === 0) return
 
-    const dateToUse = new Date(getTargetDate())
+    const dateToUse = selectedAttendanceDate ? new Date(selectedAttendanceDate) : new Date()
     const memberIds = Array.from(longPressSelectedIds)
 
     setIsBulkApplying(true)
@@ -485,11 +491,11 @@ const Dashboard = ({ isAdmin = false }) => {
     return acc
   }, [attendanceData, members, sundayDates])
 
-  // Fetch attendance for the target date when table changes
+  // Fetch attendance for the selected date when table or date changes
   useEffect(() => {
-    const targetDate = getTargetDate(currentTable)
-    if (targetDate && lastFetchedTableRef.current !== currentTable) {
-      lastFetchedTableRef.current = currentTable
+    const targetDate = getDateString(selectedAttendanceDate)
+    if (targetDate && lastFetchedTableRef.current !== `${currentTable}_${targetDate}`) {
+      lastFetchedTableRef.current = `${currentTable}_${targetDate}`
       fetchAttendanceForDate(new Date(targetDate)).then(map => {
         setAttendanceData(prev => ({
           ...prev,
@@ -497,7 +503,7 @@ const Dashboard = ({ isAdmin = false }) => {
         }))
       })
     }
-  }, [currentTable, fetchAttendanceForDate, setAttendanceData])
+  }, [currentTable, selectedAttendanceDate, fetchAttendanceForDate, setAttendanceData])
 
   // Preload attendance maps when switching to Edited tab
   useEffect(() => {
@@ -614,10 +620,10 @@ const Dashboard = ({ isAdmin = false }) => {
       return // Stop here if missing data found
     }
 
-    // Always use the target date (Nov 23)
-    const targetDate = getTargetDate(currentTable)
+    // Use the selected attendance date from the picker
+    const targetDate = getDateString(selectedAttendanceDate)
     if (!targetDate) {
-      toast.error('Unable to determine the target date.')
+      toast.error('Please select an attendance date first.')
       return
     }
 
@@ -625,6 +631,7 @@ const Dashboard = ({ isAdmin = false }) => {
     try {
       const memberName = member ? (member['full_name'] || member['Full Name']) : 'Member'
       const currentStatus = attendanceData[targetDate]?.[memberId]
+      const dateLabel = selectedAttendanceDate ? new Date(selectedAttendanceDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
 
       // Toggle functionality: if clicking the same status, deselect it (set to null)
       if (currentStatus === present) {
@@ -637,7 +644,7 @@ const Dashboard = ({ isAdmin = false }) => {
         })
       } else {
         await markAttendance(memberId, new Date(targetDate), present)
-        toast.success(`Marked ${present ? 'present' : 'absent'} for Nov 23: ${memberName}`, {
+        toast.success(`Marked ${present ? 'present' : 'absent'} for ${dateLabel}: ${memberName}`, {
           style: {
             background: present ? '#10b981' : '#ef4444',
             color: '#ffffff'
@@ -676,9 +683,9 @@ const Dashboard = ({ isAdmin = false }) => {
   }
 
   const handleBulkAttendance = async (present, specificDate = null) => {
-    // Force target date to be the 23rd as requested
-    const targetString = getTargetDate(currentTable)
-    const dateToUse = specificDate ? new Date(specificDate) : new Date(targetString)
+    // Use the selected attendance date from the picker
+    const targetString = getDateString(selectedAttendanceDate)
+    const dateToUse = specificDate ? new Date(specificDate) : (targetString ? new Date(targetString) : new Date())
     const dateLabel = dateToUse.toLocaleDateString()
 
     showConfirmModal({
@@ -752,12 +759,13 @@ const Dashboard = ({ isAdmin = false }) => {
       return
     }
 
-    const targetDate = getTargetDate(currentTable)
+    const targetDate = getDateString(selectedAttendanceDate)
     if (!targetDate) {
-      toast.error('Unable to determine the target date.')
+      toast.error('Please select an attendance date first.')
       return
     }
 
+    const dateLabel = selectedAttendanceDate ? new Date(selectedAttendanceDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
     setIsBulkApplying(true)
     try {
       if (status === null) {
@@ -769,7 +777,7 @@ const Dashboard = ({ isAdmin = false }) => {
         await bulkAttendance(memberIds, new Date(targetDate), status)
       }
       const actionText = status === null ? 'cleared' : status ? 'present' : 'absent'
-      toast.success(`Bulk ${actionText} applied to ${memberIds.length} member(s) for Nov 23.`)
+      toast.success(`Bulk ${actionText} applied to ${memberIds.length} member(s) for ${dateLabel}.`)
     } catch (error) {
       console.error('Bulk attendance failed:', error)
       toast.error('Failed to apply bulk update. Please try again.')
@@ -1249,7 +1257,7 @@ const Dashboard = ({ isAdmin = false }) => {
                           <div className="flex flex-row items-stretch gap-2 w-full">
                             {/* Present/Absent buttons - compact on mobile, full on desktop */}
                             {(() => {
-                              const targetDate = getTargetDate(currentTable)
+                              const targetDate = getDateString(selectedAttendanceDate)
                               const rowStatus = targetDate && attendanceData[targetDate] ? attendanceData[targetDate][member.id] : undefined
                               const isPresentSelected = rowStatus === true
                               const isAbsentSelected = rowStatus === false
@@ -1648,7 +1656,7 @@ const Dashboard = ({ isAdmin = false }) => {
           missingFields={missingFields}
           missingDates={missingDates}
           pendingAttendanceAction={pendingAttendanceAction}
-          selectedAttendanceDate={new Date(getTargetDate(currentTable))}
+          selectedAttendanceDate={selectedAttendanceDate ? new Date(selectedAttendanceDate) : new Date()}
           onClose={() => {
             setShowMissingDataModal(false)
             setMissingDataMember(null)
@@ -1658,9 +1666,6 @@ const Dashboard = ({ isAdmin = false }) => {
           }}
           onSave={async () => {
             // The modal handles the attendance marking internally using the correct date
-            const dateStr = getTargetDate(currentTable)
-            const present = pendingAttendanceAction?.present
-
             // Just show a success toast here if needed, or rely on the modal's toast
             // The modal shows "Attendance saved (Override)" or "Missing data saved successfully!"
 
