@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronUp, ChevronRight, UserPlus, Award, Star, UserCheck, Check, RefreshCw, X, Feather } from 'lucide-react'
+import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronUp, ChevronRight, UserPlus, Award, Star, UserCheck, Check, X, Feather } from 'lucide-react'
 import EditMemberModal from './EditMemberModal'
 import MemberModal from './MemberModal'
 import QRModal from './QRModal'
@@ -1098,8 +1098,28 @@ const Dashboard = ({ isAdmin = false }) => {
 
 
 
+      {/* Long-Press Selection Toolbar - Outside grid, on its own row */}
+      {longPressSelectedIds.size > 0 && (
+        <div className="mt-8 sm:mt-10 mb-4">
+          <SelectionToolbar
+            selectedCount={longPressSelectedIds.size}
+            onPresent={() => handleLongPressBulkAction(true)}
+            onAbsent={() => handleLongPressBulkAction(false)}
+            onCancel={clearSelection}
+            onDelete={handleBulkDelete}
+            onSelectAll={selectAllSundays}
+            onClearDays={clearSundayBulkSelection}
+            sundayDates={sundayDates}
+            selectedSundayDates={selectedBulkSundayDates}
+            onToggleSunday={toggleSundayBulkSelection}
+            isLoading={isBulkApplying || isBulkDeleting}
+            showSundaySelection={dashboardTab === 'edited' && longPressSelectedIds.size > 0}
+          />
+        </div>
+      )}
+
       {/* Members List */}
-      <div className={`mt-8 sm:mt-10 grid grid-cols-1 lg:grid-cols-3 gap-3`}>
+      <div className={`${longPressSelectedIds.size > 0 ? '' : 'mt-8 sm:mt-10'} grid grid-cols-1 lg:grid-cols-3 gap-3`}>
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
           // Get tab-filtered members first
@@ -1120,22 +1140,6 @@ const Dashboard = ({ isAdmin = false }) => {
             <>
               {/* Badge filter removed - badges now work automatically in background */}
               {/* Date Filter Indicator removed; use Sundays header Edit Date dropdown */}
-
-              {/* Long-Press Selection Toolbar */}
-              <SelectionToolbar
-                selectedCount={longPressSelectedIds.size}
-                onPresent={() => handleLongPressBulkAction(true)}
-                onAbsent={() => handleLongPressBulkAction(false)}
-                onCancel={clearSelection}
-                onDelete={handleBulkDelete}
-                onSelectAll={selectAllSundays}
-                onClearDays={clearSundayBulkSelection}
-                sundayDates={sundayDates}
-                selectedSundayDates={selectedBulkSundayDates}
-                onToggleSunday={toggleSundayBulkSelection}
-                isLoading={isBulkApplying || isBulkDeleting}
-                showSundaySelection={dashboardTab === 'edited' && longPressSelectedIds.size > 0}
-              />
 
               {membersToShow.map((member) => {
                 const isExpanded = expandedMembers[member.id]
@@ -1506,14 +1510,6 @@ const Dashboard = ({ isAdmin = false }) => {
                 <p><strong>Current table:</strong> {currentTable}</p>
                 <p><strong>Supabase status:</strong> {isSupabaseConfigured() ? 'Connected' : 'Not configured (showing mock data)'}</p>
               </div>
-              <button
-                onClick={forceRefreshMembers}
-                className="mt-3 w-full bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Refresh Data
-              </button>
-
               <button
                 onClick={() => searchMemberAcrossAllTables(searchTerm)}
                 className="mt-2 w-full bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"

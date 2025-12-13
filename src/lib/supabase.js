@@ -12,7 +12,37 @@ export const isSupabaseConfigured = Boolean(
 )
 
 // Only create the client when config exists; otherwise export null
-export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey) : null
+export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+    storageKey: 'tmh-teen-auth',
+    flowType: 'pkce' // PKCE is faster and more secure than implicit
+  },
+  // Optimize for slower devices
+  global: {
+    headers: { 'x-client-info': 'tmht-checkin' }
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 2 // Reduce realtime overhead
+    }
+  }
+}) : null
+
+// Quick sync check for existing session (faster than async getSession on old devices)
+export const hasStoredSession = () => {
+  try {
+    const stored = localStorage.getItem('tmh-teen-auth')
+    if (!stored) return false
+    const parsed = JSON.parse(stored)
+    return !!(parsed?.access_token && parsed?.expires_at > Date.now() / 1000)
+  } catch {
+    return false
+  }
+}
 
 // Supabase table schemas (for reference)
 /*

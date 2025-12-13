@@ -10,13 +10,13 @@ import {
   TrendingUp,
   Menu,
   Search,
-  RefreshCw,
   X,
   Edit3
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import DateSelector from './DateSelector'
 import { useApp } from '../context/AppContext'
+import LoginButton from './LoginButton'
 
 const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember, onCreateMonth }) => {
   const { isDarkMode, toggleTheme } = useTheme()
@@ -310,21 +310,9 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               </div>
             </div>
 
-            {/* Right group: Refresh + Add member + Menu (badge filter moved to Edited page) */}
+            {/* Right group: Add member + Menu (badge filter moved to Edited page) */}
             <div className="flex items-center gap-2 lg:gap-3">
-              {/* Refresh */}
-              <button
-                onClick={() => { forceRefreshMembers() }}
-                className="flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                title="Refresh members"
-              >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md text-blue-700 dark:text-blue-300 transition-colors md:text-gray-700 md:dark:text-gray-300 hover:md:bg-gray-100 hover:md:dark:bg-gray-700">
-                  <RefreshCw className="w-4 h-4" />
-                </span>
-                <span className="hidden lg:inline">Refresh</span>
-              </button>
-
-              {/* Add New Member (moved to the right of Refresh) */}
+              {/* Add New Member */}
               <button
                 onClick={() => { if (onAddMember) onAddMember(); }}
                 className="flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
@@ -371,8 +359,10 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
 
 
 
-          {/* Right-side actions minimized (dark mode moved near summary pill) */}
-          <div className="hidden md:flex items-center space-x-1 sm:space-x-2" />
+          {/* Right-side actions - Login button */}
+          <div className="hidden md:flex items-center space-x-2">
+            <LoginButton />
+          </div>
         </div>
 
         {/* Mobile Navigation */}
@@ -406,16 +396,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
 
             {/* Right: Menu and actions (mobile) */}
             <div className="flex items-center gap-2">
-              {/* Refresh (mobile, match desktop shape) */}
-              <button
-                onClick={() => { forceRefreshMembers() }}
-                className="flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                title="Refresh"
-              >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md text-blue-700 dark:text-blue-300 transition-colors">
-                  <RefreshCw className="w-4 h-4" />
-                </span>
-              </button>
+              {/* Login Button (mobile) */}
+              <LoginButton />
 
               {/* Add Member (mobile, match desktop shape) */}
               <button

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { toast } from 'react-toastify'
+import { useAuth } from './AuthContext'
 
 const AppContext = createContext()
 
@@ -87,6 +88,10 @@ export const useApp = () => {
 }
 
 export const AppProvider = ({ children }) => {
+  // Get user from auth context - may be null during initial load
+  const authContext = useAuth()
+  const user = authContext?.user
+  const authLoading = authContext?.loading
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -94,7 +99,11 @@ export const AppProvider = ({ children }) => {
   const searchCacheRef = useRef(new Map())
   const nameColumnCacheRef = useRef(new Map())
   const [attendanceData, setAttendanceData] = useState({})
-  const [currentTable, setCurrentTable] = useState(getLatestTable())
+  const [currentTable, setCurrentTable] = useState(() => {
+    // Try to restore saved table from localStorage, otherwise use latest
+    const savedTable = localStorage.getItem('selectedMonthTable')
+    return savedTable || getLatestTable()
+  })
   const [monthlyTables, setMonthlyTables] = useState(FALLBACK_MONTHLY_TABLES)
   const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(null)
   const [availableSundayDates, setAvailableSundayDates] = useState([])
@@ -118,7 +127,7 @@ export const AppProvider = ({ children }) => {
   const fetchMembers = async (tableName = currentTable) => {
     try {
       setLoading(true)
-      console.log(`Fetching members from table: ${tableName}`)
+      console.log(`Fetching members from table: ${tableName} for user: ${user?.id}`)
 
       if (!isSupabaseConfigured()) {
         console.log('Using mock data - Supabase not configured')
@@ -127,13 +136,30 @@ export const AppProvider = ({ children }) => {
         return
       }
 
+      // Check if we have a valid session
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('Current session:', session ? `authenticated as ${session.user?.id}` : 'not authenticated')
+      if (!session) {
+        console.warn('No active session - user may need to log in again')
+        toast.error('Session expired. Please refresh and log in again.')
+        setMembers([])
+        setLoading(false)
+        return
+      }
+
+      // Fetch data - RLS policies handle user filtering
+      console.log(`Querying ${tableName} with session user: ${session.user?.id}`)
+      
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
 
+      console.log(`Query result: ${data?.length || 0} rows, error: ${error?.message || 'none'}`)
+
       if (error) {
         console.error('Error fetching members:', error)
         console.log('Error details:', error.message, error.code)
+        toast.error(`Database error: ${error.message}`, { autoClose: 10000 })
 
         // Only fallback to mock data when table clearly does not exist
         if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
@@ -220,7 +246,9 @@ export const AppProvider = ({ children }) => {
         parent_name_1: memberData.parent_name_1 || null,
         parent_phone_1: memberData.parent_phone_1 || null,
         parent_name_2: memberData.parent_name_2 || null,
-        parent_phone_2: memberData.parent_phone_2 || null
+        parent_phone_2: memberData.parent_phone_2 || null,
+        // Link to current user
+        user_id: user?.id
       }
 
       const { data, error } = await supabase
@@ -324,47 +352,23 @@ export const AppProvider = ({ children }) => {
   }
 
   // Get available Sunday dates for the current table
+  // Shows ALL Sundays in the selected month so users can mark attendance for any Sunday
   const getAvailableSundayDates = async () => {
     try {
       // Parse the current table to get month and year
       const [monthName, year] = currentTable.split('_')
       const yearNum = parseInt(year)
 
-      // Get all Sundays in the month
+      if (!monthName || isNaN(yearNum)) {
+        console.error('Invalid table format:', currentTable)
+        return []
+      }
+
+      // Return all Sundays in the month - attendance columns will be created as needed
       const allSundays = getSundaysInMonth(monthName, yearNum)
-
-      // Get attendance columns to see which Sundays have columns
-      const attendanceColumns = await getAttendanceColumns()
-
-      // Filter Sundays that have corresponding attendance columns
-      const availableSundays = allSundays.filter(sunday => {
-        const dayOfMonth = sunday.getDate()
-        const month = sunday.getMonth() + 1 // 0-indexed to 1-indexed
-        const year = sunday.getFullYear()
-        
-        return attendanceColumns.some(col => {
-          const colName = col.column_name.toLowerCase()
-          
-          // Check for new format: attendance_2025_03_02
-          const newFormatMatch = colName.match(/attendance_(\d{4})_(\d{2})_(\d{2})/)
-          if (newFormatMatch) {
-            const [, colYear, colMonth, colDay] = newFormatMatch
-            return parseInt(colYear) === year && 
-                   parseInt(colMonth) === month && 
-                   parseInt(colDay) === dayOfMonth
-          }
-          
-          // Check for old format: Attendance 5th or attendance_5th
-          const oldFormatMatch = col.column_name.match(/[Aa]ttendance[_ ](\d+)(st|nd|rd|th)?/)
-          if (oldFormatMatch) {
-            return parseInt(oldFormatMatch[1]) === dayOfMonth
-          }
-          
-          return false
-        })
-      })
-
-      return availableSundays
+      console.log(`Found ${allSundays.length} Sundays in ${monthName} ${yearNum}:`, allSundays.map(d => d.getDate()))
+      
+      return allSundays
     } catch (error) {
       console.error('Error getting available Sunday dates:', error)
       return []
@@ -1137,6 +1141,19 @@ export const AppProvider = ({ children }) => {
 
       console.log('Month table creation result:', result)
 
+      // Register this month table for the current user
+      const { error: registerError } = await supabase
+        .from('user_month_tables')
+        .insert({
+          user_id: user?.id,
+          table_name: monthIdentifier,
+          month_year: `${monthName} ${year}`
+        })
+
+      if (registerError) {
+        console.warn('Could not register month table for user:', registerError)
+      }
+
       toast.success(`Month ${monthName} ${year} created successfully! Copied ${result?.members_copied || 0} members from ${sourceTable}. RLS enabled with all policies.`)
 
       // Refresh the monthly tables list from database
@@ -1171,17 +1188,17 @@ export const AppProvider = ({ children }) => {
         return
       }
 
+      // Fallback: Check existing tables for this user's data
       const months = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December']
-      const years = ['2025'] // Only check 2025 tables to avoid 404 errors
+      const years = ['2025']
       const availableTables = []
 
-      // Check each potential month table by trying to fetch from it
       for (const year of years) {
         for (const month of months) {
           const tableName = `${month}_${year}`
           try {
-            // Try to fetch just one record to check if table exists
+            // Check if table exists and user has data (RLS filters automatically)
             const { data, error } = await supabase
               .from(tableName)
               .select('id')
@@ -1191,30 +1208,25 @@ export const AppProvider = ({ children }) => {
               availableTables.push(tableName)
             }
           } catch (err) {
-            // Table doesn't exist, skip it
             continue
           }
         }
       }
 
       if (availableTables.length > 0) {
-        // Sort tables by year and then by month
         availableTables.sort((a, b) => {
           const [monthA, yearA] = a.split('_')
           const [monthB, yearB] = b.split('_')
-
-          if (yearA !== yearB) {
-            return parseInt(yearA) - parseInt(yearB)
-          }
-
+          if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB)
           return months.indexOf(monthA) - months.indexOf(monthB)
         })
 
         setMonthlyTables(availableTables)
-        console.log('Found monthly tables:', availableTables)
-        // Removed automatic toast notification on page load
+        console.log('Found monthly tables with user data:', availableTables)
       } else {
-        console.log('No monthly tables found, using fallback')
+        // New user - show empty state, they need to create their first month
+        setMonthlyTables([])
+        console.log('No monthly tables found for user - new user')
       }
     } catch (error) {
       console.error('Error fetching monthly tables:', error)
@@ -1514,21 +1526,43 @@ export const AppProvider = ({ children }) => {
     fetchMonthlyTables()
   }, [])
 
-  // Fetch members on component mount and when current table changes
+  // Validate saved table exists in available tables after fetching (run only once)
+  const hasValidatedTable = useRef(false)
   useEffect(() => {
+    if (monthlyTables.length > 0 && !hasValidatedTable.current) {
+      hasValidatedTable.current = true
+      const savedTable = localStorage.getItem('selectedMonthTable')
+      if (savedTable && monthlyTables.includes(savedTable)) {
+        // Saved table is valid, ensure it's set
+        if (currentTable !== savedTable) {
+          setCurrentTable(savedTable)
+        }
+      } else if (savedTable && !monthlyTables.includes(savedTable)) {
+        // Saved table no longer exists, clear it and use latest
+        localStorage.removeItem('selectedMonthTable')
+        const latest = getLatestTable()
+        setCurrentTable(latest)
+      }
+    }
+  }, [monthlyTables])
+
+  // Fetch members on component mount and when current table changes
+  // Wait for auth to finish loading before fetching to avoid race condition
+  useEffect(() => {
+    if (authLoading) {
+      return // Don't fetch while auth is still loading
+    }
     fetchMembers()
-  }, [currentTable])
+  }, [currentTable, authLoading])
 
   // Initialize attendance dates when current table changes
   useEffect(() => {
     initializeAttendanceDates()
   }, [currentTable])
 
-  // Load all attendance data and check for badge processing when table changes
+  // Check for badge processing after attendance data is loaded
   useEffect(() => {
-    const loadAndCheckBadges = async () => {
-      await loadAllAttendanceData()
-      // Wait a bit for attendance data to be loaded, then check badges
+    if (Object.keys(attendanceData).length > 0) {
       setTimeout(() => {
         if (isMonthAttendanceComplete()) {
           console.log('Month has 40+ members marked, processing badges...')
@@ -1536,9 +1570,7 @@ export const AppProvider = ({ children }) => {
         }
       }, 1000)
     }
-    
-    loadAndCheckBadges()
-  }, [currentTable])
+  }, [attendanceData])
 
   // Wrapper function for setCurrentTable with localStorage persistence
   const changeCurrentTable = (tableName) => {
