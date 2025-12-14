@@ -6,7 +6,7 @@ const LoginPage = () => {
   const { signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
-  
+
   // Form state
   const [mode, setMode] = useState('login') // 'login', 'signup', 'forgot'
   const [email, setEmail] = useState('')
@@ -14,6 +14,8 @@ const LoginPage = () => {
   const [fullName, setFullName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [confirmationSent, setConfirmationSent] = useState(false)
+
+  const [loginAttempts, setLoginAttempts] = useState(0)
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
@@ -34,13 +36,30 @@ const LoginPage = () => {
       setError('Please fill in all fields')
       return
     }
-    
+
     setIsLoading(true)
     setError(null)
     try {
       await signInWithEmail(email, password)
+      setLoginAttempts(0) // Reset on success
     } catch (err) {
-      // Error is handled in AuthContext
+      const newAttempts = loginAttempts + 1
+      setLoginAttempts(newAttempts)
+
+      // Show increasingly helpful messages based on attempts
+      if (err.message?.includes('Invalid login credentials')) {
+        if (newAttempts === 1) {
+          setError('Invalid email or password. Please try again.')
+        } else if (newAttempts === 2) {
+          setError('Still incorrect. Double-check your email and password.')
+        } else {
+          setError("We couldn't find an account with these credentials. Need to create one?")
+        }
+      } else if (err.message?.includes('Email not confirmed')) {
+        setError('Please check your email and click the confirmation link first.')
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -56,7 +75,7 @@ const LoginPage = () => {
       setError('Password must be at least 6 characters')
       return
     }
-    
+
     setIsLoading(true)
     setError(null)
     try {
@@ -79,7 +98,7 @@ const LoginPage = () => {
       setError('Please enter your email address')
       return
     }
-    
+
     setIsLoading(true)
     setError(null)
     try {
@@ -95,6 +114,7 @@ const LoginPage = () => {
   const resetForm = () => {
     setError(null)
     setConfirmationSent(false)
+    setLoginAttempts(0)
   }
 
   const switchMode = (newMode) => {
@@ -115,7 +135,7 @@ const LoginPage = () => {
               Check your email
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {mode === 'forgot' 
+              {mode === 'forgot'
                 ? `We've sent a password reset link to ${email}`
                 : `We've sent a confirmation link to ${email}. Click it to activate your account.`
               }

@@ -1179,7 +1179,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       </button>
                     </div>
                     <div
-                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 border-r-4 border-r-red-600 dark:border-r-red-700 md:border-r-0 ${isSelected ? 'selection-highlight' : ''
+                      className={`relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${isSelected ? 'selection-highlight' : ''
                         }`}
                       style={{ transform: swipeOpenId === member.id ? 'translateX(-64px)' : 'translateX(0)', touchAction: 'pan-y', userSelect: 'none' }}
                       onTouchStart={(e) => {
@@ -1220,6 +1220,9 @@ const Dashboard = ({ isAdmin = false }) => {
                         }
                       }}
                     >
+                      {/* Red swipe indicator - mobile only */}
+                      <div className="absolute top-0 right-0 bottom-0 w-1 bg-red-600 dark:bg-red-700 md:hidden rounded-r-xl"></div>
+
                       {/* Mobile-friendly stacked layout */}
                       <div className="px-3 py-3 sm:px-4 sm:py-3.5">
                         {/* Row 1: Expand toggle row (chevron + name + hint) */}
@@ -1376,16 +1379,6 @@ const Dashboard = ({ isAdmin = false }) => {
                                   >
                                     <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
                                     <span>Edit Member</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onTouchStart={(e) => { e.stopPropagation() }}
-                                    onClick={(e) => openDeleteConfirm(e, member)}
-                                    style={{ touchAction: 'manipulation' }}
-                                    className="flex items-center space-x-2 px-2 sm:px-3 py-1.5 sm:py-1.5 text-xs sm:text-xs text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors sm:flex-1 md:flex-none"
-                                  >
-                                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span>Delete Member</span>
                                   </button>
                                 </div>
                               </div>

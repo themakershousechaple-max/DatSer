@@ -235,12 +235,18 @@ export const AppProvider = ({ children }) => {
         : genRaw
       const ageRaw = memberData.age || memberData['Age']
       const ageParsed = ageRaw === undefined || ageRaw === null || ageRaw === '' ? null : Number.parseInt(ageRaw, 10)
+
+      // Get workspace name from auth preferences
+      const workspaceName = authContext?.preferences?.workspace_name || null
+
       const transformedData = {
         'Full Name': memberData.full_name || memberData.fullName || memberData['Full Name'],
         'Gender': gen,
         'Phone Number': sanitizePhoneToInt(memberData.phone_number ?? memberData.phoneNumber ?? memberData['Phone Number']),
         'Age': Number.isFinite(ageParsed) ? ageParsed : null,
         'Current Level': memberData.current_level || memberData.currentLevel || memberData['Current Level'],
+        // Auto-fill workspace from user preferences
+        workspace: workspaceName,
         // Optional parent info fields
         parent_name_1: memberData.parent_name_1 || null,
         parent_phone_1: memberData.parent_phone_1 || null,
@@ -1966,7 +1972,38 @@ export const AppProvider = ({ children }) => {
     setUiAction({ type: 'focusDateSelector', ts: Date.now() })
   }
 
+  // Update workspace name across all tables
+  const updateWorkspaceForAllTables = async (newName) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        toast.info('Workspace updated (Demo Mode)')
+        return true
+      }
+
+      console.log(`Updating workspace to "${newName}" across all tables...`)
+
+      const { error } = await supabase.rpc('update_user_workspace_name', {
+        new_name: newName
+      })
+
+      if (error) {
+        if (error.message?.includes('function') || error.code === '42883') {
+          throw new Error('Please run the "Complete Workspace Features" migration first')
+        }
+        throw error
+      }
+
+      toast.success('Workspace updated across all records!')
+      return true
+    } catch (error) {
+      console.error('Error updating workspace:', error)
+      toast.error(error.message || 'Failed to update workspace records')
+      return false
+    }
+  }
+
   const value = {
+    updateWorkspaceForAllTables,
     members,
     filteredMembers,
     loading,

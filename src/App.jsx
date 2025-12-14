@@ -13,6 +13,8 @@ import AdminPanel from './components/AdminPanel'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './components/LoginPage'
 import DecemberQuickView from './components/DecemberQuickView'
+import WorkspaceSettingsModal from './components/WorkspaceSettingsModal'
+import DeleteAccountModal from './components/DeleteAccountModal'
 
 // Context
 import { AppProvider } from './context/AppContext'
@@ -27,6 +29,20 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
   })
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [showMonthModal, setShowMonthModal] = useState(false)
+
+  // Global modals - accessible from profile dropdown anywhere
+  const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false)
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+
+  // Expose modal openers globally via window for profile dropdown
+  useEffect(() => {
+    window.openWorkspaceSettings = () => setShowWorkspaceSettings(true)
+    window.openDeleteAccount = () => setShowDeleteAccount(true)
+    return () => {
+      delete window.openWorkspaceSettings
+      delete window.openDeleteAccount
+    }
+  }, [])
 
   return (
     <div className={`min-app-vh bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ios-overscroll-none ${isMobile ? 'mobile-toast-top' : ''}`}>
@@ -75,6 +91,17 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
           onClose={() => setShowMonthModal(false)}
         />
       )}
+
+      {/* Global Modals - accessible from profile dropdown */}
+      <WorkspaceSettingsModal
+        isOpen={showWorkspaceSettings}
+        onClose={() => setShowWorkspaceSettings(false)}
+      />
+
+      <DeleteAccountModal
+        isOpen={showDeleteAccount}
+        onClose={() => setShowDeleteAccount(false)}
+      />
 
       <ToastContainer
         position={isMobile ? 'top-center' : 'bottom-right'}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { X, Building2, Save, Info } from 'lucide-react'
 import { toast } from 'react-toastify'
@@ -7,6 +8,7 @@ import { toast } from 'react-toastify'
 const WorkspaceSettingsModal = ({ isOpen, onClose }) => {
     const { isDarkMode } = useTheme()
     const { user, preferences, updatePreference } = useAuth()
+    const { updateWorkspaceForAllTables } = useApp()
     const [workspaceName, setWorkspaceName] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
@@ -24,12 +26,18 @@ const WorkspaceSettingsModal = ({ isOpen, onClose }) => {
 
         setIsLoading(true)
         try {
+            // Update auth preference (local state)
             await updatePreference('workspace_name', workspaceName.trim())
-            toast.success('Workspace name updated successfully!')
+
+            // Trigger batch update for all table records via RPC
+            await updateWorkspaceForAllTables(workspaceName.trim())
+
             onClose()
         } catch (error) {
             console.error('Error updating workspace name:', error)
-            toast.error('Failed to update workspace name')
+            // Error is already toasted by updateWorkspaceForAllTables if it failed there, 
+            // or by toast.error below if updatePreference failed.
+            // We can leave generic error here but maybe suppress if already handled.
         } finally {
             setIsLoading(false)
         }
@@ -84,8 +92,8 @@ const WorkspaceSettingsModal = ({ isOpen, onClose }) => {
                             placeholder="e.g., Grace Church Youth, Teen Center NYC"
                             maxLength={50}
                             className={`w-full px-3 py-2 rounded-lg border transition-colors ${isDarkMode
-                                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
-                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
                                 } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -107,8 +115,8 @@ const WorkspaceSettingsModal = ({ isOpen, onClose }) => {
                     <button
                         onClick={onClose}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode
-                                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                                : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                             }`}
                         disabled={isLoading}
                     >
@@ -118,8 +126,8 @@ const WorkspaceSettingsModal = ({ isOpen, onClose }) => {
                         onClick={handleSave}
                         disabled={isLoading || !workspaceName.trim()}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isLoading || !workspaceName.trim()
-                                ? 'bg-gray-400 cursor-not-allowed text-white'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            ? 'bg-gray-400 cursor-not-allowed text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                     >
                         <Save className="w-4 h-4" />

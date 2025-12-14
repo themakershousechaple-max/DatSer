@@ -248,101 +248,81 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
             </button>
           </div>
 
-          {/* Center Area - Desktop: left segmented control, right menu & badges */}
+          {/* Center Area - Desktop Navigation */}
           <div className="hidden md:flex items-center flex-1 justify-between mx-2 lg:mx-4">
-            {/* Dashboard Button */}
-            <div className="flex items-center gap-1 lg:gap-2">
+            {/* Left: Main Navigation Links */}
+            <nav className="flex items-center gap-1">
+              {/* Home/Dashboard */}
               <button
                 onClick={() => { setCurrentView('dashboard'); setDashboardTab('all') }}
-                className={`flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
-                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-700 dark:text-gray-300">
-                  <Users className="w-4 h-4" />
-                </span>
-                <span className="hidden lg:inline">Home</span>
-                <span className="lg:hidden">Home</span>
+                <Users className="w-4 h-4" />
+                <span>Members</span>
               </button>
-              {/* Desktop-only quick nav */}
-              <div className="hidden lg:flex items-center gap-2">
-                <button
-                  onClick={() => { setCurrentView('dashboard'); setDashboardTab('edited') }}
-                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  <span>Edited</span>
-                </button>
-                <button
-                  onClick={() => { setCurrentView('dashboard'); setDashboardTab('duplicates') }}
-                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'duplicates'
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  <span>Duplicates</span>
-                </button>
-                <button
-                  onClick={() => setCurrentView('analytics')}
-                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'analytics'
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  <span className="inline-flex items-center justify-center w-5 h-5">
-                    <TrendingUp className="w-4 h-4" />
-                  </span>
-                  <span>Analytics</span>
-                </button>
-                <button
-                  onClick={() => setCurrentView('admin')}
-                  className={`flex items-center space-x-0.5 px-3 lg:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'admin'
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  <span>Admin</span>
-                </button>
-              </div>
-            </div>
 
-            {/* Right group: User login + actions + Menu */}
-            <div className="flex items-center gap-2 lg:gap-3">
-              {/* Login Button (user name on left of menu) */}
+              {/* Edited - Quick access */}
+              <button
+                onClick={() => { setCurrentView('dashboard'); setDashboardTab('edited') }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Edited</span>
+                {editedCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
+                    {editedCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Analytics */}
+              <button
+                onClick={() => setCurrentView('analytics')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'analytics'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Analytics</span>
+              </button>
+
+              {/* Admin */}
+              <button
+                onClick={() => setCurrentView('admin')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'admin'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin</span>
+              </button>
+            </nav>
+
+            {/* Right: Profile + Menu */}
+            <div className="flex items-center gap-2">
+              {/* Profile/Login Button */}
               <LoginButton />
 
-              {/* Create New Month */}
-              <button
-                onClick={() => { if (onCreateMonth) onCreateMonth(); }}
-                className="flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors bg-green-600 hover:bg-green-700 text-white"
-                title="Create New Month"
-              >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md">
-                  <Calendar className="w-4 h-4" />
-                </span>
-                <span className="hidden lg:inline">New Month</span>
-              </button>
-
-              {/* Desktop Menu (far right) */}
+              {/* Menu Button (for more options) */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className={`flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${['analytics', 'export', 'admin'].includes(currentView)
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
+                  className={`flex items-center gap-1.5 p-2 rounded-lg text-sm font-medium transition-colors border border-gray-200 dark:border-gray-600 ${showDropdown
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
-                  title="Menu"
+                  title="More options"
                 >
-                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-transparent text-gray-700 dark:text-gray-300">
-                    <Menu className="w-4 h-4" />
-                  </span>
-                  <span className="hidden lg:inline">Menu</span>
+                  <Menu className="w-4 h-4" />
                 </button>
-
-                {/* Dropdown replaced by right-side drawer */}
               </div>
             </div>
           </div>
@@ -351,52 +331,38 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
         {/* Mobile Navigation */}
         <div className="md:hidden py-0">
           <div className="flex items-center justify-between">
-            {/* Left: Home */}
-            <div className="flex items-center">
-              <button
-                onClick={() => {
-                  setCurrentView('dashboard');
-                  setDashboardTab('all');
-                  // Clear any search or filters when going home
-                  setSearchTerm('');
-                  setGenderFilter(null);
-                  setSelectedMemberIds(new Set());
-                  setSelectedDuplicateIds(new Set());
-                }}
-                className={`flex items-center space-x-1 pl-2 pr-3 lg:px-2 py-1 rounded-lg text-xs font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
-                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                title="Go to Home Dashboard"
-              >
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-700 dark:text-gray-300">
-                  <Users className="w-4 h-4" />
-                </span>
-                <span className="hidden xs:inline sm:inline">Dashboard</span>
-                <span className="xs:hidden">Home</span>
-              </button>
-            </div>
+            {/* Left: Logo/Home */}
+            <button
+              onClick={() => {
+                setCurrentView('dashboard');
+                setDashboardTab('all');
+              }}
+              className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Members</span>
+            </button>
 
-            {/* Right: Menu and actions (mobile) */}
+            {/* Right: Profile + Menu */}
             <div className="flex items-center gap-2">
-              {/* Login Button (mobile) */}
+              {/* Profile/Login Button */}
               <LoginButton />
 
-              {/* Menu icon-only (match desktop square shape) */}
+              {/* Menu Button */}
               <div className="relative" ref={mobileDropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className={`flex items-center space-x-0.5 px-2 lg:px-2 py-1 rounded-lg text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 ${['analytics', 'export', 'admin'].includes(currentView)
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-600'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
+                  className={`p-2 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 ${showDropdown
+                      ? 'bg-gray-100 dark:bg-gray-700'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   title="Menu"
                 >
-                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-transparent text-gray-700 dark:text-gray-300">
-                    <Menu className="w-4 h-4" />
-                  </span>
+                  <Menu className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                 </button>
-                {/* Mobile dropdown replaced by right-side drawer */}
               </div>
             </div>
           </div>
