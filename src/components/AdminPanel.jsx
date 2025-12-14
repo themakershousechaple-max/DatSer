@@ -6,9 +6,10 @@ import { Calendar, Database, Users, Activity, LogOut, RefreshCw, Filter, Edit, S
 import { toast } from 'react-toastify'
 import EditMemberModal from './EditMemberModal'
 import ShareAccessModal from './ShareAccessModal'
+import WorkspaceSettingsModal from './WorkspaceSettingsModal'
 import DateSelector from './DateSelector'
 
-const AdminPanel = ({ onLogout, setCurrentView }) => {
+const AdminPanel = ({ onLogout, setCurrentView, onShowDecemberPreview }) => {
   const {
     monthlyTables,
     currentTable,
@@ -49,6 +50,8 @@ const AdminPanel = ({ onLogout, setCurrentView }) => {
 
   // Share access modal state
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  // Workspace settings modal state
+  const [isWorkspaceSettingsOpen, setIsWorkspaceSettingsOpen] = useState(false)
   const { user } = useAuth()
 
   // Statistics dropdown state
@@ -251,6 +254,14 @@ const AdminPanel = ({ onLogout, setCurrentView }) => {
             </div>
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
+                onClick={() => setIsWorkspaceSettingsOpen(true)}
+                className="flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                title="Workspace Settings"
+              >
+                <Database className="w-3.5 h-3.5 sm:w-3 sm:h-3 sm:mr-1.5" />
+                <span className="hidden sm:inline ml-1">Workspace</span>
+              </button>
+              <button
                 onClick={() => setIsShareModalOpen(true)}
                 className="flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 title="Share access with others"
@@ -258,6 +269,16 @@ const AdminPanel = ({ onLogout, setCurrentView }) => {
                 <UserPlus className="w-3.5 h-3.5 sm:w-3 sm:h-3 sm:mr-1.5" />
                 <span className="hidden sm:inline ml-1">Share</span>
               </button>
+              {onShowDecemberPreview && (
+                <button
+                  onClick={onShowDecemberPreview}
+                  className="flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  title="Switch to December Preview"
+                >
+                  <Calendar className="w-3.5 h-3.5 sm:w-3 sm:h-3 sm:mr-1.5" />
+                  <span className="hidden sm:inline ml-1">December</span>
+                </button>
+              )}
               <button
                 onClick={onLogout}
                 className="flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -537,6 +558,12 @@ const AdminPanel = ({ onLogout, setCurrentView }) => {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         user={user}
+      />
+
+      {/* Workspace Settings Modal */}
+      <WorkspaceSettingsModal
+        isOpen={isWorkspaceSettingsOpen}
+        onClose={() => setIsWorkspaceSettingsOpen(false)}
       />
     </div>
   )

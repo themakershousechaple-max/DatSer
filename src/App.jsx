@@ -20,7 +20,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 // Main app content - only shown when authenticated
-function AppContent({ isMobile }) {
+function AppContent({ isMobile, onShowDecemberPreview }) {
   const [currentView, setCurrentView] = useState('dashboard')
   const [isAdmin, setIsAdmin] = useState(() => {
     return localStorage.getItem('tmht_admin_session') === 'true'
@@ -37,6 +37,7 @@ function AppContent({ isMobile }) {
         setIsAdmin={setIsAdmin}
         onAddMember={() => setShowMemberModal(true)}
         onCreateMonth={() => setShowMonthModal(true)}
+        onShowDecemberPreview={onShowDecemberPreview}
       />
 
       <main className={`container mx-auto px-4 py-8 pt-24 md:pt-20 ${currentView === 'admin' ? 'pt-8' : ''}`}>
@@ -59,6 +60,7 @@ function AppContent({ isMobile }) {
               localStorage.removeItem('tmht_admin_session')
               setIsAdmin(false)
             }}
+            onShowDecemberPreview={onShowDecemberPreview}
           />
         )}
       </main>
@@ -98,7 +100,24 @@ function AppContent({ isMobile }) {
 // Auth wrapper - shows login or app based on auth state
 function AuthenticatedApp({ isMobile }) {
   const { isAuthenticated, loading } = useAuth()
-  const [showFullApp, setShowFullApp] = useState(false)
+  // Check localStorage for user's preference - default to December preview (false = show preview)
+  const [showFullApp, setShowFullApp] = useState(() => {
+    const saved = localStorage.getItem('tmht_skip_december_preview')
+    return saved === 'true'
+  })
+  const [showDecemberPreview, setShowDecemberPreview] = useState(true)
+
+  // Function to open full app and save preference
+  const handleOpenFullApp = () => {
+    localStorage.setItem('tmht_skip_december_preview', 'true')
+    setShowFullApp(true)
+  }
+
+  // Function to go back to December preview
+  const handleShowDecemberPreview = () => {
+    localStorage.setItem('tmht_skip_december_preview', 'false')
+    setShowFullApp(false)
+  }
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -119,13 +138,19 @@ function AuthenticatedApp({ isMobile }) {
     }
     return (
       <AppProvider>
-        <AppContent isMobile={isMobile} />
+        <AppContent isMobile={isMobile} onShowDecemberPreview={handleShowDecemberPreview} />
       </AppProvider>
     )
   }
 
   // Default: Show December Quick View first (no login required)
-  return <DecemberQuickView onOpenFullApp={() => setShowFullApp(true)} />
+  return (
+    <DecemberQuickView
+      onOpenFullApp={handleOpenFullApp}
+      showPreview={showDecemberPreview}
+      onTogglePreview={() => setShowDecemberPreview(prev => !prev)}
+    />
+  )
 }
 
 function App() {
