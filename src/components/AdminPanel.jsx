@@ -1,159 +1,122 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
-import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { Calendar, Database, Users, Activity, LogOut, RefreshCw, Filter, Edit, Search, Trash2, X, ChevronDown, ChevronUp, Check, TrendingUp, Edit3, Award, Phone, UserPlus } from 'lucide-react'
 import { toast } from 'react-toastify'
-import EditMemberModal from './EditMemberModal'
-import ShareAccessModal from './ShareAccessModal'
-import WorkspaceInsights from './WorkspaceInsights'
-import DateSelector from './DateSelector'
+import {
+  Users,
+  Calendar,
+  Award,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Trophy,
+  ArrowRight,
+  RefreshCw,
+  Check,
+  X,
+  AlertTriangle,
+  Star
+} from 'lucide-react'
 
-const AdminPanel = ({ onLogout, setCurrentView, onShowDecemberPreview }) => {
+const AdminPanel = ({ onBack }) => {
   const {
-    monthlyTables,
-    currentTable,
-    setCurrentTable,
     members,
-    markAttendance,
-    attendanceLoading,
-    searchTerm,
-    setSearchTerm,
-    filteredMembers,
-    refreshSearch,
+    currentTable,
     attendanceData,
-    selectedAttendanceDate,
-    deleteMember,
-    setDashboardTab,
     availableSundayDates,
     isMonthAttendanceComplete,
-    updateMember
+    updateMember,
+    calculateAttendanceRate
   } = useApp()
   const { isDarkMode } = useTheme()
-  // Bottom search bar is always keyboard-aware via visualViewport offset
-
-  const [systemStats, setSystemStats] = useState({
-    totalMembers: 0,
-    activeMonth: '',
-    totalTables: 0,
-    lastUpdated: new Date().toLocaleString()
-  })
-
-  // Edit member modal state
-  const [editingMember, setEditingMember] = useState(null)
-  const [isMonthMenuOpen, setIsMonthMenuOpen] = useState(false)
 
   // Badge processing state
-  const [badgeResults, setBadgeResults] = useState(null)
   const [isProcessingBadges, setIsProcessingBadges] = useState(false)
-  const [isBadgeResultsOpen, setIsBadgeResultsOpen] = useState(false)
+  const [badgeResults, setBadgeResults] = useState(null)
+  const [showBadgeResults, setShowBadgeResults] = useState(false)
 
-  // Share access modal state
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-  const { user } = useAuth()
+  // Get month display name
+  const monthDisplayName = currentTable ? currentTable.replace('_', ' ') : 'No Month Selected'
 
-  // Statistics dropdown state
-  const [isStatsOpen, setIsStatsOpen] = useState(false)
+  // Calculate quick stats
+  const stats = useMemo(() => {
+    // Get all sunday dates for this month
+    const sundayDates = availableSundayDates?.map(d => {
+      if (d instanceof Date) {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+      }
+      return d
+    }) || []
 
-  useEffect(() => {
-    setSystemStats({
-      totalMembers: members.length,
-      activeMonth: currentTable,
-      totalTables: monthlyTables.length,
-      lastUpdated: new Date().toLocaleString()
+    let totalPresent = 0
+    let totalAbsent = 0
+    let totalMarked = 0
+
+    // Calculate per-sunday stats
+    const sundayStats = sundayDates.map(dateKey => {
+      const map = attendanceData[dateKey] || {}
+      const present = Object.values(map).filter(v => v === true).length
+      const absent = Object.values(map).filter(v => v === false).length
+      totalPresent += present
+      totalAbsent += absent
+      totalMarked += present + absent
+      return {
+        date: dateKey,
+        present,
+        absent,
+        total: present + absent, marked: present + absent > 0
+      }
     })
-  }, [members, currentTable, monthlyTables])
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isMonthMenuOpen && !event.target.closest('[aria-haspopup="listbox"]') && !event.target.closest('[role="listbox"]')) {
-        setIsMonthMenuOpen(false)
-      }
+    // Calculate attendance rate
+    const totalPossible = members.length * sundayDates.length
+    const attendanceRate = totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0
+
+    return {
+      totalMembers: members.length,
+      totalPresent,
+      totalAbsent,
+      attendanceRate,
+      sundayStats,
+      sundaysCompleted: sundayStats.filter(s => s.marked).length,
+      totalSundays: sundayDates.length
     }
+  }, [members, attendanceData, availableSundayDates])
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isMonthMenuOpen])
+  // Get top attendees
+  const topAttendees = useMemo(() => {
+    return members
+      .map(member => {
+        const rate = calculateAttendanceRate(member)
+        return {
+          id: member.id,
+          name: member['full_name'] || member['Full Name'] || 'Unknown',
+          rate,
+          badge: member['Badge Type'] || 'newcomer'
+        }
+      })
+      .filter(m => m.rate > 0)
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 5)
+  }, [members, calculateAttendanceRate])
 
-  // Aggregate attendance stats for the currently selected date
-  const selectedDateKey = selectedAttendanceDate
-    ? selectedAttendanceDate.toISOString().split('T')[0]
-    : null
-
-  const attendanceMapForSelectedDate = selectedDateKey
-    ? (attendanceData[selectedDateKey] || {})
-    : {}
-
-  const presentCount = Object.values(attendanceMapForSelectedDate).filter(v => v === true).length
-  const absentCount = Object.values(attendanceMapForSelectedDate).filter(v => v === false).length
-  const markedCount = presentCount + absentCount
-  const unmarkedCount = members.length - markedCount
-
-
-
-  // Helper function to get latest attendance status for a member
-  const getLatestAttendanceStatus = (member) => {
-    // Get all attendance dates and find the most recent one with data for this member
-    const attendanceDates = Object.keys(attendanceData).sort().reverse()
-
-    for (const date of attendanceDates) {
-      const memberAttendance = attendanceData[date]?.[member.id]
-      if (memberAttendance !== undefined) {
-        return memberAttendance // true for present, false for absent
-      }
-    }
-    return null // No attendance data found
-  }
-
-  // Filter members based on search term
-  const filteredMembersList = members.filter(member => {
-    const fullName = (member['full_name'] || member['Full Name'] || '').toLowerCase()
-    const tokens = searchTerm.toLowerCase().trim().split(/\s+/).filter(Boolean)
-    if (tokens.length === 0) return true
-    return tokens.every(t => fullName.includes(t))
-  })
-
-  const handleTableSwitch = (tableName) => {
-    console.log(`Switching to table: ${tableName}`)
-    // Use setCurrentTable from context (already mapped to the persistent changer)
-    setCurrentTable(tableName)
-    setIsMonthMenuOpen(false) // Close the dropdown after selection
-  }
-
-  const getMonthDisplayName = (tableName) => {
-    // Convert table name like "October_2025" to "October 2025"
-    return tableName.replace('_', ' ')
-  }
-
-  const getTableStatus = (tableName) => {
-    return tableName === currentTable ? 'Active' : 'Available'
-  }
-
-  const refreshStats = () => {
-    setSystemStats(prev => ({
-      ...prev,
-      lastUpdated: new Date().toLocaleString()
-    }))
-  }
-
-  // Process badges manually and show results
-  const processBadgesManually = async () => {
+  // Process badges
+  const processBadges = async () => {
     setIsProcessingBadges(true)
     setBadgeResults(null)
 
     try {
-      console.log('Starting badge processing...')
-      console.log('Available Sunday dates:', availableSundayDates)
-      console.log('Attendance data:', attendanceData)
-      console.log('Members count:', members.length)
-
-      // Check if month is complete
       const monthComplete = isMonthAttendanceComplete()
-      console.log('Is month complete?', monthComplete)
 
       if (!monthComplete) {
-        toast.error('Month is not complete yet. All Sundays must have attendance data.')
+        toast.error('Please complete attendance for all Sundays first.')
         setIsProcessingBadges(false)
         return
       }
@@ -164,394 +127,340 @@ const AdminPanel = ({ onLogout, setCurrentView, onShowDecemberPreview }) => {
         totalProcessed: 0
       }
 
-      // Check each member for 3 consecutive Sundays
+      // Get all sundays sorted
+      const sortedSundays = [...(availableSundayDates || [])].sort((a, b) => {
+        const dateA = a instanceof Date ? a : new Date(a)
+        const dateB = b instanceof Date ? b : new Date(b)
+        return dateA - dateB
+      })
+
       for (const member of members) {
         results.totalProcessed++
 
-        // Check for 3 consecutive Present attendances
-        const sortedSundays = [...availableSundayDates].sort((a, b) => a - b)
+        // Count total present
+        let presentCount = 0
         let consecutiveCount = 0
         let hasThreeConsecutive = false
 
         for (const sunday of sortedSundays) {
-          const dateKey = sunday.toISOString().split('T')[0]
-          const memberStatus = attendanceData[dateKey]?.[member.id]
+          const dateKey = sunday instanceof Date
+            ? `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`
+            : sunday
+          const status = attendanceData[dateKey]?.[member.id]
 
-          if (memberStatus === true) {
+          if (status === true) {
+            presentCount++
             consecutiveCount++
-            if (consecutiveCount >= 3) {
-              hasThreeConsecutive = true
-              break
-            }
-          } else if (memberStatus === false) {
-            consecutiveCount = 0
+            if (consecutiveCount >= 3) hasThreeConsecutive = true
           } else {
             consecutiveCount = 0
           }
         }
-
-        // Build Sunday attendance breakdown
-        const sundayAttendance = sortedSundays.map(sunday => {
-          const dateKey = sunday.toISOString().split('T')[0]
-          const status = attendanceData[dateKey]?.[member.id]
-          return {
-            date: sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            status: status === true ? 'Present' : status === false ? 'Absent' : 'Not Marked'
-          }
-        })
 
         const memberInfo = {
           id: member.id,
           name: member['full_name'] || member['Full Name'],
-          phone: member['Phone Number'] || member['phone_number'] || 'No phone',
-          currentBadge: member['Badge Type'] || 'newcomer',
-          sundayAttendance: sundayAttendance
+          presentCount,
+          currentBadge: member['Badge Type'] || 'newcomer'
         }
 
+        // Badge rules:
+        // Member = 2+ Sundays present
+        // Regular = 3+ consecutive Sundays present
         if (hasThreeConsecutive) {
-          // Only update if not already regular or vip
-          if (member['Badge Type'] !== 'regular' && member['Badge Type'] !== 'vip') {
-            await updateMember(member.id, {
-              'Badge Type': 'regular'
-            }, { silent: true })
-            memberInfo.badgeAssigned = true
-          } else {
-            memberInfo.badgeAssigned = false
-            memberInfo.reason = 'Already has regular or vip badge'
+          if (member['Badge Type'] !== 'regular') {
+            await updateMember(member.id, { 'Badge Type': 'regular' }, { silent: true })
+            memberInfo.newBadge = 'regular'
+            memberInfo.upgraded = true
+          }
+          results.qualified.push(memberInfo)
+        } else if (presentCount >= 2) {
+          if (member['Badge Type'] !== 'member' && member['Badge Type'] !== 'regular') {
+            await updateMember(member.id, { 'Badge Type': 'member' }, { silent: true })
+            memberInfo.newBadge = 'member'
+            memberInfo.upgraded = true
           }
           results.qualified.push(memberInfo)
         } else {
-          memberInfo.reason = 'Did not attend 3 consecutive Sundays'
           results.notQualified.push(memberInfo)
         }
       }
 
       setBadgeResults(results)
-      setIsBadgeResultsOpen(true) // Auto-open results after processing
-      toast.success(`Badge processing complete! ${results.qualified.filter(m => m.badgeAssigned).length} badges assigned.`)
+      setShowBadgeResults(true)
+
+      const upgraded = results.qualified.filter(m => m.upgraded).length
+      toast.success(`Badge processing complete! ${upgraded} members upgraded.`)
     } catch (error) {
       console.error('Error processing badges:', error)
-      console.error('Error details:', error.message, error.stack)
-      // Show the actual error message to the user
-      toast.error(`Failed to process badges: ${error.message || error.toString()}`)
+      toast.error('Failed to process badges. Please try again.')
     } finally {
       setIsProcessingBadges(false)
     }
   }
 
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 pb-24 transition-colors">
-      <div className="max-w-7xl mx-auto">
-        {/* Header - Compact & Mobile Responsive */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 mb-4 transition-colors">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <h1 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 hidden xs:inline">Datsar Administration</span>
-            </div>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                title="Share access with others"
-              >
-                <UserPlus className="w-3.5 h-3.5 sm:w-3 sm:h-3 sm:mr-1.5" />
-                <span className="hidden sm:inline ml-1">Share</span>
-              </button>
-              {onShowDecemberPreview && (
-                <button
-                  onClick={onShowDecemberPreview}
-                  className="flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  title="Switch to December Preview"
-                >
-                  <Calendar className="w-3.5 h-3.5 sm:w-3 sm:h-3 sm:mr-1.5" />
-                  <span className="hidden sm:inline ml-1">December</span>
-                </button>
-              )}
-              <button
-                onClick={onLogout}
-                className="flex items-center px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5 sm:w-3 sm:h-3 sm:mr-1.5" />
-                <span className="hidden sm:inline ml-1">Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* System Statistics - Compact Dropdown */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6 transition-colors">
-          <button
-            onClick={() => setIsStatsOpen(!isStatsOpen)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-gray-900 dark:text-white">System Overview</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">({systemStats.totalMembers} members • {getMonthDisplayName(systemStats.activeMonth)})</span>
-            </div>
-            {isStatsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-
-          {isStatsOpen && (
-            <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                {/* Total Members */}
-                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Members</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{systemStats.totalMembers}</p>
-                  </div>
-                </div>
-
-                {/* Active Month */}
-                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                  <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Month</p>
-                    <p className="text-xs font-bold text-gray-900 dark:text-white">{getMonthDisplayName(systemStats.activeMonth)}</p>
-                  </div>
-                </div>
-
-                {/* Total Databases */}
-                <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
-                  <Database className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Databases</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{systemStats.totalTables}</p>
-                  </div>
-                </div>
-
-                {/* System Status */}
-                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Status</p>
-                    <p className="text-xs font-bold text-green-600 dark:text-green-400">Online</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Workspace Insights - NEW */}
-        <WorkspaceInsights />
-
-        {/* Monthly Databases - Compact */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4 transition-colors">
-          <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Monthly Databases</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{monthlyTables.length} available</span>
-            </div>
-          </div>
-          <div className="p-3">
-
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700 dark:text-white">Select Month</label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsMonthMenuOpen(v => !v)}
-                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg border transition-colors ${isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white hover:border-gray-500'
-                    : 'bg-white border-gray-300 text-gray-900 hover:border-gray-400'
-                    }`}
-                  aria-haspopup="listbox"
-                  aria-expanded={isMonthMenuOpen}
-                >
-                  <span className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="font-medium">{getMonthDisplayName(currentTable)}</span>
-                    <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200">Active</span>
-                  </span>
-                  {isMonthMenuOpen ? (
-                    <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  )}
-                </button>
-
-                {isMonthMenuOpen && (
-                  <div
-                    className={`absolute z-40 mt-2 w-full max-h-64 overflow-y-auto no-scrollbar rounded-lg shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'
-                      }`}
-                    role="listbox"
-                  >
-                    {monthlyTables.map((table) => {
-                      const isActive = table === currentTable
-                      return (
-                        <button
-                          key={table}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleTableSwitch(table)
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${isDarkMode
-                            ? `hover:bg-gray-700 ${isActive ? 'bg-blue-900/20' : ''} text-white`
-                            : `hover:bg-gray-100 ${isActive ? 'bg-blue-50' : ''} text-gray-900`
-                            }`}
-                          role="option"
-                          aria-selected={isActive}
-                        >
-                          <span className="flex items-center gap-2">
-                            <Database className={`w-4 h-4 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
-                            <span>{getMonthDisplayName(table)}</span>
-                          </span>
-                          {isActive && (
-                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="text-sm text-gray-600 dark:text-white">
-                Active: {getMonthDisplayName(currentTable)} • {members.length} members
-              </div>
-            </div>
-          </div>
-
-          {monthlyTables.length === 0 && (
-            <div className="text-center py-12">
-              <Database className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Monthly Databases Found</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                No monthly tables are currently available in the system.
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-blue-500" />
+                Admin Panel
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {monthDisplayName}
               </p>
             </div>
-          )}
-        </div>
-
-        {/* Sunday Attendance section removed as requested */}
-
-        {/* Bulk Attendance Actions removed as requested */}
-
-        {/* Badge Processing moved to Analytics page */}
-
-        {/* Member Names Display */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6 transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">All Members</h2>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              {filteredMembers.length} of {members.length} members
-              {searchTerm && ` (filtered by "${searchTerm}")`}
-            </div>
+            <button
+              onClick={onBack}
+              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Back to Dashboard
+            </button>
           </div>
-
-          {filteredMembers.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredMembers.map((member) => (
-                <div
-                  key={member.id}
-                  className="relative group border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer bg-white dark:bg-gray-700"
-                  onClick={() => setEditingMember(member)}
-                >
-                  <div className="flex items-center">
-                    <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full">
-                      <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900 dark:text-white">{member['full_name'] || member['Full Name']}</h3>
-                        <button
-                          type="button"
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent triggering the member edit modal
-                            if (window.confirm(`Are you sure you want to delete ${member['full_name'] || member['Full Name']}?`)) {
-                              deleteMember(member.id);
-                            }
-                          }}
-                          className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-600 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                          title="Delete Member"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {(() => {
-                        const attendanceStatus = getLatestAttendanceStatus(member)
-                        if (attendanceStatus === true) {
-                          return (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-800 dark:bg-green-700 text-white ring-2 ring-green-300 dark:ring-green-400">
-                              P
-                            </span>
-                          )
-                        } else if (attendanceStatus === false) {
-                          return (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-red-800 dark:bg-red-700 text-white ring-2 ring-red-300 dark:ring-red-400">
-                              A
-                            </span>
-                          )
-                        }
-                        return null
-                      })()}
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{member.Gender}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-                      <span>ID: {member.id}</span>
-                      <span>Click to edit</span>
-                    </div>
-                  </div>
-
-                  {/* Edit button on hover */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="bg-blue-600 text-white p-1 rounded-full hover:bg-blue-700 transition-colors">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Members Found</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                {searchTerm
-                  ? `No members match your search for "${searchTerm}"`
-                  : "No members are currently registered in this database."
-                }
-              </p>
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  Clear search to see all members
-                </button>
-              )}
-            </div>
-          )}
         </div>
-
       </div>
 
-      {/* Top sticky search bar moved to Header.jsx */}
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in-up">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalMembers}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total Members</p>
+              </div>
+            </div>
+          </div>
 
-      {/* Edit Member Modal */}
-      <EditMemberModal
-        isOpen={!!editingMember}
-        onClose={() => setEditingMember(null)}
-        member={editingMember}
-      />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.totalPresent}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total Present</p>
+              </div>
+            </div>
+          </div>
 
-      {/* Share Access Modal */}
-      <ShareAccessModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        user={user}
-      />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.totalAbsent}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total Absent</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
+                <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.attendanceRate}%</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Attendance Rate</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Badge Processing - Hero Section */}
+        <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="w-6 h-6" />
+                <h2 className="text-lg font-bold">Badge Processing</h2>
+              </div>
+              <p className="text-white/80 text-sm mb-4">
+                Automatically assign badges based on attendance
+              </p>
+              <div className="space-y-1 text-sm text-white/70 mb-4">
+                <p>• <span className="text-blue-200 font-medium">Member</span> = 2+ Sundays present</p>
+                <p>• <span className="text-green-200 font-medium">Regular</span> = 3+ consecutive Sundays</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold">{stats.sundaysCompleted}/{stats.totalSundays}</div>
+              <p className="text-xs text-white/70">Sundays Marked</p>
+            </div>
+          </div>
+
+          <button
+            onClick={processBadges}
+            disabled={isProcessingBadges || stats.sundaysCompleted < stats.totalSundays}
+            className={`w-full mt-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${stats.sundaysCompleted < stats.totalSundays
+                ? 'bg-white/20 text-white/50 cursor-not-allowed'
+                : 'bg-white text-blue-600 hover:bg-blue-50 shadow-lg btn-press'
+              }`}
+          >
+            {isProcessingBadges ? (
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin" />
+                Processing...
+              </>
+            ) : stats.sundaysCompleted < stats.totalSundays ? (
+              <>
+                <AlertTriangle className="w-5 h-5" />
+                Complete All Sundays First
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Process Badges for {monthDisplayName}
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Badge Results */}
+        {badgeResults && showBadgeResults && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in-up">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                Badge Results
+              </h3>
+              <button
+                onClick={() => setShowBadgeResults(false)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {badgeResults.qualified.length}
+                  </p>
+                  <p className="text-sm text-green-600/70 dark:text-green-400/70">Qualified</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-gray-600 dark:text-gray-300">
+                    {badgeResults.notQualified.length}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Not Qualified</p>
+                </div>
+              </div>
+
+              {badgeResults.qualified.filter(m => m.upgraded).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Recently Upgraded:</p>
+                  {badgeResults.qualified.filter(m => m.upgraded).slice(0, 5).map(member => (
+                    <div key={member.id} className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2">
+                      <span className="text-sm text-gray-900 dark:text-white">{member.name}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${member.newBadge === 'regular'
+                          ? 'bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-300'
+                          : 'bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300'
+                        }`}>
+                        {member.newBadge === 'regular' ? '⭐ Regular' : '👤 Member'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* This Month's Sundays */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-500" />
+              This Month's Sundays
+            </h3>
+          </div>
+          <div className="p-4">
+            <div className="space-y-2">
+              {stats.sundayStats.map((sunday, index) => {
+                const date = new Date(sunday.date)
+                const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                return (
+                  <div key={sunday.date} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${sunday.marked
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                        }`}>
+                        {sunday.marked ? <Check className="w-4 h-4" /> : index + 1}
+                      </div>
+                      <span className={`font-medium ${sunday.marked ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                        {label}
+                      </span>
+                    </div>
+                    {sunday.marked ? (
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-green-600 dark:text-green-400">{sunday.present} present</span>
+                        <span className="text-red-500">{sunday.absent} absent</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Not marked
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Top Attendees */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500" />
+              Top Attendees
+            </h3>
+          </div>
+          <div className="p-4">
+            {topAttendees.length === 0 ? (
+              <p className="text-center text-gray-400 py-4">No attendance data yet</p>
+            ) : (
+              <div className="space-y-2">
+                {topAttendees.map((attendee, index) => (
+                  <div key={attendee.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white ${index === 0 ? 'bg-yellow-500' :
+                          index === 1 ? 'bg-gray-400' :
+                            index === 2 ? 'bg-amber-600' :
+                              'bg-blue-500'
+                        }`}>
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{attendee.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{attendee.badge}</p>
+                      </div>
+                    </div>
+                    <div className={`text-lg font-bold ${attendee.rate >= 90 ? 'text-green-500' :
+                        attendee.rate >= 75 ? 'text-blue-500' :
+                          'text-yellow-500'
+                      }`}>
+                      {attendee.rate}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

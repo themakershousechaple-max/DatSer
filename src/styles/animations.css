@@ -69,6 +69,23 @@
     }
 }
 
+/* Scale In Centered - For centered popups using translate-x/y */
+.animate-scale-in-centered {
+    animation: scaleInCentered 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scaleInCentered {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
 /* Slide In From Bottom - For toasts/sheets */
 .animate-slide-up {
     animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;

@@ -260,8 +260,12 @@ const Dashboard = ({ isAdmin = false }) => {
       }
 
       // Collect all Sundays in the month
+      // Use local date format (YYYY-MM-DD) to match attendanceData keys
       while (date.getMonth() === monthIndex) {
-        sundays.push(date.toISOString().split('T')[0]) // Format as YYYY-MM-DD
+        const y = date.getFullYear()
+        const m = String(date.getMonth() + 1).padStart(2, '0')
+        const d = String(date.getDate()).padStart(2, '0')
+        sundays.push(`${y}-${m}-${d}`) // Local date format
         date.setDate(date.getDate() + 7)
       }
 

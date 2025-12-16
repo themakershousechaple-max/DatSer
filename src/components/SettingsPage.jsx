@@ -21,7 +21,8 @@ import {
     RefreshCw,
     FileSpreadsheet,
     Pencil,
-    Camera
+    Camera,
+    HelpCircle
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -32,6 +33,7 @@ import WorkspaceSettingsModal from './WorkspaceSettingsModal'
 import DeleteAccountModal from './DeleteAccountModal'
 import ExportDataModal from './ExportDataModal'
 import ProfilePhotoEditor from './ProfilePhotoEditor'
+import HelpCenterPage from './HelpCenterPage'
 
 const SettingsPage = ({ onBack }) => {
     const { user, signOut, preferences } = useAuth()
@@ -44,6 +46,7 @@ const SettingsPage = ({ onBack }) => {
     const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false)
     const [isExportModalOpen, setIsExportModalOpen] = useState(false)
     const [isPhotoEditorOpen, setIsPhotoEditorOpen] = useState(false)
+    const [showHelpCenter, setShowHelpCenter] = useState(false)
 
     const sections = [
         { id: 'account', label: 'Account', icon: User },
@@ -51,6 +54,7 @@ const SettingsPage = ({ onBack }) => {
         { id: 'team', label: 'Team & Sharing', icon: Users },
         { id: 'data', label: 'Data Management', icon: Database },
         { id: 'appearance', label: 'Appearance', icon: Palette },
+        { id: 'help', label: 'Help Center', icon: HelpCircle, highlight: true },
         { id: 'danger', label: 'Danger Zone', icon: AlertTriangle, danger: true }
     ]
 
@@ -73,7 +77,7 @@ const SettingsPage = ({ onBack }) => {
             {/* Profile Card */}
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
                 <div className="flex items-center gap-4">
-                    <div className="relative">
+                    <div className="relative flex-shrink-0">
                         {(() => {
                             const localAvatar = typeof window !== 'undefined' ? localStorage.getItem('user_avatar_url') : null
                             const avatarUrl = localAvatar || user?.user_metadata?.avatar_url
@@ -81,10 +85,10 @@ const SettingsPage = ({ onBack }) => {
                                 <img
                                     src={avatarUrl}
                                     alt="Profile"
-                                    className="w-16 h-16 rounded-full object-cover aspect-square border-2 border-white dark:border-gray-600 shadow-md"
+                                    className="w-16 h-16 min-w-[64px] min-h-[64px] rounded-full object-cover border-2 border-white dark:border-gray-600 shadow-md"
                                 />
                             ) : (
-                                <div className="w-16 h-16 rounded-full aspect-square bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-md">
+                                <div className="w-16 h-16 min-w-[64px] min-h-[64px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-md">
                                     {user?.email?.[0]?.toUpperCase() || 'U'}
                                 </div>
                             )
@@ -92,19 +96,19 @@ const SettingsPage = ({ onBack }) => {
                         {/* Edit photo button - available for all users */}
                         <button
                             onClick={() => setIsPhotoEditorOpen(true)}
-                            className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-colors"
+                            className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-colors btn-press"
                             title="Change photo"
                         >
                             <Pencil className="w-3 h-3" />
                         </button>
                     </div>
-                    <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 dark:text-white truncate">
                             {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
                         </h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {user?.email}
+                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate">
+                            <Mail className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{user?.email}</span>
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                             {user?.app_metadata?.provider === 'google' ? '🔒 Signed in with Google' : '🔒 Email authentication'}
@@ -456,6 +460,22 @@ const SettingsPage = ({ onBack }) => {
         }
     }
 
+    // Show Help Center Page
+    if (showHelpCenter) {
+        return (
+            <HelpCenterPage
+                onBack={() => setShowHelpCenter(false)}
+                onNavigate={(target, options) => {
+                    setShowHelpCenter(false)
+                    // Navigate back to main app if needed
+                    if (target === 'dashboard' || target === 'settings') {
+                        onBack?.()
+                    }
+                }}
+            />
+        )
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Header */}
@@ -482,16 +502,29 @@ const SettingsPage = ({ onBack }) => {
                                 return (
                                     <button
                                         key={section.id}
-                                        onClick={() => setActiveSection(section.id)}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isActive
+                                        onClick={() => {
+                                            if (section.id === 'help') {
+                                                setShowHelpCenter(true)
+                                            } else {
+                                                setActiveSection(section.id)
+                                            }
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors btn-press ${isActive
                                             ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-l-2 border-blue-600'
                                             : section.danger
                                                 ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10'
-                                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                                : section.highlight
+                                                    ? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10'
+                                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                             }`}
                                     >
                                         <Icon className="w-5 h-5" />
                                         <span className="font-medium">{section.label}</span>
+                                        {section.highlight && (
+                                            <span className="ml-auto text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                                                New
+                                            </span>
+                                        )}
                                     </button>
                                 )
                             })}

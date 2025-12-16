@@ -5,9 +5,10 @@ import {
   TrendingUp,
   Menu,
   X,
-  Edit3,
+  CheckSquare,
   Calendar,
-  ChevronDown
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react'
 import DateSelector from './DateSelector'
 import MonthPickerPopup from './MonthPickerPopup'
@@ -190,8 +191,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   const menuItems = [
     {
       id: 'edited_members',
-      label: `Edited Members (${editedCount})`,
-      icon: Edit3,
+      label: `Marked (${editedCount})`,
+      icon: CheckSquare,
       onClick: () => { setCurrentView('dashboard'); setDashboardTab('edited') }
     },
     {
@@ -262,7 +263,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 <span>Members</span>
               </button>
 
-              {/* Edited - Quick access */}
+              {/* Marked - Quick access */}
               <button
                 onClick={() => { setCurrentView('dashboard'); setDashboardTab('edited') }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
@@ -270,8 +271,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
-                <Edit3 className="w-4 h-4" />
-                <span>Edited</span>
+                <CheckSquare className="w-4 h-4" />
+                <span>Marked</span>
                 {editedCount > 0 && (
                   <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
                     {editedCount}
@@ -292,8 +293,17 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
               </button>
             </nav>
 
-            {/* Right: Profile + Menu */}
+            {/* Right: Help + Profile + Menu */}
             <div className="flex items-center gap-2">
+              {/* Help Button */}
+              <button
+                onClick={() => setCurrentView('settings')}
+                className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Help Center"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+
               {/* Profile/Login Button */}
               <LoginButton />
 

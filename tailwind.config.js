@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#eef5ff',
+          100: '#d9e8ff',
+          200: '#bcd7ff',
+          300: '#8ec1ff',
+          400: '#59a2ff',
+          500: '#3b8bff',  // More vibrant blue
+          600: '#1e6fff',  // Premium blue
+          700: '#165de0',
+          800: '#184bb5',
+          900: '#1a408f',
         },
         // Google-style dark mode colors (true black/dark, no blue tint)
         gray: {
