@@ -1,10 +1,10 @@
 import React from 'react'
 import { X, AlertTriangle } from 'lucide-react'
 
-const ConfirmModal = ({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
+const ConfirmModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
   title = "Confirm Action",
   message = "Are you sure you want to proceed?",
   confirmText = "Confirm",
@@ -15,8 +15,8 @@ const ConfirmModal = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md mx-4 overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-animate">
+      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md mx-4 overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 animate-scale-in">
         {/* Header */}
         <div className="px-6 py-4 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -27,12 +27,12 @@ const ConfirmModal = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors btn-press"
           >
             <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
-        
+
         {/* Message */}
         <div className="px-6 py-6 text-center">
           <div className="mb-4">
@@ -46,12 +46,12 @@ const ConfirmModal = ({
             </p>
           </div>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600 flex gap-3">
           <button
             onClick={onClose}
-            className={`flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 ${cancelButtonClass}`}
+            className={`flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 btn-press ${cancelButtonClass}`}
           >
             {cancelText}
           </button>
@@ -60,7 +60,7 @@ const ConfirmModal = ({
               onConfirm()
               onClose()
             }}
-            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 shadow-lg hover:shadow-xl ${confirmButtonClass}`}
+            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 shadow-lg hover:shadow-xl btn-press ${confirmButtonClass}`}
           >
             {confirmText}
           </button>

@@ -193,8 +193,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
   if (!isOpen || !member) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 ${overrideMode
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 backdrop-animate">
+      <div className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 animate-scale-in ${overrideMode
         ? 'bg-orange-50/90 dark:bg-orange-900/40 backdrop-blur-md ring-orange-300 dark:ring-orange-700 rounded-3xl'
         : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 rounded-xl'
         }`}>
@@ -471,14 +471,14 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 transition-colors btn-press"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !formData.full_name}
-              className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${overrideMode
+              className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors btn-press ${overrideMode
                 ? 'bg-orange-600 hover:bg-orange-700'
                 : 'bg-primary-600 hover:bg-primary-700'
                 }`}

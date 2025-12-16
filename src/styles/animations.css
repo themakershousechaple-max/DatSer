@@ -1,0 +1,316 @@
+/* 
+ * Apple-inspired Subtle Animations
+ * Performance-optimized with reduced-motion support
+ */
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ================================
+   Base Animation Utilities
+   ================================ */
+
+/* Fade In */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Fade In Up - Subtle slide up effect */
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scale In - For modals and popups */
+.animate-scale-in {
+    animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Slide In From Bottom - For toasts/sheets */
+.animate-slide-up {
+    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ================================
+   Interactive Elements
+   ================================ */
+
+/* Apple-style button press effect */
+.btn-press {
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.15s ease;
+}
+
+.btn-press:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+/* Soft hover lift effect */
+.hover-lift {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Card hover effect - subtle scale */
+.card-hover {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: scale(1.01);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* ================================
+   List Item Stagger Animation
+   ================================ */
+
+.stagger-item {
+    opacity: 0;
+    animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-item:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.stagger-item:nth-child(2) {
+    animation-delay: 30ms;
+}
+
+.stagger-item:nth-child(3) {
+    animation-delay: 60ms;
+}
+
+.stagger-item:nth-child(4) {
+    animation-delay: 90ms;
+}
+
+.stagger-item:nth-child(5) {
+    animation-delay: 120ms;
+}
+
+.stagger-item:nth-child(6) {
+    animation-delay: 150ms;
+}
+
+.stagger-item:nth-child(7) {
+    animation-delay: 180ms;
+}
+
+.stagger-item:nth-child(8) {
+    animation-delay: 210ms;
+}
+
+.stagger-item:nth-child(9) {
+    animation-delay: 240ms;
+}
+
+.stagger-item:nth-child(10) {
+    animation-delay: 270ms;
+}
+
+/* For longer lists, cap the delay */
+.stagger-item:nth-child(n+11) {
+    animation-delay: 300ms;
+}
+
+/* ================================
+   Smooth State Transitions
+   ================================ */
+
+/* Checkbox/toggle smooth transition */
+.smooth-check {
+    transition: background-color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.smooth-check:active {
+    transform: scale(0.95);
+}
+
+/* Input focus animation */
+.input-focus {
+    transition: border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.input-focus:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* ================================
+   Backdrop and Overlay
+   ================================ */
+
+.backdrop-animate {
+    animation: backdropFade 0.2s ease-out forwards;
+}
+
+@keyframes backdropFade {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+
+    to {
+        opacity: 1;
+        backdrop-filter: blur(8px);
+    }
+}
+
+/* ================================
+   Spinner/Loading
+   ================================ */
+
+.spin-slow {
+    animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse dot animation */
+.pulse-dot {
+    animation: pulseDot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: scale(0.95);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ================================
+   Tab/Pill Transitions
+   ================================ */
+
+.tab-transition {
+    transition: background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tab-transition:active {
+    transform: scale(0.98);
+}
+
+/* ================================
+   Number Counter Animation
+   ================================ */
+
+.number-pop {
+    animation: numberPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes numberPop {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ================================
+   Subtle Glow Effect
+   ================================ */
+
+.glow-on-hover {
+    transition: box-shadow 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+/* Dark mode glow */
+.dark .glow-on-hover:hover {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.25);
+}

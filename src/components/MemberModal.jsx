@@ -222,15 +222,15 @@ const MemberModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 ${isOverrideMode
-          ? 'bg-orange-50/90 dark:bg-orange-900/40 backdrop-blur-md ring-orange-300 dark:ring-orange-700 rounded-3xl'
-          : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 rounded-xl'
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 backdrop-animate">
+      <div className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 animate-scale-in ${isOverrideMode
+        ? 'bg-orange-50/90 dark:bg-orange-900/40 backdrop-blur-md ring-orange-300 dark:ring-orange-700 rounded-3xl'
+        : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 rounded-xl'
         }`}>
         {/* Header */}
         <div className={`flex items-center justify-between p-6 border-b flex-shrink-0 transition-all duration-300 ${isOverrideMode
-            ? 'bg-orange-100/80 dark:bg-orange-800/80 border-orange-200 dark:border-orange-700 rounded-t-3xl'
-            : 'border-gray-200 dark:border-gray-700 rounded-t-xl'
+          ? 'bg-orange-100/80 dark:bg-orange-800/80 border-orange-200 dark:border-orange-700 rounded-t-3xl'
+          : 'border-gray-200 dark:border-gray-700 rounded-t-xl'
           }`}>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Member</h2>
           <div className="flex items-center gap-2">
@@ -238,8 +238,8 @@ const MemberModal = ({ isOpen, onClose }) => {
               type="button"
               onClick={() => setIsOverrideMode(!isOverrideMode)}
               className={`px-3 py-1 rounded text-xs border transition-colors ${isOverrideMode
-                  ? 'bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-600 font-medium'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                ? 'bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-600 font-medium'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               title="Toggle Override Mode (Bypass Validation)"
             >
@@ -527,14 +527,14 @@ const MemberModal = ({ isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-700 transition-colors btn-press"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isOverrideMode
+                  className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors btn-press ${isOverrideMode
                     ? 'bg-orange-600 hover:bg-orange-700'
                     : 'bg-primary-600 hover:bg-primary-700'
                     }`}
