@@ -1270,11 +1270,11 @@ const Dashboard = ({ isAdmin = false }) => {
                                   <button
                                     onClick={() => handleAttendance(member.id, true)}
                                     disabled={attendanceLoading[member.id]}
-                                    className={`flex-1 px-2 py-2 rounded-md text-xs font-semibold transition-all duration-200 whitespace-nowrap sm:text-sm md:px-6 md:py-3 md:text-base ${isPresentSelected
+                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap sm:text-sm md:text-sm ${isPresentSelected
                                       ? 'bg-green-600 dark:bg-green-700 text-white shadow ring-1 ring-green-300 dark:ring-green-500'
                                       : attendanceLoading[member.id]
                                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
-                                        : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 md:bg-green-600 md:text-white md:hover:bg-green-700'
+                                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800'
                                       }`}
                                     title={isPresentSelected ? "Click to clear" : "Mark present"}
                                   >
@@ -1283,11 +1283,11 @@ const Dashboard = ({ isAdmin = false }) => {
                                   <button
                                     onClick={() => handleAttendance(member.id, false)}
                                     disabled={attendanceLoading[member.id]}
-                                    className={`flex-1 px-2 py-2 rounded-md text-xs font-semibold transition-all duration-200 whitespace-nowrap sm:text-sm md:px-6 md:py-3 md:text-base ${isAbsentSelected
+                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap sm:text-sm md:text-sm ${isAbsentSelected
                                       ? 'bg-red-600 dark:bg-red-700 text-white shadow ring-1 ring-red-300 dark:ring-red-500'
                                       : attendanceLoading[member.id]
                                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
-                                        : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 md:bg-red-600 md:text-white md:hover:bg-red-700'
+                                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800'
                                       }`}
                                     title={isAbsentSelected ? "Click to clear" : "Mark absent"}
                                   >
@@ -1304,7 +1304,7 @@ const Dashboard = ({ isAdmin = false }) => {
                             type="button"
                             onClick={(e) => { e.stopPropagation(); openDeleteConfirm(e, member) }}
                             disabled={attendanceLoading[member.id]}
-                            className="hidden md:inline-flex flex-1 items-center justify-center px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 text-sm font-semibold whitespace-nowrap"
+                            className="hidden md:inline-flex flex-1 items-center justify-center px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-200 dark:hover:border-red-800 text-sm font-medium whitespace-nowrap transition-colors"
                             title="Delete member"
                           >
                             Delete
@@ -1317,25 +1317,26 @@ const Dashboard = ({ isAdmin = false }) => {
                         <div className="px-2 sm:px-3 pb-2 sm:pb-3 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
                           <div className="pt-2 sm:pt-2.5">
                             {/* Member Details */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3 mb-3 sm:mb-3 bg-blue-50 dark:bg-blue-900/30 p-3 sm:p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                              <div className="space-y-1.5 sm:space-y-2">
-                                <h4 className="font-medium text-gray-900 dark:text-white mb-1 text-sm sm:text-sm">Member Information</h4>
-                                <div className="space-y-1 text-xs sm:text-xs">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-300">Gender:</span>
+                            {/* Member Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+                              <div className="space-y-3">
+                                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Member Info</h4>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                                    <span className="text-gray-500 dark:text-gray-400">Gender</span>
                                     <span className="font-medium capitalize text-gray-900 dark:text-white truncate ml-2">{member['Gender']}</span>
                                   </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-300">Phone:</span>
-                                    <span className="font-medium text-gray-900 dark:text-white truncate ml-2">{member['Phone Number'] || 'N/A'}</span>
+                                  <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                                    <span className="text-gray-500 dark:text-gray-400">Phone</span>
+                                    <span className="font-medium text-gray-900 dark:text-white truncate ml-2 font-mono tracking-tight">{member['Phone Number'] || 'N/A'}</span>
                                   </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-300">Age:</span>
+                                  <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                                    <span className="text-gray-500 dark:text-gray-400">Age</span>
                                     <span className="font-medium text-gray-900 dark:text-white truncate ml-2">{member['Age'] || 'N/A'}</span>
                                   </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-300">Level:</span>
-                                    <span className="font-medium text-primary-600 dark:text-primary-400 capitalize ml-2">
+                                  <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                                    <span className="text-gray-500 dark:text-gray-400">Level</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 capitalize ml-2">
                                       {member['Current Level']?.toLowerCase() || 'N/A'}
                                     </span>
                                   </div>
@@ -1343,27 +1344,27 @@ const Dashboard = ({ isAdmin = false }) => {
 
                                 {/* Parent Information (if available) */}
                                 {(member['parent_name_1'] || member['parent_name_2']) && (
-                                  <div className="mt-4 pt-3 border-t border-blue-200 dark:border-blue-700">
-                                    <h4 className="font-medium text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Parent Information</h4>
-                                    <div className="space-y-2 text-xs sm:text-sm">
+                                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                    <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Guardians</h4>
+                                    <div className="space-y-2 text-sm">
                                       {member['parent_name_1'] && (
-                                        <div className="flex justify-between items-center">
-                                          <span className="text-gray-600 dark:text-gray-300">Parent 1:</span>
+                                        <div className="flex justify-between items-start py-1">
+                                          <span className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Primary</span>
                                           <div className="text-right">
                                             <span className="block font-medium text-gray-900 dark:text-white">{member['parent_name_1']}</span>
                                             {member['parent_phone_1'] && (
-                                              <span className="block text-xs text-gray-500 dark:text-gray-400">{member['parent_phone_1']}</span>
+                                              <span className="block text-xs text-gray-500 dark:text-gray-400 font-mono tracking-tight">{member['parent_phone_1']}</span>
                                             )}
                                           </div>
                                         </div>
                                       )}
                                       {member['parent_name_2'] && (
-                                        <div className="flex justify-between items-center mt-2">
-                                          <span className="text-gray-600 dark:text-gray-300">Parent 2:</span>
+                                        <div className="flex justify-between items-start py-1">
+                                          <span className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Secondary</span>
                                           <div className="text-right">
                                             <span className="block font-medium text-gray-900 dark:text-white">{member['parent_name_2']}</span>
                                             {member['parent_phone_2'] && (
-                                              <span className="block text-xs text-gray-500 dark:text-gray-400">{member['parent_phone_2']}</span>
+                                              <span className="block text-xs text-gray-500 dark:text-gray-400 font-mono tracking-tight">{member['parent_phone_2']}</span>
                                             )}
                                           </div>
                                         </div>
@@ -1374,15 +1375,15 @@ const Dashboard = ({ isAdmin = false }) => {
                               </div>
 
                               {/* Actions */}
-                              <div className="space-y-1.5 sm:space-y-2">
-                                <h4 className="font-medium text-gray-900 dark:text-white mb-1 text-sm sm:text-sm">Actions</h4>
-                                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-2">
+                              <div className="space-y-3 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 pt-3 md:pt-0 md:pl-4">
+                                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Actions</h4>
+                                <div className="flex flex-col gap-2">
                                   <button
                                     onClick={() => setEditingMember(member)}
-                                    className="flex items-center space-x-2 px-2 sm:px-3 py-1.5 sm:py-1.5 text-xs sm:text-xs text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900 rounded transition-colors sm:flex-1 md:flex-none"
+                                    className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                                   >
-                                    <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span>Edit Member</span>
+                                    <Edit3 className="w-4 h-4" />
+                                    <span>Edit Details</span>
                                   </button>
                                 </div>
                               </div>
@@ -1390,7 +1391,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
                             {/* Sunday Attendance */}
                             <div className="border-t border-gray-200 dark:border-gray-600 pt-4 transition-colors">
-                              <h4 className="font-medium text-gray-900 dark:text-white mb-3 transition-colors">{getMonthDisplayName(currentTable)} Sunday Attendance</h4>
+                              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 transition-colors">{getMonthDisplayName(currentTable)} Sunday Attendance</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                 {sundayDates.map(date => {
                                   const dateKey = date
