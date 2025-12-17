@@ -6,7 +6,6 @@ import 'react-toastify/dist/ReactToastify.css'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import MemberModal from './components/MemberModal'
-import MonthModal from './components/MonthModal'
 import AttendanceAnalytics from './components/AttendanceAnalytics'
 import AdminAuth from './components/AdminAuth'
 import AdminPanel from './components/AdminPanel'
@@ -26,7 +25,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 // Main app content - only shown when authenticated
-function AppContent({ isMobile, onShowDecemberPreview }) {
+function AppContent({ isMobile }) {
+
   const { preferences } = useAuth()
   const [currentView, setCurrentView] = useState('dashboard')
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -79,7 +79,6 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
         setIsAdmin={setIsAdmin}
         onAddMember={() => setShowMemberModal(true)}
         onCreateMonth={() => setShowMonthModal(true)}
-        onShowDecemberPreview={onShowDecemberPreview}
         onToggleAIChat={() => setShowAIChat(prev => !prev)}
       />
 
@@ -100,7 +99,6 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
               setIsAdmin(false)
               setCurrentView('dashboard')
             }}
-            onShowDecemberPreview={onShowDecemberPreview}
           />
         )}
 
@@ -173,27 +171,10 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
 // Auth wrapper - shows login or app based on auth state
 function AuthenticatedApp({ isMobile }) {
   const { isAuthenticated, loading } = useAuth()
-  // Check localStorage for user's preference - default to December preview (false = show preview)
-  const [showFullApp, setShowFullApp] = useState(() => {
-    const saved = localStorage.getItem('tmht_skip_december_preview')
-    return saved === 'true'
-  })
-  const [showDecemberPreview, setShowDecemberPreview] = useState(true)
-
-  // Function to open full app and save preference
-  const handleOpenFullApp = () => {
-    localStorage.setItem('tmht_skip_december_preview', 'true')
-    setShowFullApp(true)
-  }
-
-  // Function to go back to December preview
-  const handleShowDecemberPreview = () => {
-    localStorage.setItem('tmht_skip_december_preview', 'false')
-    setShowFullApp(false)
-  }
 
   // Show loading spinner while checking auth
   if (loading) {
+
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -204,25 +185,15 @@ function AuthenticatedApp({ isMobile }) {
     )
   }
 
-  // If user clicks "Open Full App" -> show login if not authenticated, then full app
-  if (showFullApp) {
-    if (!isAuthenticated) {
-      return <LoginPage />
-    }
-    return (
-      <AppProvider>
-        <AppContent isMobile={isMobile} onShowDecemberPreview={handleShowDecemberPreview} />
-      </AppProvider>
-    )
+  // Not authenticated -> show login page
+  if (!isAuthenticated) {
+    return <LoginPage />
   }
 
-  // Default: Show December Quick View first (no login required)
   return (
-    <DecemberQuickView
-      onOpenFullApp={handleOpenFullApp}
-      showPreview={showDecemberPreview}
-      onTogglePreview={() => setShowDecemberPreview(prev => !prev)}
-    />
+    <AppProvider>
+      <AppContent isMobile={isMobile} />
+    </AppProvider>
   )
 }
 
