@@ -81,15 +81,24 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
   }
 
   const handleNext = async () => {
-    if (currentStep === 1 && workspaceName.trim()) {
-      // Save workspace name
-      setIsUpdating(true)
-      try {
-        await updatePreference('workspace_name', workspaceName.trim())
-      } catch (error) {
-        console.error('Failed to save workspace name:', error)
-      } finally {
-        setIsUpdating(false)
+    // Step 1: Workspace name is REQUIRED
+    if (currentStep === 1) {
+      if (!workspaceName.trim() && !preferences?.workspace_name) {
+        // Don't proceed without workspace name
+        return
+      }
+      
+      if (workspaceName.trim()) {
+        // Save workspace name
+        setIsUpdating(true)
+        try {
+          await updatePreference('workspace_name', workspaceName.trim())
+        } catch (error) {
+          console.error('Failed to save workspace name:', error)
+          return // Don't proceed if save failed
+        } finally {
+          setIsUpdating(false)
+        }
       }
     }
     

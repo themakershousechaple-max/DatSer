@@ -7,14 +7,15 @@ import {
   CheckSquare,
   Calendar,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from 'lucide-react'
 import DateSelector from './DateSelector'
 import MonthPickerPopup from './MonthPickerPopup'
 import { useApp } from '../context/AppContext'
 import LoginButton from './LoginButton'
 
-const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember, onCreateMonth }) => {
+const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember, onCreateMonth, onToggleAIChat }) => {
   const {
     searchTerm,
     setSearchTerm,
@@ -212,6 +213,12 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
       label: 'Create New Month',
       icon: Calendar,
       onClick: onCreateMonth
+    },
+    {
+      id: 'ai_assistant',
+      label: 'AI Assistant',
+      icon: Sparkles,
+      onClick: onToggleAIChat
     }
   ]
 
@@ -455,7 +462,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 <div>
                   <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Insights</div>
                   <div className="space-y-2">
-                    {menuItems.filter(i => ['analytics'].includes(i.id)).map((item) => {
+                    {menuItems.filter(i => ['analytics', 'ai_assistant'].includes(i.id)).map((item) => {
                       const Icon = item.icon
                       const active = currentView === item.id
                       return (

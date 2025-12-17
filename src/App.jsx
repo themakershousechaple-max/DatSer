@@ -18,6 +18,7 @@ import DeleteAccountModal from './components/DeleteAccountModal'
 import ExportDataModal from './components/ExportDataModal'
 import SettingsPage from './components/SettingsPage'
 import OnboardingWizard from './components/OnboardingWizard'
+import AIChatAssistant from './components/AIChatAssistant'
 
 // Context
 import { AppProvider } from './context/AppContext'
@@ -33,6 +34,7 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
   })
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [showMonthModal, setShowMonthModal] = useState(false)
+  const [showAIChat, setShowAIChat] = useState(false)
 
   // Onboarding wizard for new users
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -78,6 +80,7 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
         onAddMember={() => setShowMemberModal(true)}
         onCreateMonth={() => setShowMonthModal(true)}
         onShowDecemberPreview={onShowDecemberPreview}
+        onToggleAIChat={() => setShowAIChat(prev => !prev)}
       />
 
       <main className={`container mx-auto px-4 py-8 pt-24 md:pt-20 ${currentView === 'admin' ? 'pt-8' : ''}`}>
@@ -141,6 +144,12 @@ function AppContent({ isMobile, onShowDecemberPreview }) {
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
         onNavigate={handleOnboardingNavigate}
+      />
+
+      {/* AI Chat Assistant */}
+      <AIChatAssistant
+        isOpen={showAIChat}
+        onClose={() => setShowAIChat(false)}
       />
 
       <ToastContainer

@@ -274,7 +274,7 @@ const MemberModal = ({ isOpen, onClose }) => {
       <div className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 animate-scale-in ${isOverrideMode
         ? 'bg-orange-50/90 dark:bg-orange-900/40 backdrop-blur-md ring-orange-300 dark:ring-orange-700 rounded-3xl'
         : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 rounded-xl'
-        }`}>
+        }`}> 
         {/* Header */}
         <div className={`flex items-center justify-between p-6 border-b flex-shrink-0 transition-all duration-300 ${isOverrideMode
           ? 'bg-orange-100/80 dark:bg-orange-800/80 border-orange-200 dark:border-orange-700 rounded-t-3xl'
