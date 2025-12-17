@@ -156,8 +156,9 @@ const MemberModal = ({ isOpen, onClose }) => {
 
     // So yes, I should enforce all of them.
 
-    // Check if at least one parent info is provided
-    const hasParentInfo = parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()
+    // Check if at least one parent info is provided (either Parent 1 OR Parent 2)
+    const hasParentInfo = (parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) ||
+      (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim())
 
     if (!isOverrideMode) {
       if (!isFullNameValid || !isGenderValid || !isLevelValid || !isPhoneValid || !isAgeValid) {
@@ -224,7 +225,7 @@ const MemberModal = ({ isOpen, onClose }) => {
       setNewlyAddedMemberId(newMember.id)
       setShowErrors(false)
       setNewlyAddedMemberId(newMember.id)
-      setShowParentInfo(true)
+      onClose()
       setIsOverrideMode(false)
 
       // Success toast handled in global state
@@ -305,10 +306,10 @@ const MemberModal = ({ isOpen, onClose }) => {
                     className={`w-full pl-10 pr-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200 border ${showErrors && (!formData.full_name || !formData.full_name.trim()) ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'}`}
                     placeholder="Enter full name"
                   />
-                  {showErrors && (!formData.full_name || !formData.full_name.trim()) && (
-                    <p className="mt-2 text-xs text-red-600 dark:text-red-400">Please enter full name</p>
-                  )}
                 </div>
+                {showErrors && (!formData.full_name || !formData.full_name.trim()) && (
+                  <p className="mt-2 text-xs text-red-600 dark:text-red-400">Please enter full name</p>
+                )}
               </div>
 
               {/* Gender */}
@@ -508,25 +509,43 @@ const MemberModal = ({ isOpen, onClose }) => {
               </div>
 
               {/* Collapsible Parent/Guardian Info Section */}
-              <div className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+              <div className={`border rounded-lg overflow-hidden transition-all duration-300 ${showErrors && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                ? 'border-red-500 ring-4 ring-red-50 dark:ring-red-900/30'
+                : 'border-gray-200 dark:border-gray-600'
+                }`}>
                 <button
                   type="button"
                   onClick={() => setShowParentSection(!showParentSection)}
-                  className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  className={`w-full flex items-center justify-between p-3 transition-colors ${showErrors && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                    ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
+                    : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
                 >
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Parent/Guardian Info (Optional)
+                    <Users className={`w-4 h-4 ${showErrors && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                      ? 'text-red-500 dark:text-red-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                      }`} />
+                    <span className={`text-sm font-medium ${showErrors && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                      ? 'text-red-700 dark:text-red-300'
+                      : 'text-gray-700 dark:text-gray-300'
+                      }`}>
+                      Parent/Guardian Info {showErrors && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim())) ? '(Required)' : '(Optional)'}
                     </span>
                   </div>
                   {showParentSection ? (
-                    <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    <ChevronUp className={`w-4 h-4 ${showErrors && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                      ? 'text-red-500 dark:text-red-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                      }`} />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    <ChevronDown className={`w-4 h-4 ${showErrors && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                      ? 'text-red-500 dark:text-red-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                      }`} />
                   )}
                 </button>
-                
+
                 {showParentSection && (
                   <div className="p-3 space-y-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600">
                     {/* Parent 1 */}
@@ -552,8 +571,18 @@ const MemberModal = ({ isOpen, onClose }) => {
                             value={parentInfo.parent_phone_1}
                             onChange={(e) => setParentInfo(prev => ({ ...prev, parent_phone_1: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                             placeholder="Phone Number"
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
+                            className="w-full pl-10 pr-20 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
                           />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                            <button
+                              type="button"
+                              onClick={() => setParentInfo(prev => ({ ...prev, parent_phone_1: '0000000000' }))}
+                              className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-600"
+                              title="Set no phone number"
+                            >
+                              No Phone
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -581,8 +610,18 @@ const MemberModal = ({ isOpen, onClose }) => {
                             value={parentInfo.parent_phone_2}
                             onChange={(e) => setParentInfo(prev => ({ ...prev, parent_phone_2: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                             placeholder="Phone Number"
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
+                            className="w-full pl-10 pr-20 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
                           />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                            <button
+                              type="button"
+                              onClick={() => setParentInfo(prev => ({ ...prev, parent_phone_2: '0000000000' }))}
+                              className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-600"
+                              title="Set no phone number"
+                            >
+                              No Phone
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -614,139 +653,7 @@ const MemberModal = ({ isOpen, onClose }) => {
           </form>
         </div >
 
-        {/* Parent Info Popup */}
-        {
-          showParentInfo && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setShowParentInfo(false)}>
-              <div className={`rounded-xl shadow-2xl w-full max-w-sm overflow-hidden ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`} onClick={(e) => e.stopPropagation()}>
-                <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                  <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Parent Information</h3>
-                </div>
-                <div className="px-4 py-3 space-y-3">
-                  <div>
-                    <label className={`block text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Full Name 1</label>
-                    <input
-                      type="text"
-                      value={parentInfo.parent_name_1}
-                      onChange={(e) => setParentInfo(prev => ({ ...prev, parent_name_1: e.target.value }))}
-                      className={`w-full px-3 py-2 rounded border ${showParentErrors && (!parentInfo.parent_name_1 || !parentInfo.parent_name_1.trim()) ? 'border-red-500 ring-1 ring-red-400' : (isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900')}`}
-                      placeholder="Enter parent full name"
-                    />
-                    {showParentErrors && (!parentInfo.parent_name_1 || !parentInfo.parent_name_1.trim()) && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">Please enter Parent Full Name 1</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className={`block text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Phone Number 1</label>
-                    <div className="relative">
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={10}
-                        value={parentInfo.parent_phone_1}
-                        onChange={(e) => setParentInfo(prev => ({ ...prev, parent_phone_1: e.target.value }))}
-                        className={`w-full pr-20 px-3 py-2 rounded border ${showParentErrors && ((parentInfo.parent_phone_1 || '').replace(/\D/g, '').length !== 10) ? 'border-red-500 ring-1 ring-red-400' : (isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900')}`}
-                        placeholder="Enter phone number"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setParentInfo(prev => ({ ...prev, parent_phone_1: '0000000000' }))}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-600"
-                      >
-                        No Phone
-                      </button>
-                    </div>
-                    {showParentErrors && ((parentInfo.parent_phone_1 || '').replace(/\D/g, '').length !== 10) && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">Phone number must be 10 digits</p>
-                    )}
-                  </div>
-                  <div className={`rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'} p-3`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Optional</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <label className={`block text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Full Name 2</label>
-                        <input
-                          type="text"
-                          value={parentInfo.parent_name_2}
-                          onChange={(e) => setParentInfo(prev => ({ ...prev, parent_name_2: e.target.value }))}
-                          className={`w-full px-3 py-2 rounded border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                          placeholder="Enter parent full name"
-                        />
-                      </div>
-                      <div>
-                        <label className={`block text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Phone Number 2</label>
-                        <div className="relative">
-                          <input
-                            type="tel"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={10}
-                            value={parentInfo.parent_phone_2}
-                            onChange={(e) => setParentInfo(prev => ({ ...prev, parent_phone_2: e.target.value }))}
-                            className={`w-full pr-20 px-3 py-2 rounded border ${(showParentErrors && (parentInfo.parent_phone_2 || '').length > 0 && ((parentInfo.parent_phone_2 || '').replace(/\D/g, '').length !== 10)) ? 'border-red-500 ring-1 ring-red-400' : (isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900')}`}
-                            placeholder="Enter phone number"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setParentInfo(prev => ({ ...prev, parent_phone_2: '0000000000' }))}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-600"
-                          >
-                            No Phone
-                          </button>
-                        </div>
-                        {(showParentErrors && (parentInfo.parent_phone_2 || '').length > 0 && ((parentInfo.parent_phone_2 || '').replace(/\D/g, '').length !== 10)) && (
-                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">Phone number must be 10 digits</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={`px-4 py-3 flex items-center justify-end gap-2 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                  <button
-                    type="button"
-                    onClick={() => { setShowParentInfo(false); setShowParentErrors(false); setNewlyAddedMemberId(null) }}
-                    className={`px-3 py-1 rounded ${isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'} hover:bg-gray-200`}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const validName = parentInfo.parent_name_1 && parentInfo.parent_name_1.trim().length > 0
-                      const validPhone1 = ((parentInfo.parent_phone_1 || '').replace(/\D/g, '').length === 10)
-                      const phone2Len = ((parentInfo.parent_phone_2 || '').replace(/\D/g, '').length)
-                      const validPhone2OrEmpty = phone2Len === 0 || phone2Len === 10
-                      if (!validName || !validPhone1 || !validPhone2OrEmpty) {
-                        setShowParentErrors(true)
-                        return
-                      }
-                      try {
-                        await updateMember(newlyAddedMemberId, {
-                          parent_name_1: parentInfo.parent_name_1,
-                          parent_phone_1: parentInfo.parent_phone_1,
-                          parent_name_2: parentInfo.parent_name_2,
-                          parent_phone_2: parentInfo.parent_phone_2
-                        })
-                      } catch (err) {
-                        console.error('Failed to save parent info:', err)
-                      }
-                      setShowParentErrors(false)
-                      setShowParentInfo(false)
-                      setNewlyAddedMemberId(null)
-                      onClose()
-                    }}
-                    className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        }
+
 
       </div >
     </div >

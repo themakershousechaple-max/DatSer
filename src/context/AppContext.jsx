@@ -1086,6 +1086,31 @@ export const AppProvider = ({ children }) => {
         console.warn('Could not fetch table schema, proceeding with all fields:', e)
       }
 
+      // If validColumns not found (empty table or error), fallback to snake_case for standard fields
+      if (!validColumns) {
+        if (normalized['Phone Number'] !== undefined) {
+          normalized['phone_number'] = normalized['Phone Number']
+          delete normalized['Phone Number']
+        }
+        if (normalized['Age'] !== undefined) {
+          normalized['age'] = normalized['Age']
+          delete normalized['Age']
+        }
+        if (normalized['Gender'] !== undefined) {
+          normalized['gender'] = normalized['Gender']
+          delete normalized['Gender']
+        }
+        if (normalized['Current Level'] !== undefined) {
+          normalized['current_level'] = normalized['Current Level']
+          delete normalized['Current Level']
+        }
+        if (normalized['Full Name'] !== undefined) {
+          // Only rename if 'Full Name' is present (fallback from resolveNameColumn)
+          normalized['full_name'] = normalized['Full Name']
+          delete normalized['Full Name']
+        }
+      }
+
       // Filter normalized object to only include valid columns if we know them
       if (validColumns) {
         const filteredNormalized = {}
@@ -1100,6 +1125,44 @@ export const AppProvider = ({ children }) => {
             } else if (key === 'full_name' && validColumns.has('Full Name')) {
               filteredNormalized['Full Name'] = normalized[key]
               console.log('[updateMember] Mapped "full_name" to "Full Name"')
+            } else if ((key === 'Full Name' || key === 'full_name') && validColumns.has('name')) {
+              filteredNormalized['name'] = normalized[key]
+              console.log('[updateMember] Mapped to "name"')
+            } else if ((key === 'Full Name' || key === 'full_name') && validColumns.has('Name')) {
+              filteredNormalized['Name'] = normalized[key]
+              console.log('[updateMember] Mapped to "Name"')
+            } else if (key === 'Phone Number' && validColumns.has('phone_number')) {
+              filteredNormalized['phone_number'] = normalized[key]
+              console.log('[updateMember] Mapped "Phone Number" to "phone_number"')
+            } else if (key === 'phone_number' && validColumns.has('Phone Number')) {
+              filteredNormalized['Phone Number'] = normalized[key]
+              console.log('[updateMember] Mapped "phone_number" to "Phone Number"')
+            } else if (key === 'Age' && validColumns.has('age')) {
+              filteredNormalized['age'] = normalized[key]
+              console.log('[updateMember] Mapped "Age" to "age"')
+            } else if (key === 'age' && validColumns.has('Age')) {
+              filteredNormalized['Age'] = normalized[key]
+              console.log('[updateMember] Mapped "age" to "Age"')
+            } else if (key === 'Gender' && validColumns.has('gender')) {
+              filteredNormalized['gender'] = normalized[key]
+              console.log('[updateMember] Mapped "Gender" to "gender"')
+            } else if (key === 'gender' && validColumns.has('Gender')) {
+              filteredNormalized['Gender'] = normalized[key]
+              console.log('[updateMember] Mapped "gender" to "Gender"')
+            } else if (key === 'Current Level' && validColumns.has('current_level')) {
+              filteredNormalized['current_level'] = normalized[key]
+              console.log('[updateMember] Mapped "Current Level" to "current_level"')
+            } else if (key === 'current_level' && validColumns.has('Current Level')) {
+              filteredNormalized['Current Level'] = normalized[key]
+              console.log('[updateMember] Mapped "current_level" to "Current Level"')
+            } else if (key === 'parent_name_1' && validColumns.has('Parent Name 1')) {
+              filteredNormalized['Parent Name 1'] = normalized[key]
+            } else if (key === 'parent_phone_1' && validColumns.has('Parent Phone 1')) {
+              filteredNormalized['Parent Phone 1'] = normalized[key]
+            } else if (key === 'parent_name_2' && validColumns.has('Parent Name 2')) {
+              filteredNormalized['Parent Name 2'] = normalized[key]
+            } else if (key === 'parent_phone_2' && validColumns.has('Parent Phone 2')) {
+              filteredNormalized['Parent Phone 2'] = normalized[key]
             } else {
               console.warn(`Skipping field "${key}" - column does not exist in table ${currentTable}`)
             }
@@ -1396,6 +1459,10 @@ export const AppProvider = ({ children }) => {
           nameCol = 'Full Name'
         } else if (Object.prototype.hasOwnProperty.call(row, 'full_name')) {
           nameCol = 'full_name'
+        } else if (Object.prototype.hasOwnProperty.call(row, 'name')) {
+          nameCol = 'name'
+        } else if (Object.prototype.hasOwnProperty.call(row, 'Name')) {
+          nameCol = 'Name'
         }
       }
     } catch (e) {
@@ -1798,7 +1865,7 @@ export const AppProvider = ({ children }) => {
       attendanceColumns.forEach(col => {
         const columnName = col.column_name
         const colNameLower = columnName.toLowerCase()
-        
+
         let dateKey = null
 
         // NEW format: attendance_2025_12_07

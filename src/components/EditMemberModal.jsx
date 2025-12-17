@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
   const { updateMember, markAttendance, refreshSearch, currentTable, attendanceData, loadAllAttendanceData, members } = useApp()
-  
+
   // Get the latest member data from the members array to ensure we have up-to-date info
   const latestMember = useMemo(() => {
     if (!member?.id) return member
@@ -172,8 +172,9 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     const ageNum = parseInt(formData.age)
     const isAgeValid = formData.age && !isNaN(ageNum) && ageNum >= 1 && ageNum <= 120
 
-    // Check if at least one parent info is provided
-    const hasParentInfo = parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()
+    // Check if at least one parent info is provided (either Parent 1 OR Parent 2)
+    const hasParentInfo = (parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) ||
+      (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim())
 
     // In override mode, only require name
     if (overrideMode) {
@@ -358,13 +359,6 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Phone Number
               </label>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, phone_number: '0000000000' }))}
-                className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
-              >
-                No Phone
-              </button>
             </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -377,13 +371,23 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                 onChange={handleInputChange}
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${hasAttemptedSave && (String(formData.phone_number || '').replace(/\D/g, '').length !== 10)
-                  ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
-                  }`}
+                maxLength={10}
                 placeholder="Enter phone number"
+                className="w-full pl-10 pr-20 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
               />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, phone_number: '0000000000' }))}
+                  className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-600"
+                  title="Set no phone number"
+                >
+                  No Phone
+                </button>
+              </div>
             </div>
+
+
             {hasAttemptedSave && (String(formData.phone_number || '').replace(/\D/g, '').length !== 10) && (
               <p className="mt-1 text-xs text-red-600 dark:text-red-400">Phone number must be 10 digits</p>
             )}
@@ -520,28 +524,49 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
           </div>
 
           {/* Collapsible Parent/Guardian Info Section */}
-          <div className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+          <div className={`border rounded-lg overflow-hidden transition-all duration-300 ${hasAttemptedSave && !overrideMode && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+            ? 'border-red-500 ring-4 ring-red-50 dark:ring-red-900/30'
+            : 'border-gray-200 dark:border-gray-600'
+            }`}>
             <button
               type="button"
               onClick={() => setShowParentSection(!showParentSection)}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              className={`w-full flex items-center justify-between p-3 transition-colors ${hasAttemptedSave && !overrideMode && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
+                : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
             >
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Users className={`w-4 h-4 ${hasAttemptedSave && !overrideMode && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                  ? 'text-red-500 dark:text-red-400'
+                  : 'text-gray-500 dark:text-gray-400'
+                  }`} />
+                <span className={`text-sm font-medium ${hasAttemptedSave && !overrideMode && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                  ? 'text-red-700 dark:text-red-300'
+                  : 'text-gray-700 dark:text-gray-300'
+                  }`}>
                   Parent/Guardian Info
                 </span>
                 {(parentInfo.parent_name_1 || parentInfo.parent_phone_1) && (
                   <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">Saved</span>
                 )}
+                {hasAttemptedSave && !overrideMode && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim())) && (
+                  <span className="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded font-medium">Required</span>
+                )}
               </div>
               {showParentSection ? (
-                <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <ChevronUp className={`w-4 h-4 ${hasAttemptedSave && !overrideMode && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                  ? 'text-red-500 dark:text-red-400'
+                  : 'text-gray-500 dark:text-gray-400'
+                  }`} />
               ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <ChevronDown className={`w-4 h-4 ${hasAttemptedSave && !overrideMode && !((parentInfo.parent_name_1?.trim() || parentInfo.parent_phone_1?.trim()) || (parentInfo.parent_name_2?.trim() || parentInfo.parent_phone_2?.trim()))
+                  ? 'text-red-500 dark:text-red-400'
+                  : 'text-gray-500 dark:text-gray-400'
+                  }`} />
               )}
             </button>
-            
+
             {showParentSection && (
               <div className="p-3 space-y-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600">
                 {/* Parent 1 */}
@@ -567,8 +592,18 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                         value={parentInfo.parent_phone_1}
                         onChange={(e) => setParentInfo(prev => ({ ...prev, parent_phone_1: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                         placeholder="Phone Number"
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
+                        className="w-full pl-10 pr-20 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
                       />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <button
+                          type="button"
+                          onClick={() => setParentInfo(prev => ({ ...prev, parent_phone_1: '0000000000' }))}
+                          className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-600"
+                          title="Set no phone number"
+                        >
+                          No Phone
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -596,8 +631,18 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                         value={parentInfo.parent_phone_2}
                         onChange={(e) => setParentInfo(prev => ({ ...prev, parent_phone_2: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                         placeholder="Phone Number"
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
+                        className="w-full pl-10 pr-20 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
                       />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <button
+                          type="button"
+                          onClick={() => setParentInfo(prev => ({ ...prev, parent_phone_2: '0000000000' }))}
+                          className="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-600"
+                          title="Set no phone number"
+                        >
+                          No Phone
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -626,8 +671,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
 
