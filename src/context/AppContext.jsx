@@ -1033,8 +1033,9 @@ export const AppProvider = ({ children }) => {
       console.log('[updateMember] Incoming name value:', incomingName)
       if (incomingName !== undefined) {
         normalized = { ...normalized, [nameCol]: incomingName }
-        delete normalized.full_name
-        delete normalized['Full Name']
+        // Only delete the keys that are different from nameCol to avoid deleting the value we just set
+        if (nameCol !== 'full_name') delete normalized.full_name
+        if (nameCol !== 'Full Name') delete normalized['Full Name']
       }
       console.log('[updateMember] Normalized updates to send:', normalized)
 
