@@ -22,7 +22,8 @@ import {
     FileSpreadsheet,
     Pencil,
     Camera,
-    HelpCircle
+    HelpCircle,
+    ChevronDown
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -212,17 +213,22 @@ const SettingsPage = ({ onBack }) => {
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Select active month database</p>
                             </div>
                         </div>
-                        <select
-                            value={currentTable || ''}
-                            onChange={(e) => setCurrentTable(e.target.value)}
-                            className="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm"
-                        >
-                            {monthlyTables?.map(table => (
-                                <option key={table} value={table}>
-                                    {table.replace('_', ' ')}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="relative group">
+                            <select
+                                value={currentTable || ''}
+                                onChange={(e) => setCurrentTable(e.target.value)}
+                                className="w-full p-3 pl-4 pr-10 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer shadow-sm"
+                            >
+                                {monthlyTables?.map(table => (
+                                    <option key={table} value={table} className="bg-white dark:bg-gray-800 py-2">
+                                        {table.replace('_', ' ')}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">
+                                <ChevronDown className="w-5 h-5" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

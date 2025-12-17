@@ -18,10 +18,34 @@ import {
 
 const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
   const { user, preferences, updatePreference } = useAuth()
-  const { members, currentTable } = useApp()
+  const { members, currentTable, addMember } = useApp()
   const [currentStep, setCurrentStep] = useState(0)
   const [workspaceName, setWorkspaceName] = useState(preferences?.workspace_name || '')
   const [isUpdating, setIsUpdating] = useState(false)
+
+  // Quick Add Member State
+  const [newMemberName, setNewMemberName] = useState('')
+  const [newMemberGender, setNewMemberGender] = useState('male')
+
+  const handleQuickAddMember = async () => {
+    if (!newMemberName.trim()) return
+    setIsUpdating(true)
+    try {
+      await addMember({
+        full_name: newMemberName,
+        gender: newMemberGender,
+        current_level: 'Member', // Default
+        phone_number: '0000000000',
+        age: 18, // Default
+        is_visitor: false
+      })
+      setNewMemberName('')
+      setIsUpdating(false) // Show "Great!" screen
+    } catch (e) {
+      console.error(e)
+      setIsUpdating(false)
+    }
+  }
 
   // Steps configuration
   const steps = [
@@ -87,7 +111,7 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
         // Don't proceed without workspace name
         return
       }
-      
+
       if (workspaceName.trim()) {
         // Save workspace name
         setIsUpdating(true)
@@ -101,7 +125,7 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
         }
       }
     }
-    
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
     }
@@ -139,7 +163,7 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
         {/* Progress bar */}
         <div className="h-1 bg-gray-200 dark:bg-gray-700">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500"
             style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
           />
@@ -151,13 +175,12 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
             <button
               key={step.id}
               onClick={() => index < currentStep && setCurrentStep(index)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                index === currentStep
-                  ? 'bg-blue-500 text-white scale-110'
-                  : index < currentStep
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${index === currentStep
+                ? 'bg-blue-500 text-white scale-110'
+                : index < currentStep
                   ? 'bg-green-500 text-white cursor-pointer hover:scale-105'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
-              }`}
+                }`}
             >
               {index < currentStep ? (
                 <Check className="w-4 h-4" />
@@ -231,32 +254,58 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
 
             {currentStep === 2 && (
               <div className="space-y-4">
-                {members?.length > 0 ? (
+                {members?.length > 0 && !isUpdating ? (
                   <div className="text-center space-y-3">
                     <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
                       <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                     </div>
                     <p className="text-green-600 dark:text-green-400 font-medium">
-                      Great! You have {members.length} member{members.length !== 1 ? 's' : ''} already.
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      You can add more members anytime from the Dashboard.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-4">
-                    <p className="text-gray-600 dark:text-gray-300 text-sm">
-                      Add your first member to start tracking attendance.
+                      Great! You have {members.length} member{members.length !== 1 ? 's' : ''}.
                     </p>
                     <button
-                      onClick={() => handleAction('addMember')}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg"
+                      onClick={() => setIsUpdating(true)}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                     >
-                      <Users className="w-5 h-5" />
-                      Add First Member
+                      + Add Another
                     </button>
-                    <p className="text-xs text-gray-400">
-                      Or skip this step and add members later
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-col space-y-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newMemberName}
+                        onChange={(e) => setNewMemberName(e.target.value)}
+                        placeholder="e.g. John Doe"
+                        className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="gender" checked={newMemberGender === 'male'} onChange={() => setNewMemberGender('male')} className="text-blue-600" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Male</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="gender" checked={newMemberGender === 'female'} onChange={() => setNewMemberGender('female')} className="text-pink-600" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Female</span>
+                        </label>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={handleQuickAddMember}
+                          disabled={!newMemberName.trim()}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition-colors disabled:opacity-50 text-sm font-medium"
+                        >
+                          Add Member
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-center text-gray-400">
+                      Optional • You can add more details later
                     </p>
                   </div>
                 )}
@@ -333,7 +382,7 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
           ) : (
             <div />
           )}
-          
+
           {currentStep < steps.length - 1 ? (
             <button
               onClick={handleNext}

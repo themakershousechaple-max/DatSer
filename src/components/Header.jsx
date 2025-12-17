@@ -432,7 +432,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                           >
                             <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
                             {item.id === 'edited_members' && (
-                              <button type="button" onClick={(e) => { e.stopPropagation(); setShowEditedDropdown((prev) => !prev) }} className="px-2 py-0.5 rounded-full text-xs bg-blue-600 text-white" title="View Sunday counts">{editedCount}</button>
+                              <div role="button" onClick={(e) => { e.stopPropagation(); setShowEditedDropdown((prev) => !prev) }} className="px-2 py-0.5 rounded-full text-xs bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors" title="View Sunday counts">{editedCount}</div>
                             )}
                           </button>
                           {item.id === 'edited_members' && showEditedDropdown && (

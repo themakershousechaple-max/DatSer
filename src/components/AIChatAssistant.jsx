@@ -16,62 +16,34 @@ import {
   ExternalLink,
   ArrowRightCircle
 } from 'lucide-react'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Extended FAQ Data with Actions
+// Initialize Gemini API
+const GEMINI_API_KEY = "AIzaSyDMMXxZSQABzr5wTWxecIKrzvOcrtbkdVk"
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+
+// Extended FAQ Data with Actions (Fallback and Keywords)
 const getFaqKnowledge = (navigate) => [
-  // Attendance
-  {
-    keywords: ['mark', 'present', 'absent', 'attendance', 'record'],
-    category: 'attendance',
-    answer: 'To mark attendance: Find the member on the Dashboard, then tap "Present" (green) or "Absent" (red) next to their name.',
-    action: { label: 'Go to Dashboard', onClick: () => navigate('dashboard') }
-  },
-  { keywords: ['change', 'date', 'sunday', 'select date'], category: 'attendance', answer: 'To change the attendance date: Tap on the date displayed in the Dashboard header to open the date picker.' },
-  { keywords: ['bulk', 'multiple', 'select all', 'group'], category: 'attendance', answer: 'To mark multiple members: Long-press a member to select, then tap others. Use the top buttons to mark all selected.' },
-
-  // Members
-  {
-    keywords: ['add', 'new member', 'create member'],
-    category: 'members',
-    answer: 'To add a new member: Go to the Dashboard and tap the "+" button.',
-    action: { label: 'Add Member', onClick: () => navigate('dashboard', { openModal: 'addMember' }) }
-  },
-  { keywords: ['edit', 'update', 'modify'], category: 'members', answer: 'To edit a member: Tap their name on the Dashboard to expand, then tap "Edit".' },
-
-  // Navigation
-  {
-    keywords: ['admin', 'admin panel', 'settings'],
-    category: 'navigation',
-    answer: 'The Admin Panel provides advanced settings and reports.',
-    action: { label: 'Open Admin Panel', onClick: () => navigate('admin') }
-  },
-  {
-    keywords: ['analytics', 'stats', 'report'],
-    category: 'analytics',
-    answer: 'The Analytics view shows attendance trends over time.',
-    action: { label: 'View Analytics', onClick: () => navigate('analytics') }
-  },
-
-  // General
-  { keywords: ['hello', 'hi', 'hey'], category: 'greeting', answer: 'Hello! 👋 I\'m your TMH Assistant. I can help you navigate the app or answer questions. Try asking "How to mark attendance?" or "Open Admin Panel".' },
+  // ... existing keywords can stay as fallback or training data ...
 ]
 
 const suggestedQuestions = [
-  'How do I mark attendance?',
+  'Who has the best attendance?',
   'Add a new member',
-  'Go to Admin Panel',
-  'Show Analytics',
-  'What is this app?'
+  'Go to Analytics',
+  'Summary of this month',
+  'Draft an announcement'
 ]
 
 const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
-  const { setDashboardTab, setAndSaveAttendanceDate } = useApp()
+  const { setDashboardTab, members, currentTable, monthlyTables } = useApp()
 
   const [messages, setMessages] = useState([
     {
       id: 1,
       type: 'bot',
-      text: 'Hi! 👋 I\'m your TMH Assistant. You can ask me questions, or tell me to go somewhere (e.g., "Go to Admin"). I can also read answers aloud!',
+      text: 'Hi! 👋 I\'m your TMH Assistant powered by Google Gemini. I have access to your member data and can answer questions or navigate for you!',
       timestamp: new Date()
     }
   ])
@@ -79,6 +51,14 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Speech Synthesis
   const speak = (text) => {
@@ -106,58 +86,13 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
   // Enhanced navigate wrapper
   const handleNavigate = (view, options) => {
     if (onNavigate) onNavigate(view, options)
-    // If specific tab requested
     if (view === 'dashboard' && options?.tab) {
       setDashboardTab(options.tab)
     }
+    if (onClose) onClose()
   }
 
-  // Find Answer Logic
-  const findAnswer = (question) => {
-    const questionLower = question.toLowerCase()
-    const words = questionLower.split(/\s+/)
-
-    // Check for direct navigation commands
-    if (questionLower.includes('go to') || questionLower.includes('open')) {
-      if (questionLower.includes('admin')) return { text: 'Opening Admin Panel...', action: { label: 'Open Admin', onClick: () => handleNavigate('admin') } }
-      if (questionLower.includes('dashboard') || questionLower.includes('home')) return { text: 'Taking you to Dashboard...', action: { label: 'Go to Dashboard', onClick: () => handleNavigate('dashboard') } }
-      if (questionLower.includes('analytics')) return { text: 'Opening Analytics...', action: { label: 'View Analytics', onClick: () => handleNavigate('analytics') } }
-      if (questionLower.includes('settings')) return { text: 'Opening Settings...', action: { label: 'Open Settings', onClick: () => handleNavigate('settings') } }
-    }
-
-    const education = getFaqKnowledge(handleNavigate)
-    let bestMatch = null
-    let bestScore = 0
-
-    for (const faq of education) {
-      let score = 0
-      for (const keyword of faq.keywords) {
-        if (questionLower.includes(keyword.toLowerCase())) {
-          score += keyword.length
-        }
-        for (const word of words) {
-          if (keyword.toLowerCase().includes(word) && word.length > 2) {
-            score += 1
-          }
-        }
-      }
-      if (score > bestScore) {
-        bestScore = score
-        bestMatch = faq
-      }
-    }
-
-    if (bestScore >= 3 && bestMatch) {
-      return { text: bestMatch.answer, action: bestMatch.action }
-    }
-
-    return {
-      text: "I'm not sure about that. Try asking to 'Go to Admin' or 'How to mark attendance'.",
-      action: null
-    }
-  }
-
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return
 
     const userMessage = {
@@ -171,21 +106,78 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
     setInputValue('')
     setIsTyping(true)
 
-    // Simulate AI delay
-    setTimeout(() => {
-      const response = findAnswer(userMessage.text)
+    try {
+      // 1. Prepare Context
+      // Limit members list size to avoid token limits if list is huge, though Flash handles ~1M tokens.
+      const membersContext = members?.map(m =>
+        `- ${m.full_name} (${m.gender}, ${m.current_level}, Status: ${m.is_visitor ? 'Visitor' : 'Member'})`
+      ).join('\n') || "No members found."
+
+      const context = `
+        You are the TMH Teen Ministry Assistant, an AI agent helping to manage a church youth group.
+        
+        SYSTEM CONTEXT:
+        - Current Month/Table: ${currentTable}
+        - Total Members: ${members?.length || 0}
+        - Available Tables: ${monthlyTables?.join(', ') || 'None'}
+        - List of Members:\n${membersContext}
+        
+        INSTRUCTIONS:
+        1. Answer users' questions about their data (attendance, member lists, stats).
+        2. BE BRIEF. Limit answers to 1-2 paragraphs.
+        3. NAVIGATION: If the user explicitly asks to "Go to" or "Open" a page, verify which page and add a short confirmation.
+           (The system will check your text for keywords 'dashboard', 'settings', 'admin', 'analytics' to add a button).
+        4. If asked to add a member, say "I can open the form for you."
+        
+        USER QUESTION: "${userMessage.text}"
+      `
+
+      // 2. Call Gemini
+      const result = await model.generateContent(context)
+      const response = await result.response
+      const botText = response.text()
+
+      // 3. Determine Action based on User Intent (Hybrid approach)
+      let action = null
+      const lowerText = userMessage.text.toLowerCase()
+      const botLower = botText.toLowerCase()
+
+      if (lowerText.includes('dashboard') || lowerText.includes('home')) {
+        action = { label: 'Go to Dashboard', onClick: () => handleNavigate('dashboard') }
+      } else if (lowerText.includes('settings')) {
+        action = { label: 'Open Settings', onClick: () => handleNavigate('settings') }
+      } else if (lowerText.includes('admin')) {
+        action = { label: 'Open Admin', onClick: () => handleNavigate('admin') }
+      } else if (lowerText.includes('analytics') || lowerText.includes('stats')) {
+        action = { label: 'View Analytics', onClick: () => handleNavigate('analytics') }
+      } else if (lowerText.includes('add member') || lowerText.includes('new member')) {
+        action = { label: 'Add Member', onClick: () => handleNavigate('dashboard', { openModal: 'addMember' }) }
+      }
+
       const botMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        text: response.text,
-        action: response.action,
+        text: botText,
+        action: action,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, botMessage])
-      setIsTyping(false)
 
-      // Auto-speak usage tip occasionally? No, potentially annoying.
-    }, 600)
+    } catch (error) {
+      console.error("Gemini Error:", error)
+      let errorMessage = "I'm having trouble connecting to Gemini. Please check your internet connection."
+      if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+        errorMessage = "I'm receiving too many requests right now. Please wait a moment before asking again."
+      }
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        type: 'bot',
+        text: errorMessage,
+        timestamp: new Date()
+      }])
+    } finally {
+      setIsTyping(false)
+    }
   }
 
   const handleQuickQuestion = (question) => {
@@ -202,41 +194,17 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
 
   if (!isOpen) return null
 
-  // Calculate default position (bottom right, but with margin)
-  // Note: react-rnd handles absolute positioning
-  // We use a safe check for window to avoid SSR issues if any, though this is SPA
-  const defaultPosition = {
-    x: typeof window !== 'undefined' && window.innerWidth - 420 > 0 ? window.innerWidth - 420 : 20,
-    y: typeof window !== 'undefined' && window.innerHeight - 600 > 0 ? window.innerHeight - 600 : 80
-  }
-
-  return (
-    <Rnd
-      default={{
-        x: defaultPosition.x,
-        y: defaultPosition.y,
-        width: 380,
-        height: 550
-      }}
-      minWidth={300}
-      minHeight={400}
-      bounds="window"
-      className="z-50 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-      dragHandleClassName="chat-header"
-      enableResizing={{
-        top: false, right: true, bottom: true, left: true,
-        topRight: false, bottomRight: true, bottomLeft: true, topLeft: true
-      }}
-    >
-      {/* Header - Draggable */}
-      <div className="chat-header bg-gradient-to-r from-blue-500 to-purple-600 p-4 flex items-center justify-between cursor-move select-none">
+  const InnerContent = (
+    <>
+      {/* Header */}
+      <div className={`chat-header bg-gradient-to-r from-blue-500 to-purple-600 p-4 flex items-center justify-between ${!isMobile ? 'cursor-move select-none' : ''}`}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
             <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
             <h3 className="font-semibold text-white text-sm">TMH Assistant</h3>
-            <p className="text-[10px] text-white/70">Drag to move • Resize corners</p>
+            <p className="text-[10px] text-white/70">{isMobile ? 'AI Assistant' : 'Drag to move • Resize corners'}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -244,7 +212,7 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
             onClick={onClose}
             className="p-1.5 hover:bg-white/20 rounded-lg transition-colors text-white"
             title="Close"
-            onMouseDown={(e) => e.stopPropagation()} // Prevent drag on close click
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <X className="w-4 h-4" />
           </button>
@@ -252,20 +220,20 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
         {messages.map((message) => (
           <div key={message.id} className={`flex flex-col ${message.type === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`flex gap-2 max-w-[90%] ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm ${message.type === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900'
+                ? 'bg-blue-500 text-white'
+                : 'bg-white/80 dark:bg-gray-800/80 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900'
                 }`}>
                 {message.type === 'user' ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
               </div>
 
-              <div className={`px-4 py-3 rounded-2xl text-sm shadow-sm ${message.type === 'user'
-                  ? 'bg-blue-500 text-white rounded-tr-none'
-                  : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700'
+              <div className={`px-4 py-3 rounded-2xl text-sm shadow-sm backdrop-blur-sm ${message.type === 'user'
+                ? 'bg-blue-500 text-white rounded-tr-none'
+                : 'bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700'
                 }`}>
                 <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>
 
@@ -297,10 +265,10 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
 
         {isTyping && (
           <div className="flex gap-2 items-center ml-1">
-            <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-white/50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 flex items-center justify-center">
               <Bot className="w-4 h-4 text-gray-400" />
             </div>
-            <div className="flex gap-1 bg-gray-200 dark:bg-gray-700 px-3 py-2 rounded-full">
+            <div className="flex gap-1 bg-gray-200/50 dark:bg-gray-700/50 px-3 py-2 rounded-full">
               <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -312,13 +280,13 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
 
       {/* Suggested Chips */}
       {messages.length < 4 && (
-        <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800">
+        <div className="px-4 py-2 bg-transparent border-t border-gray-100/20 dark:border-gray-700/20">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
             {suggestedQuestions.map((q, i) => (
               <button
                 key={i}
                 onClick={() => handleQuickQuestion(q)}
-                className="whitespace-nowrap px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-300 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-all shadow-sm"
+                className="whitespace-nowrap px-3 py-1.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-full text-xs text-gray-600 dark:text-gray-300 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-all shadow-sm"
               >
                 {q}
               </button>
@@ -328,7 +296,7 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
       )}
 
       {/* Input Area */}
-      <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 pb-safe">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -337,7 +305,7 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask AI or say 'Go to...'"
-            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-sm"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-sm backdrop-blur-sm"
           />
           <button
             onClick={handleSend}
@@ -348,6 +316,33 @@ const AIChatAssistant = ({ isOpen, onClose, onNavigate }) => {
           </button>
         </div>
       </div>
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-[100] flex flex-col bg-white dark:bg-gray-900 safe-area-bottom">
+        {InnerContent}
+      </div>
+    )
+  }
+
+  return (
+    <Rnd
+      default={{
+        x: typeof window !== 'undefined' && window.innerWidth - 420 > 0 ? window.innerWidth - 420 : 20,
+        y: typeof window !== 'undefined' && window.innerHeight - 600 > 0 ? window.innerHeight - 600 : 80,
+        width: 380,
+        height: 550
+      }}
+      minWidth={300}
+      minHeight={400}
+      bounds="window"
+      style={{ display: 'flex', flexDirection: 'column' }}
+      className="z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
+      dragHandleClassName="chat-header"
+    >
+      {InnerContent}
     </Rnd>
   )
 }
