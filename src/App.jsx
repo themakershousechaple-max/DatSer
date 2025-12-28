@@ -20,7 +20,7 @@ import OnboardingWizard from './components/OnboardingWizard'
 import AIChatAssistant from './components/AIChatAssistant'
 
 // Context
-import { AppProvider } from './context/AppContext'
+import { AppProvider, useApp } from './context/AppContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
@@ -28,6 +28,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 function AppContent({ isMobile }) {
 
   const { preferences } = useAuth()
+  const { members, loading: appLoading } = useApp()
   const [currentView, setCurrentView] = useState('dashboard')
   const [isAdmin, setIsAdmin] = useState(() => {
     return localStorage.getItem('tmht_admin_session') === 'true'
@@ -37,11 +38,8 @@ function AppContent({ isMobile }) {
   const [showAIChat, setShowAIChat] = useState(false)
 
   // Onboarding wizard for new users
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    const onboardingComplete = localStorage.getItem('onboardingComplete')
-    // Show onboarding if not completed and no workspace name set
-    return !onboardingComplete && !preferences?.workspace_name
-  })
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingAutoChecked, setOnboardingAutoChecked] = useState(false)
 
   // Global modals - accessible from profile dropdown anywhere
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false)
@@ -62,13 +60,26 @@ function AppContent({ isMobile }) {
     window.openDeleteAccount = () => setShowDeleteAccount(true)
     window.openExportData = () => setShowExportData(true)
     window.openSettings = () => setCurrentView('settings')
+    window.openOnboarding = () => setShowOnboarding(true)
     return () => {
       delete window.openWorkspaceSettings
       delete window.openDeleteAccount
       delete window.openExportData
       delete window.openSettings
+      delete window.openOnboarding
     }
   }, [])
+
+  // Auto-show onboarding only for new users without data/workspace
+  useEffect(() => {
+    if (appLoading || onboardingAutoChecked) return
+    const onboardingComplete = localStorage.getItem('onboardingComplete')
+    const hasWorkspace = !!preferences?.workspace_name
+    const hasMembers = (members?.length || 0) > 0
+    const shouldShow = !onboardingComplete && (!hasWorkspace || !hasMembers)
+    setShowOnboarding(shouldShow)
+    setOnboardingAutoChecked(true)
+  }, [appLoading, onboardingAutoChecked, members, preferences])
 
   return (
     <div className={`min-app-vh bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ios-overscroll-none ${isMobile ? 'mobile-toast-top' : ''}`}>

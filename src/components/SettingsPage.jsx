@@ -787,6 +787,21 @@ const SettingsPage = ({ onBack }) => {
                     </div>
                 </div>
 
+                {/* Tutorial / Onboarding */}
+                <button
+                    onClick={() => window.openOnboarding?.()}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl shadow-sm hover:shadow-md transition-all"
+                >
+                    <div className="p-2 bg-white/20 rounded-lg">
+                        <HelpCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 text-left">
+                        <p className="font-semibold">Show Tutorial</p>
+                        <p className="text-sm text-white/80">Replay the getting started guide</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-white/70" />
+                </button>
+
                 {/* Settings Sections */}
                 <div className="w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
                     {sections.filter(s => s.id !== 'danger').map((section) => {
