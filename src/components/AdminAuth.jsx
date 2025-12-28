@@ -1,22 +1,20 @@
 import React, { useState } from 'react'
-import { Lock, Eye, EyeOff, Shield } from 'lucide-react'
+import { Lock, Eye, EyeOff, Shield, LogIn } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
+import { toast } from 'react-toastify'
 
 const AdminAuth = ({ onLogin }) => {
   const { isDarkMode } = useTheme()
+  const { signInWithEmail, signInWithGoogle } = useAuth()
   const [credentials, setCredentials] = useState({
-    username: '',
+    email: '',
     password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
-
-  // Simple admin credentials (in production, this should be handled securely)
-  const ADMIN_CREDENTIALS = {
-    username: 'admin',
-    password: 'tmht2024'
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -24,23 +22,36 @@ const AdminAuth = ({ onLogin }) => {
     setError('')
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      if (
-        credentials.username === ADMIN_CREDENTIALS.username &&
-        credentials.password === ADMIN_CREDENTIALS.password
-      ) {
-        // Store admin session (in production, use secure tokens)
-        localStorage.setItem('tmht_admin_session', 'true')
-        onLogin(true)
-      } else {
-        setError('Invalid username or password')
+      if (!credentials.email || !credentials.password) {
+        setError('Email and password are required')
+        return
       }
-    } catch (error) {
-      setError('Login failed. Please try again.')
+
+      await signInWithEmail(credentials.email, credentials.password)
+      // Mark admin session locally (AdminPanel expects a session)
+      sessionStorage.setItem('adminAuthenticated', 'true')
+      onLogin(true)
+      toast.success('Admin access granted')
+    } catch (err) {
+      setError('Invalid email or password')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true)
+    setError('')
+    try {
+      await signInWithGoogle()
+      // After redirect/login, we trust Supabase session; set admin flag
+      sessionStorage.setItem('adminAuthenticated', 'true')
+      onLogin(true)
+      toast.success('Admin access granted with Google')
+    } catch (err) {
+      setError('Google sign-in failed')
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -50,7 +61,6 @@ const AdminAuth = ({ onLogin }) => {
       ...prev,
       [name]: value
     }))
-    // Clear error when user starts typing
     if (error) setError('')
   }
 
@@ -89,20 +99,20 @@ const AdminAuth = ({ onLogin }) => {
             )}
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Username
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Email
               </label>
               <div className="mt-1 relative">
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
                   required
-                  value={credentials.username}
+                  value={credentials.email}
                   onChange={handleInputChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
@@ -140,7 +150,7 @@ const AdminAuth = ({ onLogin }) => {
             <div>
               <button
                 type="submit"
-                disabled={loading || !credentials.username || !credentials.password}
+                disabled={loading || !credentials.email || !credentials.password}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
@@ -152,6 +162,27 @@ const AdminAuth = ({ onLogin }) => {
                   <div className="flex items-center">
                     <Lock className="w-4 h-4 mr-2" />
                     Sign in
+                  </div>
+                )}
+              </button>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={googleLoading}
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                {googleLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    Signing in with Google...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Continue with Google
                   </div>
                 )}
               </button>

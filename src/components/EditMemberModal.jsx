@@ -271,14 +271,34 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     }))
   }
 
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscKey)
+    return () => {
+      document.removeEventListener('keydown', handleEscKey)
+    }
+  }, [isOpen, onClose])
+
   if (!isOpen || !member) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 backdrop-animate">
-      <div className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 animate-scale-in ${overrideMode
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 backdrop-animate"
+      onClick={onClose}
+    >
+      <div 
+        className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 animate-scale-in ${overrideMode
         ? 'bg-orange-50/90 dark:bg-orange-900/40 backdrop-blur-md ring-orange-300 dark:ring-orange-700 rounded-3xl'
         : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 rounded-xl'
-        }`}>
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className={`flex items-center justify-between p-6 border-b flex-shrink-0 transition-all duration-300 ${overrideMode
           ? 'bg-orange-100/80 dark:bg-orange-800/80 border-orange-200 dark:border-orange-700 rounded-t-3xl'

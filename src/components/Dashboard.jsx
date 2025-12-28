@@ -153,6 +153,17 @@ const Dashboard = ({ isAdmin = false }) => {
   const [missingDates, setMissingDates] = useState([])
   const [pendingAttendanceAction, setPendingAttendanceAction] = useState(null)
 
+  // Bulk Transfer Modal state
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [transferTargetDate, setTransferTargetDate] = useState(null)
+  const [isTransferring, setIsTransferring] = useState(false)
+  const [selectedTransferIds, setSelectedTransferIds] = useState(new Set())
+
+  // Auto-Sunday feature (auto-select current Sunday)
+  const [autoSundayEnabled, setAutoSundayEnabled] = useState(() => {
+    return localStorage.getItem('autoSundayEnabled') === 'true'
+  })
+
   // Long-press selection hook (works with both touch and mouse)
   const {
     selectionMode,
@@ -299,6 +310,38 @@ const Dashboard = ({ isAdmin = false }) => {
 
   // Generate Sunday dates dynamically based on current table
   const sundayDates = generateSundayDates(currentTable)
+
+  // Auto-Sunday: Find and select current Sunday (if today is Sunday) or most recent past Sunday
+  useEffect(() => {
+    if (!autoSundayEnabled || sundayDates.length === 0) return
+    
+    const today = new Date()
+    const todayStr = getDateString(today)
+    const isTodaySunday = today.getDay() === 0 // 0 = Sunday
+    
+    let targetSunday = null
+    
+    // If today is a Sunday and it's in our list, select it
+    if (isTodaySunday && sundayDates.includes(todayStr)) {
+      targetSunday = todayStr
+    } else {
+      // Otherwise find the most recent past Sunday
+      for (const dateStr of sundayDates) {
+        if (dateStr <= todayStr) {
+          targetSunday = dateStr
+        }
+      }
+    }
+    
+    // If no past Sunday found, use the first upcoming Sunday
+    if (!targetSunday && sundayDates.length > 0) {
+      targetSunday = sundayDates[0]
+    }
+    
+    if (targetSunday && targetSunday !== selectedSundayDate) {
+      setSelectedSundayDate(targetSunday)
+    }
+  }, [autoSundayEnabled, sundayDates, currentTable])
 
   // Aggregated counts across selected or all Sundays for Edited Members
   const selectedDatesForCounting = selectedBulkSundayDates && selectedBulkSundayDates.size > 0
@@ -804,6 +847,122 @@ const Dashboard = ({ isAdmin = false }) => {
 
   const clearSundayBulkSelection = () => setSelectedBulkSundayDates(new Set())
 
+  // Bulk Transfer attendance from one Sunday to another
+  const handleBulkTransfer = async () => {
+    if (!selectedSundayDate || !transferTargetDate) {
+      toast.error('Please select both source and target dates')
+      return
+    }
+    if (selectedSundayDate === transferTargetDate) {
+      toast.error('Source and target dates cannot be the same')
+      return
+    }
+
+    const sourceMap = attendanceData[selectedSundayDate] || {}
+    
+    // Filter by selected members if any are selected
+    const idsToTransfer = selectedTransferIds.size > 0 
+      ? Array.from(selectedTransferIds)
+      : Object.keys(sourceMap).filter(id => sourceMap[id] === true || sourceMap[id] === false)
+
+    const presentIds = idsToTransfer.filter(id => sourceMap[id] === true)
+    const absentIds = idsToTransfer.filter(id => sourceMap[id] === false)
+
+    if (presentIds.length === 0 && absentIds.length === 0) {
+      toast.error('No attendance records to transfer')
+      return
+    }
+
+    setIsTransferring(true)
+    try {
+      // Transfer present members
+      if (presentIds.length > 0) {
+        await bulkAttendance(presentIds, new Date(transferTargetDate), true)
+      }
+      // Transfer absent members
+      if (absentIds.length > 0) {
+        await bulkAttendance(absentIds, new Date(transferTargetDate), false)
+      }
+
+      // Clear source date attendance for transferred members
+      for (const id of [...presentIds, ...absentIds]) {
+        await markAttendance(id, new Date(selectedSundayDate), null)
+      }
+
+      // Refresh attendance data
+      const newSourceMap = await fetchAttendanceForDate(new Date(selectedSundayDate))
+      const newTargetMap = await fetchAttendanceForDate(new Date(transferTargetDate))
+      setAttendanceData(prev => ({
+        ...prev,
+        [selectedSundayDate]: newSourceMap,
+        [transferTargetDate]: newTargetMap
+      }))
+
+      const sourceLabel = new Date(selectedSundayDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const targetLabel = new Date(transferTargetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      toast.success(`Transferred ${presentIds.length + absentIds.length} records from ${sourceLabel} to ${targetLabel}`)
+      
+      // Close modal and reset selection
+      setShowTransferModal(false)
+      setTransferTargetDate(null)
+      setSelectedTransferIds(new Set())
+      setSelectedSundayDate(transferTargetDate) // Switch to target date
+    } catch (error) {
+      console.error('Transfer failed:', error)
+      toast.error('Failed to transfer attendance. Please try again.')
+    } finally {
+      setIsTransferring(false)
+    }
+  }
+
+  // Initialize selected transfer IDs when modal opens
+  const openTransferModal = () => {
+    setSelectedTransferIds(new Set()) // Start with none selected by default
+    setShowTransferModal(true)
+  }
+
+  // Select only members registered today
+  const selectTodayMembers = () => {
+    const sourceMap = attendanceData[selectedSundayDate] || {}
+    const memberIds = Object.keys(sourceMap).filter(id => sourceMap[id] === true || sourceMap[id] === false)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const todayIds = memberIds.filter(id => {
+      const member = members.find(m => m.id === id)
+      if (!member) return false
+      const createdAt = member.created_at || member.inserted_at
+      if (!createdAt) return false
+      const regDate = new Date(createdAt)
+      regDate.setHours(0, 0, 0, 0)
+      return regDate.getTime() === today.getTime()
+    })
+
+    setSelectedTransferIds(new Set(todayIds))
+  }
+
+  // Toggle transfer member selection
+  const toggleTransferMember = (id) => {
+    setSelectedTransferIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // Toggle Auto-Sunday feature
+  const toggleAutoSunday = () => {
+    const newValue = !autoSundayEnabled
+    setAutoSundayEnabled(newValue)
+    localStorage.setItem('autoSundayEnabled', newValue.toString())
+    if (newValue) {
+      toast.success('Auto-Sunday enabled - will auto-select current Sunday')
+    } else {
+      toast.info('Auto-Sunday disabled')
+    }
+  }
+
   // Bulk apply attendance to selected members and Sundays
   const handleMultiAttendanceAction = async (status) => {
     const memberIds = Array.from(selectedMemberIds)
@@ -986,15 +1145,39 @@ const Dashboard = ({ isAdmin = false }) => {
               <Calendar className="w-4 h-4 text-primary-600" />
               {getMonthDisplayName(currentTable)} Sundays
             </h3>
-            {selectedSundayDate && (
+            <div className="flex items-center gap-2">
+              {/* Auto-Sunday Toggle */}
               <button
-                onClick={() => setSelectedSundayDate(null)}
-                className="text-xs sm:text-sm px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                title="Clear date selection"
+                onClick={toggleAutoSunday}
+                className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 transition-colors ${
+                  autoSundayEnabled
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600'
+                }`}
+                title={autoSundayEnabled ? 'Auto-Sunday ON: Will auto-select current Sunday' : 'Auto-Sunday OFF: Manual date selection'}
               >
-                Clear
+                <span className={`w-2 h-2 rounded-full ${autoSundayEnabled ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                Auto
               </button>
-            )}
+              {selectedSundayDate && (
+                <>
+                  <button
+                    onClick={openTransferModal}
+                    className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 border border-blue-300 dark:border-blue-700"
+                    title="Transfer attendance to another date"
+                  >
+                    Transfer
+                  </button>
+                  <button
+                    onClick={() => setSelectedSundayDate(null)}
+                    className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    title="Clear date selection"
+                  >
+                    Clear
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Sunday date chips */}
@@ -1046,31 +1229,145 @@ const Dashboard = ({ isAdmin = false }) => {
 
           {/* Attendance summary for selected Sunday */}
           {selectedSundayDate && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-3">
               {(() => {
                 const dateObj = new Date(selectedSundayDate)
                 const labelFull = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
                 const map = attendanceData[selectedSundayDate] || {}
-                const presentCount = members.filter(m => map[m.id] === true).length
-                const absentCount = members.filter(m => map[m.id] === false).length
+                const presentMembers = members.filter(m => map[m.id] === true)
+                const absentMembers = members.filter(m => map[m.id] === false)
+                const presentCount = presentMembers.length
+                const absentCount = absentMembers.length
+
+                // Sort by name
+                const sortByName = (a, b) => {
+                  const nameA = (a['full_name'] || a['Full Name'] || '').toLowerCase()
+                  const nameB = (b['full_name'] || b['Full Name'] || '').toLowerCase()
+                  return nameA.localeCompare(nameB)
+                }
+                presentMembers.sort(sortByName)
+                absentMembers.sort(sortByName)
+
                 return (
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {labelFull}
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                          <span className="text-green-600 dark:text-green-400 font-medium">{presentCount} Present</span>
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                          <span className="text-red-600 dark:text-red-400 font-medium">{absentCount} Absent</span>
-                        </span>
+                  <>
+                    {/* Summary Header */}
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {labelFull}
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span className="text-green-600 dark:text-green-400 font-medium">{presentCount} Present</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            <span className="text-red-600 dark:text-red-400 font-medium">{absentCount} Absent</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+
+                    {/* Registered Members List - Side by Side Collapsible */}
+                    {(presentCount > 0 || absentCount > 0) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Present Members - Left Column (Collapsible) */}
+                        <details className="bg-white dark:bg-gray-800 rounded-xl border border-green-200 dark:border-green-900/50 overflow-hidden">
+                          <summary className="px-3 py-2.5 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-900/50 cursor-pointer list-none flex items-center justify-between hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+                            <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                              Present ({presentCount})
+                            </h4>
+                            <ChevronDown className="w-4 h-4 text-green-600 dark:text-green-400 transition-transform [details[open]>&]:rotate-180" />
+                          </summary>
+                          <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-64 overflow-y-auto">
+                            {presentCount === 0 ? (
+                              <div className="px-3 py-4 text-center text-sm text-gray-400 dark:text-gray-500">No one present</div>
+                            ) : (
+                              presentMembers.map((member, index) => {
+                                const name = member['full_name'] || member['Full Name'] || 'Unknown'
+                                const createdAt = member.created_at || member.inserted_at ? new Date(member.created_at || member.inserted_at) : null
+                                const dateStr = createdAt 
+                                  ? createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                  : ''
+                                const timeStr = createdAt 
+                                  ? createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
+                                  : ''
+                                return (
+                                  <button
+                                    key={member.id}
+                                    onClick={() => setEditingMember(member)}
+                                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors text-left"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
+                                        {index + 1}
+                                      </div>
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{name}</p>
+                                    </div>
+                                    {createdAt && (
+                                      <div className="flex-shrink-0 text-right">
+                                        <p className="text-xs font-medium text-gray-700 dark:text-white">{dateStr}</p>
+                                        <p className="text-xs font-semibold text-green-600 dark:text-green-400">{timeStr}</p>
+                                      </div>
+                                    )}
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        </details>
+
+                        {/* Absent Members - Right Column (Collapsible) */}
+                        <details className="bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-900/50 overflow-hidden">
+                          <summary className="px-3 py-2.5 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-900/50 cursor-pointer list-none flex items-center justify-between hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+                            <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                              Absent ({absentCount})
+                            </h4>
+                            <ChevronDown className="w-4 h-4 text-red-600 dark:text-red-400 transition-transform [details[open]>&]:rotate-180" />
+                          </summary>
+                          <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-64 overflow-y-auto">
+                            {absentCount === 0 ? (
+                              <div className="px-3 py-4 text-center text-sm text-gray-400 dark:text-gray-500">No one absent</div>
+                            ) : (
+                              absentMembers.map((member, index) => {
+                                const name = member['full_name'] || member['Full Name'] || 'Unknown'
+                                const createdAt = member.created_at || member.inserted_at ? new Date(member.created_at || member.inserted_at) : null
+                                const dateStr = createdAt 
+                                  ? createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                  : ''
+                                const timeStr = createdAt 
+                                  ? createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
+                                  : ''
+                                return (
+                                  <button
+                                    key={member.id}
+                                    onClick={() => setEditingMember(member)}
+                                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
+                                        {index + 1}
+                                      </div>
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{name}</p>
+                                    </div>
+                                    {createdAt && (
+                                      <div className="flex-shrink-0 text-right">
+                                        <p className="text-xs font-medium text-gray-700 dark:text-white">{dateStr}</p>
+                                        <p className="text-xs font-semibold text-red-600 dark:text-red-400">{timeStr}</p>
+                                      </div>
+                                    )}
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        </details>
+                      </div>
+                    )}
+                  </>
                 )
               })()}
             </div>
@@ -1473,28 +1770,26 @@ const Dashboard = ({ isAdmin = false }) => {
 
                                     return (
                                       <div className="mt-3 p-3 rounded-lg bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border border-primary-200 dark:border-primary-800/50">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-800/50 flex items-center justify-center">
-                                              <Calendar className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                                            </div>
-                                            <div>
-                                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Registered</p>
-                                              <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                {regDate.toLocaleDateString('en-US', { 
-                                                  weekday: 'short',
-                                                  month: 'short', 
-                                                  day: 'numeric',
-                                                  year: 'numeric'
-                                                })}
-                                              </p>
-                                            </div>
+                                        <div className="flex items-start gap-3">
+                                          <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-800/50 flex items-center justify-center flex-shrink-0">
+                                            <Calendar className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                                           </div>
-                                          <div className="text-right">
-                                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${badgeColor}`}>
-                                              {relativeTime}
-                                            </span>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Registered</p>
+                                              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${badgeColor}`}>
+                                                {relativeTime}
+                                              </span>
+                                            </div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
+                                              {regDate.toLocaleDateString('en-US', { 
+                                                weekday: 'short',
+                                                month: 'short', 
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                              })}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
                                               {regDate.toLocaleTimeString('en-US', { 
                                                 hour: '2-digit', 
                                                 minute: '2-digit'
@@ -1779,8 +2074,15 @@ const Dashboard = ({ isAdmin = false }) => {
 
       {/* Delete Confirm Modal */}
       {isDeleteConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md mx-4 overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm"
+          onClick={() => { setIsDeleteConfirmOpen(false); setMemberToDelete(null) }}
+          onKeyDown={(e) => e.key === 'Escape' && (setIsDeleteConfirmOpen(false), setMemberToDelete(null))}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md mx-4 overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header with warning icon */}
             <div className="px-6 py-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1862,6 +2164,189 @@ const Dashboard = ({ isAdmin = false }) => {
         cancelButtonClass={confirmModalConfig.cancelButtonClass}
       />
 
+      {/* Bulk Transfer Modal */}
+      {showTransferModal && selectedSundayDate && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm"
+          onClick={() => { setShowTransferModal(false); setTransferTargetDate(null); setSelectedTransferIds(new Set()) }}
+          onKeyDown={(e) => e.key === 'Escape' && (setShowTransferModal(false), setTransferTargetDate(null), setSelectedTransferIds(new Set()))}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg mx-4 overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 py-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">Transfer Attendance</h3>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">Select members to transfer</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowTransferModal(false); setTransferTargetDate(null); setSelectedTransferIds(new Set()) }}
+                className="p-2 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-3 overflow-y-auto flex-1">
+              {/* Source Date & Target Selection Row */}
+              <div className="flex gap-3">
+                <div className="flex-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">From</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {new Date(selectedSundayDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">To</p>
+                  <select
+                    value={transferTargetDate || ''}
+                    onChange={(e) => setTransferTargetDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select date</option>
+                    {sundayDates.filter(d => d !== selectedSundayDate).map(dateStr => (
+                      <option key={dateStr} value={dateStr}>
+                        {new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Members List with Checkboxes */}
+              <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">
+                    Members ({selectedTransferIds.size} selected)
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={selectTodayMembers}
+                      className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={() => {
+                        const sourceMap = attendanceData[selectedSundayDate] || {}
+                        const allIds = Object.keys(sourceMap).filter(id => sourceMap[id] === true || sourceMap[id] === false)
+                        setSelectedTransferIds(selectedTransferIds.size === allIds.length ? new Set() : new Set(allIds))
+                      }}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {selectedTransferIds.size === Object.keys(attendanceData[selectedSundayDate] || {}).filter(id => (attendanceData[selectedSundayDate] || {})[id] === true || (attendanceData[selectedSundayDate] || {})[id] === false).length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                  {(() => {
+                    const sourceMap = attendanceData[selectedSundayDate] || {}
+                    const memberIds = Object.keys(sourceMap).filter(id => sourceMap[id] === true || sourceMap[id] === false)
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
+
+                    if (memberIds.length === 0) {
+                      return (
+                        <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+                          No attendance records for this date
+                        </div>
+                      )
+                    }
+
+                    return memberIds.map(id => {
+                      const member = members.find(m => m.id === id)
+                      if (!member) return null
+                      const name = member['full_name'] || member['Full Name'] || 'Unknown'
+                      const isPresent = sourceMap[id] === true
+                      const isSelected = selectedTransferIds.has(id)
+                      
+                      // Check if registered today
+                      const createdAt = member.created_at || member.inserted_at
+                      const regDate = createdAt ? new Date(createdAt) : null
+                      let isRegisteredToday = false
+                      let regTimeStr = ''
+                      if (regDate) {
+                        const regDateOnly = new Date(regDate)
+                        regDateOnly.setHours(0, 0, 0, 0)
+                        isRegisteredToday = regDateOnly.getTime() === today.getTime()
+                        regTimeStr = regDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
+                      }
+
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => toggleTransferMember(id)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors text-left ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                        >
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            isSelected 
+                              ? 'bg-blue-600 border-blue-600' 
+                              : 'border-gray-300 dark:border-gray-500'
+                          }`}>
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{name}</p>
+                              {isRegisteredToday && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                                  Today {regTimeStr}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isPresent ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        </button>
+                      )
+                    })
+                  })()}
+                </div>
+              </div>
+
+              {/* Info */}
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                Selected members will be moved from source to target date
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex gap-3 flex-shrink-0">
+              <button
+                onClick={() => { setShowTransferModal(false); setTransferTargetDate(null); setSelectedTransferIds(new Set()) }}
+                className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkTransfer}
+                disabled={!transferTargetDate || isTransferring || selectedTransferIds.size === 0}
+                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                {isTransferring ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Transferring...
+                  </>
+                ) : (
+                  `Transfer ${selectedTransferIds.size}`
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Missing Data Modal */}
       {showMissingDataModal && missingDataMember && (
         <MissingDataModal
@@ -1889,7 +2374,10 @@ const Dashboard = ({ isAdmin = false }) => {
 
       {/* Filter Modal */}
       {showFilters && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+        <div 
+          className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
+          onKeyDown={(e) => e.key === 'Escape' && setShowFilters(false)}
+        >
           {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"

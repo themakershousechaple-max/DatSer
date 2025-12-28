@@ -30,7 +30,8 @@ import {
   Download,
   LogOut,
   Shield,
-  Lock
+  Lock,
+  LogIn
 } from 'lucide-react'
 
 const AdminPanel = ({ setCurrentView, onBack }) => {
@@ -44,7 +45,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     calculateAttendanceRate
   } = useApp()
   const { isDarkMode } = useTheme()
-  const { user } = useAuth()
+  const { user, signInWithGoogle } = useAuth()
 
   // Admin password protection - uses the same password as user's account
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -67,6 +68,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
   const [lastActivity, setLastActivity] = useState(Date.now())
   const AUTO_LOCK_MINUTES = 15 // Auto-lock after 15 minutes of inactivity
+  const [isGoogleAuthing, setIsGoogleAuthing] = useState(false)
 
   // Auto-lock timer - locks admin panel after inactivity
   useEffect(() => {
@@ -147,6 +149,24 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     sessionStorage.removeItem('adminAuthenticated')
     localStorage.removeItem('adminStayLoggedIn')
     localStorage.removeItem('adminAuthExpiry')
+  }
+
+  // Google SSO for admin access (one-step)
+  const handleGoogleAdminAccess = async () => {
+    setIsGoogleAuthing(true)
+    try {
+      await signInWithGoogle()
+      // After OAuth completes/returns, grant admin session
+      sessionStorage.setItem('adminAuthenticated', 'true')
+      setIsAuthenticated(true)
+      setLastActivity(Date.now())
+      toast.success('Admin access granted with Google')
+    } catch (err) {
+      console.error('Google admin access failed:', err)
+      toast.error('Google sign-in failed for admin access')
+    } finally {
+      setIsGoogleAuthing(false)
+    }
   }
 
   // Badge processing state
@@ -696,7 +716,42 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
                   </>
                 )}
               </button>
-              
+
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2">
+                  <LogIn className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>Use Google SSO. First tap “Continue with Google” to sign in, then tap “Use Google session” after you return.</span>
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGoogleAdminAccess}
+                    disabled={isGoogleAuthing}
+                    className="flex-1 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-70 flex items-center justify-center gap-2"
+                  >
+                    {isGoogleAuthing ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="w-4 h-4" />
+                        Continue with Google
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={unlockWithGoogleSession}
+                    className="flex-1 py-3 border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-100 font-semibold rounded-xl transition-all shadow-sm hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center gap-2"
+                  >
+                    <Shield className="w-4 h-4" />
+                    Use Google session
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setCurrentView('dashboard')}
