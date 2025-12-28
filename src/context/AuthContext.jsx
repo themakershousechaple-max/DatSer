@@ -244,17 +244,21 @@ export const AuthProvider = ({ children }) => {
       if (supabase) {
         const redirectUrl = `${window.location.origin}${window.location.pathname}`
 
-        const { data, error } = await supabase.auth.signUp({
+        const signUpOptions = {
           email,
           password,
           options: {
             emailRedirectTo: redirectUrl,
-            captchaToken,
             data: {
               full_name: fullName
             }
           }
-        })
+        }
+        // Only add captchaToken if it exists
+        if (captchaToken) {
+          signUpOptions.options.captchaToken = captchaToken
+        }
+        const { data, error } = await supabase.auth.signUp(signUpOptions)
 
         if (error) throw error
 
@@ -286,11 +290,12 @@ export const AuthProvider = ({ children }) => {
   const signInWithEmail = async (email, password, captchaToken) => {
     try {
       if (supabase) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-          options: { captchaToken }
-        })
+        const signInOptions = { email, password }
+        // Only add captchaToken if it exists
+        if (captchaToken) {
+          signInOptions.options = { captchaToken }
+        }
+        const { data, error } = await supabase.auth.signInWithPassword(signInOptions)
 
         if (error) throw error
         return data
@@ -314,10 +319,12 @@ export const AuthProvider = ({ children }) => {
       if (supabase) {
         const redirectUrl = `${window.location.origin}${window.location.pathname}`
 
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: redirectUrl,
-          captchaToken
-        })
+        const resetOptions = { redirectTo: redirectUrl }
+        // Only add captchaToken if it exists
+        if (captchaToken) {
+          resetOptions.captchaToken = captchaToken
+        }
+        const { error } = await supabase.auth.resetPasswordForEmail(email, resetOptions)
 
         if (error) throw error
         toast.success('Password reset email sent! Check your inbox.')

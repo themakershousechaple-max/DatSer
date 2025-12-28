@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Check, X } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 
-// Turnstile site key from environment
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAACJWecqQ0J7pqNqBX'
+// Turnstile site key from environment - use test key that always passes if not configured
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
 
 // Password strength calculator
 const getPasswordStrength = (password) => {
@@ -76,15 +76,8 @@ const LoginPage = () => {
     setIsLoading(true)
     setError(null)
     try {
-      if (!captchaToken) {
-        // In development, we might want to allow bypassing if the captcha is misconfigured, but Supabase will reject it if required.
-        // For now, we enforce it but will log if missing.
-        console.warn('Captcha token missing')
-        setError('Please complete the security check')
-        setIsLoading(false)
-        return
-      }
-      await signInWithEmail(email, password, captchaToken)
+      // Allow login even without captcha token (captcha may not be configured)
+      await signInWithEmail(email, password, captchaToken || undefined)
       setCaptchaToken(null)
       turnstileRef.current?.reset()
       setLoginAttempts(0) // Reset on success
@@ -123,15 +116,11 @@ const LoginPage = () => {
       setError('Password must be at least 10 characters')
       return
     }
-    if (!captchaToken) {
-      setError('Please complete the security check')
-      return
-    }
-
     setIsLoading(true)
     setError(null)
     try {
-      const result = await signUpWithEmail(email, password, fullName, captchaToken)
+      // Allow signup even without captcha token (captcha may not be configured)
+      const result = await signUpWithEmail(email, password, fullName, captchaToken || undefined)
       setCaptchaToken(null)
       turnstileRef.current?.reset()
       if (result?.needsConfirmation) {
@@ -155,13 +144,9 @@ const LoginPage = () => {
 
     setIsLoading(true)
     setError(null)
-    if (!captchaToken) {
-      setError('Please complete the security check')
-      setIsLoading(false)
-      return
-    }
     try {
-      await resetPassword(email, captchaToken)
+      // Allow password reset even without captcha token (captcha may not be configured)
+      await resetPassword(email, captchaToken || undefined)
       setCaptchaToken(null)
       turnstileRef.current?.reset()
       setConfirmationSent(true)
@@ -371,7 +356,7 @@ const LoginPage = () => {
             <div className="mb-4 flex justify-center">
               <Turnstile
                 ref={turnstileRef}
-                siteKey="1x00000000000000000000AA"
+                siteKey={TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setCaptchaToken(token)}
                 onError={() => setCaptchaToken(null)}
                 onExpire={() => setCaptchaToken(null)}
