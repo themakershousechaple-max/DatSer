@@ -1,23 +1,31 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { useAuth } from './AuthContext'
 
 const ThemeContext = createContext()
 
 export const useTheme = () => {
   const context = useContext(ThemeContext)
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider')
-  }
   return context
 }
 
 export const ThemeProvider = ({ children }) => {
+  const { user, saveUserPreferences, preferences } = useAuth()
+  
   const [themeMode, setThemeMode] = useState(() => {
-    return localStorage.getItem('themeMode') || 'system'
+    return preferences?.theme_mode || localStorage.getItem('themeMode') || 'system'
   })
 
   const [systemTheme, setSystemTheme] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   )
+
+  const [fontSize, setFontSize] = useState(() => {
+    return preferences?.font_size || localStorage.getItem('fontSize') || '16'
+  })
+
+  const [fontFamily, setFontFamily] = useState(() => {
+    return preferences?.font_family || localStorage.getItem('fontFamily') || 'Inter'
+  })
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
@@ -42,6 +50,26 @@ export const ThemeProvider = ({ children }) => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
   }, [themeMode, isDarkMode])
 
+  useEffect(() => {
+    localStorage.setItem('fontSize', fontSize)
+    document.documentElement.style.setProperty('--font-size-base', `${fontSize}px`)
+    
+    // Save to backend if user is logged in
+    if (user && saveUserPreferences) {
+      saveUserPreferences({ font_size: fontSize }).catch(console.error)
+    }
+  }, [fontSize, user, saveUserPreferences])
+
+  useEffect(() => {
+    localStorage.setItem('fontFamily', fontFamily)
+    document.documentElement.style.setProperty('--font-family', fontFamily)
+    
+    // Save to backend if user is logged in
+    if (user && saveUserPreferences) {
+      saveUserPreferences({ font_family: fontFamily }).catch(console.error)
+    }
+  }, [fontFamily, user, saveUserPreferences])
+
   const toggleTheme = () => {
     // Simple toggle overrides system preference
     setThemeMode((prev) => {
@@ -55,7 +83,11 @@ export const ThemeProvider = ({ children }) => {
     toggleTheme,
     themeMode,
     setThemeMode,
-    theme: resolvedTheme
+    theme: resolvedTheme,
+    fontSize,
+    setFontSize,
+    fontFamily,
+    setFontFamily
   }
 
   return (

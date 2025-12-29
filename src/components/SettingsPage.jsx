@@ -41,7 +41,7 @@ import HelpCenterPage from './HelpCenterPage'
 
 const SettingsPage = ({ onBack }) => {
     const { user, signOut, preferences } = useAuth()
-    const { isDarkMode, toggleTheme, themeMode, setThemeMode } = useTheme()
+    const { isDarkMode, toggleTheme, themeMode, setThemeMode, fontSize, setFontSize, fontFamily, setFontFamily } = useTheme()
     const { members, monthlyTables, currentTable, setCurrentTable, isSupabaseConfigured } = useApp()
 
     const [activeSection, setActiveSection] = useState(null) // null = show main list
@@ -630,6 +630,67 @@ const SettingsPage = ({ onBack }) => {
                             )}
                         </div>
                     </button>
+                </div>
+            </div>
+
+            {/* Font Size */}
+            <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Font Size</h4>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-4">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px]">Small</span>
+                        <input
+                            type="range"
+                            min="14"
+                            max="20"
+                            value={fontSize}
+                            onChange={(e) => setFontSize(e.target.value)}
+                            className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                            style={{
+                                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((fontSize - 14) / 6) * 100}%, #e5e7eb ${((fontSize - 14) / 6) * 100}%, #e5e7eb 100%)`
+                            }}
+                        />
+                        <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px] text-right">Large</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>14px</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{fontSize}px</span>
+                        <span>20px</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Font Family */}
+            <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Font Family</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {[
+                        { value: 'Inter', label: 'Inter', description: 'Modern sans-serif' },
+                        { value: 'system-ui', label: 'System', description: 'OS default' },
+                        { value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', label: 'SF Pro', description: 'Apple-style' },
+                        { value: 'Roboto, "Helvetica Neue", Arial, sans-serif', label: 'Roboto', description: 'Material Design' },
+                        { value: '"Merriweather", Georgia, serif', label: 'Merriweather', description: 'Serif, readable' }
+                    ].map((font) => (
+                        <button
+                            key={font.value}
+                            onClick={() => setFontFamily(font.value)}
+                            className={`p-3 rounded-lg border-2 transition-all text-left ${
+                                fontFamily === font.value
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <div className="font-medium text-gray-900 dark:text-white text-sm" style={{ fontFamily: font.value }}>
+                                {font.label}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                {font.description}
+                            </div>
+                            {fontFamily === font.value && (
+                                <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-1" />
+                            )}
+                        </button>
+                    ))}
                 </div>
             </div>
         </div>

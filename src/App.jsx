@@ -253,13 +253,13 @@ function App() {
   }, [])
 
   return (
-    <ThemeProvider>
-      <ErrorBoundary>
-        <AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeProvider>
           <AuthenticatedApp isMobile={isMobile} />
-        </AuthProvider>
-      </ErrorBoundary>
-    </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
