@@ -1,16 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Users,
-  TrendingUp,
-  Menu,
-  X,
   CheckSquare,
-  Calendar,
   ChevronDown,
   HelpCircle,
-  Sparkles
+  TrendingUp
 } from 'lucide-react'
-import DateSelector from './DateSelector'
 import MonthPickerPopup from './MonthPickerPopup'
 import { useApp } from '../context/AppContext'
 import LoginButton from './LoginButton'
@@ -34,21 +29,8 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
     setAndSaveAttendanceDate,
     focusDateSelector
   } = useApp()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [showEditedDropdown, setShowEditedDropdown] = useState(false)
   const [showMonthPicker, setShowMonthPicker] = useState(false)
-  const dropdownRef = useRef(null)
-  const mobileDropdownRef = useRef(null)
-  const editedDropdownRef = useRef(null)
   const monthButtonRef = useRef(null)
-  // Badge filter moved to Edited page; header popup removed
-  const drawerRef = useRef(null)
-  // Close drawer with Escape key
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') setShowDropdown(false) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
   // Debounced search input for performance on low-end devices
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
 
@@ -67,26 +49,6 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
     return () => clearTimeout(tid)
   }, [localSearchTerm])
 
-  // Close dropdown when clicking outside (supports desktop and mobile dropdowns)
-  useEffect(() => {
-    const handleOutside = (event) => {
-      const inDesktop = dropdownRef.current?.contains(event.target)
-      const inMobile = mobileDropdownRef.current?.contains(event.target)
-      const inDrawer = drawerRef.current?.contains(event.target)
-      const inEdited = editedDropdownRef.current?.contains(event.target)
-      if (!inDesktop && !inMobile && !inDrawer && !inEdited) {
-        setShowDropdown(false)
-        setShowEditedDropdown(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleOutside)
-    document.addEventListener('touchstart', handleOutside, { passive: true })
-    return () => {
-      document.removeEventListener('mousedown', handleOutside)
-      document.removeEventListener('touchstart', handleOutside)
-    }
-  }, [])
 
   const generateSundayDates = (table) => {
     if (!table) return []
@@ -186,41 +148,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
     }
   }, [filteredMembers, attendanceData])
 
-  // Exclusive badge filter helper removed; inline badge chips now live on the Edited page
-
-  const menuItems = [
-    {
-      id: 'edited_members',
-      label: `Marked (${editedCount})`,
-      icon: CheckSquare,
-      onClick: () => { setCurrentView('dashboard'); setDashboardTab('edited') }
-    },
-    {
-      id: 'duplicates',
-      label: 'Duplicate Names',
-      icon: Users,
-      onClick: () => { setCurrentView('dashboard'); setDashboardTab('duplicates') }
-    },
-    {
-      id: 'admin',
-      label: 'Admin Panel',
-      icon: TrendingUp,
-      onClick: () => { setCurrentView('admin') }
-    },
-    // Action: Create new month goes into the menu
-    {
-      id: 'create_month',
-      label: 'Create New Month',
-      icon: Calendar,
-      onClick: onCreateMonth
-    },
-    {
-      id: 'ai_assistant',
-      label: 'AI Assistant',
-      icon: Sparkles,
-      onClick: onToggleAIChat
-    }
-  ]
+  // Menu items moved to LoginButton profile dropdown
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm md:border-b border-gray-200 dark:border-gray-700 z-50 w-full safe-area-top fixed top-0 left-0 right-0">
@@ -294,22 +222,15 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
                 <HelpCircle className="w-4 h-4" />
               </button>
 
-              {/* Profile/Login Button */}
-              <LoginButton />
-
-              {/* Menu Button (for more options) */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className={`flex items-center gap-1.5 p-2 rounded-lg text-sm font-medium transition-colors border border-gray-200 dark:border-gray-600 ${showDropdown
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  title="More options"
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
-              </div>
+              {/* Profile/Login Button - now contains all menu options */}
+              <LoginButton
+                onCreateMonth={onCreateMonth}
+                onToggleAIChat={onToggleAIChat}
+                setCurrentView={setCurrentView}
+                setDashboardTab={setDashboardTab}
+                currentView={currentView}
+                dashboardTab={dashboardTab}
+              />
             </div>
           </div>
         </div>
@@ -317,39 +238,50 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
         {/* Mobile Navigation */}
         <div className="md:hidden py-0">
           <div className="flex items-center justify-between">
-            {/* Left: Logo/Home */}
-            <button
-              onClick={() => {
-                setCurrentView('dashboard');
-                setDashboardTab('all');
-              }}
-              className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
-                ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Members</span>
-            </button>
+            {/* Left: Quick nav */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  setCurrentView('dashboard');
+                  setDashboardTab('all');
+                }}
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'all'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                title="Members"
+              >
+                <Users className="w-4 h-4" />
+                <span>Members</span>
+              </button>
+              <button
+                onClick={() => { setCurrentView('dashboard'); setDashboardTab('edited') }}
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited'
+                  ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                title="Marked"
+              >
+                <CheckSquare className="w-4 h-4" />
+                <span>Marked</span>
+                {editedCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
+                    {editedCount}
+                  </span>
+                )}
+              </button>
+            </div>
 
-            {/* Right: Profile + Menu */}
-            <div className="flex items-center gap-2">
-              {/* Profile/Login Button */}
-              <LoginButton />
-
-              {/* Menu Button */}
-              <div className="relative" ref={mobileDropdownRef}>
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className={`p-2 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 ${showDropdown
-                    ? 'bg-gray-100 dark:bg-gray-700'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  title="Menu"
-                >
-                  <Menu className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                </button>
-              </div>
+            {/* Right: Profile (contains all menu options) */}
+            <div className="flex items-center">
+              <LoginButton
+                onCreateMonth={onCreateMonth}
+                onToggleAIChat={onToggleAIChat}
+                setCurrentView={setCurrentView}
+                setDashboardTab={setDashboardTab}
+                currentView={currentView}
+                dashboardTab={dashboardTab}
+              />
             </div>
           </div>
         </div>
@@ -390,135 +322,6 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
         onClose={() => setShowMonthPicker(false)}
         anchorRef={monthButtonRef}
       />
-      {/* Right-side Drawer Menu */}
-      {showDropdown && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-all"
-            onClick={() => setShowDropdown(false)}
-          />
-          <div ref={drawerRef} className="absolute right-0 top-0 z-10 h-full w-64 sm:w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Menu</span>
-              <button
-                onClick={() => setShowDropdown(false)}
-                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                title="Close"
-              >
-                <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-              </button>
-            </div>
-            <div className="p-2" ref={editedDropdownRef}>
-              <DateSelector variant="menu" />
-              <div className="space-y-3">
-                <div>
-                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Views</div>
-                  <div className="space-y-2">
-                    {menuItems.filter(i => ['all_members', 'edited_members', 'duplicates'].includes(i.id)).map((item) => {
-                      const Icon = item.icon
-                      let active = false
-                      if (item.id === 'all_members') {
-                        active = currentView === 'dashboard' && dashboardTab === 'all'
-                      } else if (item.id === 'edited_members') {
-                        active = currentView === 'dashboard' && dashboardTab === 'edited'
-                      } else if (item.id === 'duplicates') {
-                        active = currentView === 'dashboard' && dashboardTab === 'duplicates'
-                      }
-                      return (
-                        <div key={item.id}>
-                          <button
-                            onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
-                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                          >
-                            <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
-                            {item.id === 'edited_members' && (
-                              <div role="button" onClick={(e) => { e.stopPropagation(); setShowEditedDropdown((prev) => !prev) }} className="px-2 py-0.5 rounded-full text-xs bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors" title="View Sunday counts">{editedCount}</div>
-                            )}
-                          </button>
-                          {item.id === 'edited_members' && showEditedDropdown && (
-                            <div className="mt-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-2">
-                              {sundayDates.length === 0 ? (
-                                <div className="text-xs text-gray-600 dark:text-gray-300">No Sundays</div>
-                              ) : (
-                                sundayDates.map((d) => {
-                                  const label = new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                                  const count = perDayCounts[d] || 0
-                                  const selected = selectedAttendanceDate && d === selectedAttendanceDate.toISOString().split('T')[0]
-                                  return (
-                                    <button key={d} onClick={() => { setAndSaveAttendanceDate(new Date(d)) }} className={`w-full flex items-center justify-between px-2 py-1 rounded text-xs ${selected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
-                                      <span>{label}</span>
-                                      <span className={`${selected ? 'px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300' : 'px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>{count}</span>
-                                    </button>
-                                  )
-                                })
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Insights</div>
-                  <div className="space-y-2">
-                    {menuItems.filter(i => ['analytics', 'ai_assistant'].includes(i.id)).map((item) => {
-                      const Icon = item.icon
-                      const active = currentView === item.id
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
-                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                        >
-                          <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</div>
-                  <div className="space-y-2">
-                    {menuItems.filter(i => ['create_month', 'export'].includes(i.id)).map((item) => {
-                      const Icon = item.icon
-                      const active = currentView === item.id
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
-                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                        >
-                          <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Access</div>
-                  <div className="space-y-2">
-                    {menuItems.filter(i => ['admin'].includes(i.id)).map((item) => {
-                      const Icon = item.icon
-                      const active = currentView === item.id
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => { if (item.onClick) item.onClick(); else setCurrentView(item.id); setShowDropdown(false) }}
-                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                        >
-                          <span className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Badge filter popup removed; badge chips now render on the Edited page */}
     </header>
   )

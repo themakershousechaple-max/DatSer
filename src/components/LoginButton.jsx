@@ -14,20 +14,48 @@ import {
   Lock,
   Bell,
   Shield,
-  X
+  X,
+  Users,
+  CheckSquare,
+  TrendingUp,
+  Calendar,
+  Sparkles,
+  Copy
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { useApp } from '../context/AppContext'
 import { toast } from 'react-toastify'
 
-const LoginButton = () => {
+const LoginButton = ({ onCreateMonth, onToggleAIChat, setCurrentView, setDashboardTab, currentView, dashboardTab }) => {
   const { user, loading, signInWithGoogle, signOut, isAuthenticated, preferences } = useAuth()
   const { isDarkMode, toggleTheme } = useTheme()
-  const { members, currentTable } = useApp()
+  const { members, currentTable, filteredMembers, attendanceData } = useApp()
   const [showDropdown, setShowDropdown] = useState(false)
   const [isSigningIn, setIsSigningIn] = useState(false)
   const dropdownRef = useRef(null)
+
+  // Count edited members
+  const editedCount = React.useMemo(() => {
+    try {
+      if (!filteredMembers || filteredMembers.length === 0) return 0
+      const dateKeys = Object.keys(attendanceData || {})
+      if (dateKeys.length === 0) return 0
+      let count = 0
+      for (const member of filteredMembers) {
+        let isEdited = false
+        for (const dk of dateKeys) {
+          const map = attendanceData[dk] || {}
+          const val = map[member.id]
+          if (val === true || val === false) { isEdited = true; break }
+        }
+        if (isEdited) count += 1
+      }
+      return count
+    } catch {
+      return 0
+    }
+  }, [filteredMembers, attendanceData])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -109,7 +137,7 @@ const LoginButton = () => {
   const workspaceName = preferences?.workspace_name || 'My Workspace'
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-50 md:z-auto" ref={dropdownRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="flex items-center gap-2 px-2 py-1 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -118,10 +146,10 @@ const LoginButton = () => {
           <img
             src={userPhoto}
             alt={userName}
-            className="w-8 h-8 rounded-full object-cover aspect-square border-2 border-primary-500"
+            className="w-10 h-10 md:w-8 md:h-8 rounded-full object-cover aspect-square border-2 border-primary-500"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full aspect-square bg-primary-500 flex items-center justify-center text-white font-semibold text-sm">
+          <div className="w-10 h-10 md:w-8 md:h-8 rounded-full aspect-square bg-primary-500 flex items-center justify-center text-white font-semibold text-base md:text-sm">
             {userName?.charAt(0)?.toUpperCase() || 'U'}
           </div>
         )}
@@ -181,34 +209,88 @@ const LoginButton = () => {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex-1 px-3 md:px-2 py-4 md:py-2 border-b border-gray-200 dark:border-gray-700 overflow-y-auto">
-              {/* Theme Toggle */}
-              <button
-                onClick={() => { toggleTheme(); }}
-                className="w-full flex items-center justify-between gap-3 px-4 md:px-3 py-4 md:py-2.5 rounded-lg text-base md:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <span className="flex items-center gap-3">
-                  {isDarkMode ? <Moon className="w-5 h-5 md:w-4 md:h-4" /> : <Sun className="w-5 h-5 md:w-4 md:h-4" />}
-                  <span>Dark Mode</span>
-                </span>
-                <div className={`w-11 h-6 md:w-9 md:h-5 rounded-full transition-colors ${isDarkMode ? 'bg-primary-500' : 'bg-gray-300'}`}>
-                  <div className={`w-5 h-5 md:w-4 md:h-4 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${isDarkMode ? 'translate-x-5 md:translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
-                </div>
-              </button>
+            {/* Navigation Section */}
+            <div className="flex-1 px-3 md:px-2 py-3 md:py-2 border-b border-gray-200 dark:border-gray-700 overflow-y-auto">
+              {/* Section: Views */}
+              <div className="mb-3">
+                <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Views</p>
+                <button
+                  onClick={() => { setShowDropdown(false); setCurrentView?.('dashboard'); setDashboardTab?.('all') }}
+                  className={`w-full flex items-center gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm transition-colors ${currentView === 'dashboard' && dashboardTab === 'all' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                >
+                  <Users className="w-5 h-5 md:w-4 md:h-4" />
+                  <span>Members</span>
+                </button>
+                <button
+                  onClick={() => { setShowDropdown(false); setCurrentView?.('dashboard'); setDashboardTab?.('edited') }}
+                  className={`w-full flex items-center gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm transition-colors ${currentView === 'dashboard' && dashboardTab === 'edited' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                >
+                  <CheckSquare className="w-5 h-5 md:w-4 md:h-4" />
+                  <span>Marked</span>
+                  {editedCount > 0 && <span className="ml-auto px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">{editedCount}</span>}
+                </button>
+                <button
+                  onClick={() => { setShowDropdown(false); setCurrentView?.('dashboard'); setDashboardTab?.('duplicates') }}
+                  className={`w-full flex items-center gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm transition-colors ${currentView === 'dashboard' && dashboardTab === 'duplicates' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                >
+                  <Copy className="w-5 h-5 md:w-4 md:h-4" />
+                  <span>Duplicates</span>
+                </button>
+                <button
+                  onClick={() => { setShowDropdown(false); setCurrentView?.('admin') }}
+                  className={`w-full flex items-center gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm transition-colors ${currentView === 'admin' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                >
+                  <TrendingUp className="w-5 h-5 md:w-4 md:h-4" />
+                  <span>Admin Panel</span>
+                </button>
+              </div>
 
-              {/* Settings - Full Page */}
-              <button
-                onClick={() => {
-                  setShowDropdown(false)
-                  if (window.openSettings) window.openSettings()
-                }}
-                className="w-full flex items-center gap-3 px-4 md:px-3 py-4 md:py-2.5 rounded-lg text-base md:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <Building2 className="w-5 h-5 md:w-4 md:h-4" />
-                <span>Settings</span>
-                <span className="ml-auto text-sm md:text-xs text-gray-400">Account, Team, Data</span>
-              </button>
+              {/* Section: Actions */}
+              <div className="mb-3">
+                <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</p>
+                <button
+                  onClick={() => { setShowDropdown(false); onCreateMonth?.() }}
+                  className="w-full flex items-center gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Calendar className="w-5 h-5 md:w-4 md:h-4" />
+                  <span>Create New Month</span>
+                </button>
+                <button
+                  onClick={() => { setShowDropdown(false); onToggleAIChat?.() }}
+                  className="w-full flex items-center gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Sparkles className="w-5 h-5 md:w-4 md:h-4" />
+                  <span>AI Assistant</span>
+                </button>
+              </div>
+
+              {/* Section: Preferences */}
+              <div>
+                <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Preferences</p>
+                <button
+                  onClick={() => { toggleTheme(); }}
+                  className="w-full flex items-center justify-between gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="flex items-center gap-3">
+                    {isDarkMode ? <Moon className="w-5 h-5 md:w-4 md:h-4" /> : <Sun className="w-5 h-5 md:w-4 md:h-4" />}
+                    <span>Dark Mode</span>
+                  </span>
+                  <div className={`w-11 h-6 md:w-9 md:h-5 rounded-full transition-colors ${isDarkMode ? 'bg-primary-500' : 'bg-gray-300'}`}>
+                    <div className={`w-5 h-5 md:w-4 md:h-4 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${isDarkMode ? 'translate-x-5 md:translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDropdown(false)
+                    if (window.openSettings) window.openSettings()
+                  }}
+                  className="w-full flex items-center gap-3 px-4 md:px-3 py-3 md:py-2.5 rounded-lg text-base md:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Building2 className="w-5 h-5 md:w-4 md:h-4" />
+                  <span>Settings</span>
+                  <span className="ml-auto text-sm md:text-xs text-gray-400">Account, Team, Data</span>
+                </button>
+              </div>
             </div>
 
             {/* Sign Out */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { X, Calendar, Plus } from 'lucide-react'
@@ -114,8 +114,7 @@ const MonthModal = ({ isOpen, onClose }) => {
         }}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-4 sm:p-6 border-b border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-t-lg">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Create New Month</h2>
+        <div className="sticky top-0 z-10 flex items-start justify-between px-4 py-4 sm:p-6 border-b border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-t-lg"><div><h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Create New Month</h2><p className="mt-0.5 hidden sm:block text-sm text-gray-500 dark:text-gray-400">Generate Sundays for the selected month and year</p></div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -256,15 +255,9 @@ const MonthModal = ({ isOpen, onClose }) => {
                 Sunday Dates Preview ({previewSundays.length} dates)
               </label>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 max-h-32 overflow-y-auto transition-colors">
-                <div className="space-y-1">
+                <div className="flex flex-wrap gap-2">
                   {previewSundays.map((sunday, index) => (
-                    <div key={index} className="text-sm text-gray-600 dark:text-gray-300">
-                      {sunday.toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </div>
+                    <span key={index} className="px-2 py-1 rounded-full text-xs bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">{sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   ))}
                 </div>
               </div>
@@ -272,7 +265,7 @@ const MonthModal = ({ isOpen, onClose }) => {
           )}
 
           {/* Form Actions */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -283,7 +276,7 @@ const MonthModal = ({ isOpen, onClose }) => {
             <button
               type="submit"
               disabled={loading || !selectedMonth || !selectedYear}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             >
               {loading ? (
                 'Creating...'

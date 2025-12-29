@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -17,6 +17,7 @@ import DeleteAccountModal from './components/DeleteAccountModal'
 import ExportDataModal from './components/ExportDataModal'
 import SettingsPage from './components/SettingsPage'
 import OnboardingWizard from './components/OnboardingWizard'
+import MonthModal from './components/MonthModal'
 import AIChatAssistant from './components/AIChatAssistant'
 
 // Context
@@ -93,7 +94,7 @@ function AppContent({ isMobile }) {
         onToggleAIChat={() => setShowAIChat(prev => !prev)}
       />
 
-      <main className={`container mx-auto px-4 py-8 pt-24 md:pt-20 ${currentView === 'admin' ? 'pt-8' : ''}`}>
+      <main className={`container mx-auto px-4 py-8 pt-28 sm:pt-24 md:pt-20`}>
         {currentView === 'dashboard' && (
           <Dashboard isAdmin={isAdmin} />
         )}

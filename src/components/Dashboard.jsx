@@ -1137,40 +1137,41 @@ const Dashboard = ({ isAdmin = false }) => {
 
       {/* Desktop tab navigation removed; use mobile segmented control in Header */}
 
-      {/* Edited Members: Sundays Quick View (desktop only) */}
+      {/* Edited Members: Sundays Quick View */}
       {dashboardTab === 'edited' && (
-        <div ref={sundaysRef} className="hidden sm:block mt-8 sm:mt-10 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-3 sm:p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <div ref={sundaysRef} className="block mt-2 sm:mt-10 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
+          {/* Header - stacked on mobile, inline on desktop */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary-600" />
-              {getMonthDisplayName(currentTable)} Sundays
+              <span className="truncate">{getMonthDisplayName(currentTable)} Sundays</span>
             </h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               {/* Auto-Sunday Toggle */}
               <button
                 onClick={toggleAutoSunday}
-                className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 transition-colors ${
+                className={`text-[11px] sm:text-xs px-2 py-1 rounded-full flex items-center gap-1 transition-colors ${
                   autoSundayEnabled
                     ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600'
                 }`}
                 title={autoSundayEnabled ? 'Auto-Sunday ON: Will auto-select current Sunday' : 'Auto-Sunday OFF: Manual date selection'}
               >
-                <span className={`w-2 h-2 rounded-full ${autoSundayEnabled ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${autoSundayEnabled ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                 Auto
               </button>
               {selectedSundayDate && (
                 <>
                   <button
                     onClick={openTransferModal}
-                    className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 border border-blue-300 dark:border-blue-700"
+                    className="text-[11px] sm:text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 border border-blue-300 dark:border-blue-700"
                     title="Transfer attendance to another date"
                   >
                     Transfer
                   </button>
                   <button
                     onClick={() => setSelectedSundayDate(null)}
-                    className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    className="text-[11px] sm:text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                     title="Clear date selection"
                   >
                     Clear
@@ -1180,10 +1181,10 @@ const Dashboard = ({ isAdmin = false }) => {
             </div>
           </div>
 
-          {/* Sunday date chips */}
-          <div className="flex flex-wrap gap-2 mb-3">
+          {/* Sunday date chips - horizontal scroll on mobile */}
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
             {sundayDates.length === 0 && (
-              <div className="text-sm text-gray-600 dark:text-gray-300">No Sundays found for this month</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">No Sundays found for this month</div>
             )}
             {sundayDates.map(dateStr => {
               const isSelected = selectedSundayDate === dateStr
@@ -1201,24 +1202,23 @@ const Dashboard = ({ isAdmin = false }) => {
                   key={dateStr}
                   onClick={async () => {
                     setSelectedSundayDate(dateStr)
-                    // Ensure attendance map for this date is loaded
                     if (!attendanceData[dateStr]) {
                       const map = await fetchAttendanceForDate(new Date(dateStr))
                       setAttendanceData(prev => ({ ...prev, [dateStr]: map }))
                     }
                   }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border ${isSelected
-                    ? 'bg-slate-700 dark:bg-slate-600 text-white border-slate-800 shadow-lg'
+                  className={`flex-shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 border ${isSelected
+                    ? 'bg-slate-700 dark:bg-slate-600 text-white border-slate-800 shadow-lg scale-[1.02]'
                     : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm'
                     }`}
                   title={`${label}: ${presentCount} present, ${absentCount} absent`}
                 >
-                  <span className="font-medium">{label}</span>
-                  <div className="flex items-center gap-1">
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-green-400/30 text-green-100' : 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'}`}>
+                  <span className="font-medium whitespace-nowrap">{label}</span>
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <span className={`text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-green-400/30 text-green-100' : 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'}`}>
                       {presentCount}
                     </span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-red-400/30 text-red-100' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
+                    <span className={`text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-red-400/30 text-red-100' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
                       {absentCount}
                     </span>
                   </div>
@@ -1251,12 +1251,12 @@ const Dashboard = ({ isAdmin = false }) => {
                 return (
                   <>
                     {/* Summary Header */}
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-gray-900 dark:text-white">
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-2.5 sm:p-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-0">
+                        <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
                           {labelFull}
                         </div>
-                        <div className="flex items-center gap-3 text-sm">
+                        <div className="flex items-center gap-3 text-xs sm:text-sm">
                           <span className="flex items-center gap-1.5">
                             <span className="w-2 h-2 rounded-full bg-green-500"></span>
                             <span className="text-green-600 dark:text-green-400 font-medium">{presentCount} Present</span>
@@ -1269,9 +1269,9 @@ const Dashboard = ({ isAdmin = false }) => {
                       </div>
                     </div>
 
-                    {/* Registered Members List - Side by Side Collapsible */}
+                    {/* Registered Members List - Stacked on mobile, side by side on desktop */}
                     {(presentCount > 0 || absentCount > 0) && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                         {/* Present Members - Left Column (Collapsible) */}
                         <details className="bg-white dark:bg-gray-800 rounded-xl border border-green-200 dark:border-green-900/50 overflow-hidden">
                           <summary className="px-3 py-2.5 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-900/50 cursor-pointer list-none flex items-center justify-between hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
