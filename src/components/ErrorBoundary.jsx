@@ -34,6 +34,19 @@ class ErrorBoundary extends React.Component {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               Something went wrong
             </h2>
+            {this.state.error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-left">
+                <p className="text-sm font-medium text-red-800 mb-1">Error:</p>
+                <p className="text-sm text-red-700 font-mono break-words">
+                  {this.state.error.name}: {this.state.error.message}
+                </p>
+                {this.state.error.message?.includes('is not defined') && (
+                  <p className="text-xs text-red-600 mt-2 italic">
+                    💡 Tip: This usually means a variable or import is missing.
+                  </p>
+                )}
+              </div>
+            )}
             <p className="text-gray-600 mb-4">
               The application encountered an unexpected error. Please try refreshing the page.
             </p>
@@ -51,16 +64,20 @@ class ErrorBoundary extends React.Component {
                 Try Again
               </button>
             </div>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {this.state.error && (
               <details className="mt-4 text-left">
                 <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
-                  Error Details (Development)
+                  Full Error Details
                 </summary>
-                <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono text-red-600 overflow-auto max-h-32">
+                <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono text-red-600 overflow-auto max-h-48">
                   <div className="font-semibold">Error:</div>
-                  <div className="mb-2">{this.state.error.toString()}</div>
-                  <div className="font-semibold">Stack Trace:</div>
-                  <div>{this.state.errorInfo.componentStack}</div>
+                  <div className="mb-2 break-words">{this.state.error.toString()}</div>
+                  {this.state.errorInfo?.componentStack && (
+                    <>
+                      <div className="font-semibold">Stack Trace:</div>
+                      <pre className="whitespace-pre-wrap text-[10px]">{this.state.errorInfo.componentStack}</pre>
+                    </>
+                  )}
                 </div>
               </details>
             )}

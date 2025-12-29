@@ -873,17 +873,22 @@ const SettingsPage = ({ onBack }) => {
 
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-                {/* Header */}
-                <div className="sticky top-0 z-10 w-full bg-gray-50 dark:bg-gray-900">
-                    <div className="max-w-4xl mx-auto w-full px-4 py-4">
-                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-4 flex items-center gap-4 px-4 shadow-sm">
+                {/* Sticky Header - stays visible when scrolling */}
+                <div className="sticky top-0 z-20 w-full bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-transparent [&:not(:first-child)]:border-gray-200 dark:[&:not(:first-child)]:border-gray-700 shadow-sm">
+                    <div className="max-w-4xl mx-auto w-full px-4 py-3">
+                        <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setActiveSection(null)}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm"
                             >
                                 <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                             </button>
-                            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{currentSection?.label || 'Settings'}</h1>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className={`p-1.5 rounded-lg ${getIconBgColor(currentSection?.color || 'blue')}`}>
+                                    <Icon className={`w-4 h-4 ${getIconColor(currentSection?.color || 'blue')}`} />
+                                </div>
+                                <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">{currentSection?.label || 'Settings'}</h1>
+                            </div>
                         </div>
                     </div>
                 </div>

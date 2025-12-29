@@ -1139,7 +1139,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
       {/* Edited Members: Sundays Quick View */}
       {dashboardTab === 'edited' && (
-        <div ref={sundaysRef} className="block mt-2 sm:mt-10 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
+        <div ref={sundaysRef} className="block mt-4 sm:mt-10 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
           {/* Header - stacked on mobile, inline on desktop */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
