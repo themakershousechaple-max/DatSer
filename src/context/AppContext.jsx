@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { supabase } from '../lib/supabase'
 import { toast } from 'react-toastify'
 import { useAuth } from './AuthContext'
@@ -2226,9 +2226,10 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const value = useMemo(() => ({
     checkCollaboratorStatus,
-    logActivity, // Export logging
+    logActivity,
     updateWorkspaceForAllTables,
     members,
     filteredMembers,
@@ -2264,7 +2265,6 @@ export const AppProvider = ({ children }) => {
     updateMemberBadges,
     processEndOfMonthBadges,
     isMonthAttendanceComplete,
-
     toggleMemberBadge,
     memberHasBadge,
     selectedAttendanceDate,
@@ -2276,9 +2276,7 @@ export const AppProvider = ({ children }) => {
     getSundaysInMonth,
     badgeFilter,
     toggleBadgeFilter,
-    // Expose Supabase configuration status to consumers
     isSupabaseConfigured,
-    // Dashboard tab controls (for mobile header segmented control)
     dashboardTab,
     setDashboardTab,
     uiAction,
@@ -2286,7 +2284,22 @@ export const AppProvider = ({ children }) => {
     validateMemberData,
     getPastSundays,
     getMissingAttendance
-  }
+  }), [
+    members, filteredMembers, loading, searchTerm, serverSearchResults,
+    attendanceData, currentTable, monthlyTables, selectedAttendanceDate,
+    availableSundayDates, badgeFilter, dashboardTab, uiAction,
+    logActivity, checkCollaboratorStatus, updateWorkspaceForAllTables,
+    refreshSearch, forceRefreshMembers, forceRefreshMembersSilent,
+    searchMemberAcrossAllTables, addMember, updateMember, deleteMember,
+    fetchMembers, markAttendance, bulkAttendance, fetchAttendanceForDate,
+    loadAllAttendanceData, loadAllBadgeData, changeCurrentTable, createNewMonth,
+    fetchMonthlyTables, getAttendanceColumns, getAvailableAttendanceDates,
+    findAttendanceColumnForDate, calculateAttendanceRate, calculateMemberBadge,
+    updateMemberBadges, processEndOfMonthBadges, isMonthAttendanceComplete,
+    toggleMemberBadge, memberHasBadge, setAndSaveAttendanceDate,
+    initializeAttendanceDates, getSundaysInMonth, toggleBadgeFilter,
+    focusDateSelector, validateMemberData, getPastSundays, getMissingAttendance
+  ])
 
   return (
     <AppContext.Provider value={value}>

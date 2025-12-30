@@ -1,25 +1,32 @@
-﻿import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect, lazy, Suspense, memo } from 'react'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
-// Components
+// Core components - loaded immediately
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
-import MemberModal from './components/MemberModal'
-import AttendanceAnalytics from './components/AttendanceAnalytics'
-import AdminAuth from './components/AdminAuth'
-import AdminPanel from './components/AdminPanel'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './components/LoginPage'
-import DecemberQuickView from './components/DecemberQuickView'
-import WorkspaceSettingsModal from './components/WorkspaceSettingsModal'
-import DeleteAccountModal from './components/DeleteAccountModal'
-import ExportDataModal from './components/ExportDataModal'
-import SettingsPage from './components/SettingsPage'
-import OnboardingWizard from './components/OnboardingWizard'
-import MonthModal from './components/MonthModal'
-import AIChatAssistant from './components/AIChatAssistant'
-import CommandPalette from './components/CommandPalette'
+
+// Lazy-loaded components - loaded on demand for faster initial load
+const MemberModal = lazy(() => import('./components/MemberModal'))
+const AttendanceAnalytics = lazy(() => import('./components/AttendanceAnalytics'))
+const AdminPanel = lazy(() => import('./components/AdminPanel'))
+const WorkspaceSettingsModal = lazy(() => import('./components/WorkspaceSettingsModal'))
+const DeleteAccountModal = lazy(() => import('./components/DeleteAccountModal'))
+const ExportDataModal = lazy(() => import('./components/ExportDataModal'))
+const SettingsPage = lazy(() => import('./components/SettingsPage'))
+const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'))
+const MonthModal = lazy(() => import('./components/MonthModal'))
+const AIChatAssistant = lazy(() => import('./components/AIChatAssistant'))
+const CommandPalette = lazy(() => import('./components/CommandPalette'))
+
+// Minimal loading fallback for lazy components
+const LazyFallback = memo(() => (
+  <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+))
 
 // Context
 import { AppProvider, useApp } from './context/AppContext'
@@ -101,72 +108,105 @@ function AppContent({ isMobile }) {
         )}
 
         {currentView === 'analytics' && (
-          <AttendanceAnalytics />
+          <Suspense fallback={<LazyFallback />}>
+            <AttendanceAnalytics />
+          </Suspense>
         )}
 
         {currentView === 'admin' && (
-          <AdminPanel
-            setCurrentView={setCurrentView}
-            onLogout={() => {
-              localStorage.removeItem('tmht_admin_session')
-              setIsAdmin(false)
-              setCurrentView('dashboard')
-            }}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <AdminPanel
+              setCurrentView={setCurrentView}
+              onLogout={() => {
+                localStorage.removeItem('tmht_admin_session')
+                setIsAdmin(false)
+                setCurrentView('dashboard')
+              }}
+            />
+          </Suspense>
         )}
 
         {currentView === 'settings' && (
-          <SettingsPage onBack={() => setCurrentView('dashboard')} />
+          <Suspense fallback={<LazyFallback />}>
+            <SettingsPage onBack={() => setCurrentView('dashboard')} />
+          </Suspense>
         )}
       </main>
 
+      {/* Lazy-loaded modals - only render when open */}
       {showMemberModal && (
-        <MemberModal
-          isOpen={showMemberModal}
-          onClose={() => setShowMemberModal(false)}
-        />
+        <Suspense fallback={<LazyFallback />}>
+          <MemberModal
+            isOpen={showMemberModal}
+            onClose={() => setShowMemberModal(false)}
+          />
+        </Suspense>
       )}
 
       {showMonthModal && (
-        <MonthModal
-          isOpen={showMonthModal}
-          onClose={() => setShowMonthModal(false)}
-        />
+        <Suspense fallback={<LazyFallback />}>
+          <MonthModal
+            isOpen={showMonthModal}
+            onClose={() => setShowMonthModal(false)}
+          />
+        </Suspense>
       )}
 
       {/* Global Modals - accessible from profile dropdown */}
-      <WorkspaceSettingsModal
-        isOpen={showWorkspaceSettings}
-        onClose={() => setShowWorkspaceSettings(false)}
-      />
+      {showWorkspaceSettings && (
+        <Suspense fallback={<LazyFallback />}>
+          <WorkspaceSettingsModal
+            isOpen={showWorkspaceSettings}
+            onClose={() => setShowWorkspaceSettings(false)}
+          />
+        </Suspense>
+      )}
 
-      <DeleteAccountModal
-        isOpen={showDeleteAccount}
-        onClose={() => setShowDeleteAccount(false)}
-      />
+      {showDeleteAccount && (
+        <Suspense fallback={<LazyFallback />}>
+          <DeleteAccountModal
+            isOpen={showDeleteAccount}
+            onClose={() => setShowDeleteAccount(false)}
+          />
+        </Suspense>
+      )}
 
-      <ExportDataModal
-        isOpen={showExportData}
-        onClose={() => setShowExportData(false)}
-      />
+      {showExportData && (
+        <Suspense fallback={<LazyFallback />}>
+          <ExportDataModal
+            isOpen={showExportData}
+            onClose={() => setShowExportData(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Onboarding Wizard for new users */}
-      <OnboardingWizard
-        isOpen={showOnboarding}
-        onClose={() => setShowOnboarding(false)}
-        onNavigate={handleOnboardingNavigate}
-      />
+      {showOnboarding && (
+        <Suspense fallback={<LazyFallback />}>
+          <OnboardingWizard
+            isOpen={showOnboarding}
+            onClose={() => setShowOnboarding(false)}
+            onNavigate={handleOnboardingNavigate}
+          />
+        </Suspense>
+      )}
 
-      <AIChatAssistant
-        isOpen={showAIChat}
-        onClose={() => setShowAIChat(false)}
-      />
+      {showAIChat && (
+        <Suspense fallback={<LazyFallback />}>
+          <AIChatAssistant
+            isOpen={showAIChat}
+            onClose={() => setShowAIChat(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* Global Command Palette */}
-      <CommandPalette
-        setCurrentView={setCurrentView}
-        onAddMember={() => setShowMemberModal(true)}
-      />
+      {/* Global Command Palette - lazy loaded */}
+      <Suspense fallback={null}>
+        <CommandPalette
+          setCurrentView={setCurrentView}
+          onAddMember={() => setShowMemberModal(true)}
+        />
+      </Suspense>
 
       <ToastContainer
         position={isMobile ? 'top-center' : 'bottom-right'}

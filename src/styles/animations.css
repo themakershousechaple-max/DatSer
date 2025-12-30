@@ -1,7 +1,14 @@
 /* 
  * Apple-inspired Subtle Animations
- * Performance-optimized with reduced-motion support
+ * Performance-optimized with GPU acceleration and reduced-motion support
  */
+
+/* GPU acceleration base - promotes elements to their own compositor layer */
+.gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
 
 /* Respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
@@ -20,86 +27,98 @@
    Base Animation Utilities
    ================================ */
 
-/* Fade In */
+/* Fade In - GPU accelerated */
 .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
+    will-change: opacity;
+    backface-visibility: hidden;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
+        transform: translateZ(0);
     }
 
     to {
         opacity: 1;
+        transform: translateZ(0);
     }
 }
 
-/* Fade In Up - Subtle slide up effect */
+/* Fade In Up - Subtle slide up effect with GPU acceleration */
 .animate-fade-in-up {
     animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translate3d(0, 12px, 0);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
-/* Scale In - For modals and popups */
+/* Scale In - For modals and popups with GPU acceleration */
 .animate-scale-in {
     animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 @keyframes scaleIn {
     from {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale3d(0.95, 0.95, 1);
     }
 
     to {
         opacity: 1;
-        transform: scale(1);
+        transform: scale3d(1, 1, 1);
     }
 }
 
-/* Scale In Centered - For centered popups using translate-x/y */
+/* Scale In Centered - For centered popups using translate-x/y with GPU acceleration */
 .animate-scale-in-centered {
     animation: scaleInCentered 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 @keyframes scaleInCentered {
     from {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.95);
+        transform: translate3d(-50%, -50%, 0) scale3d(0.95, 0.95, 1);
     }
 
     to {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+        transform: translate3d(-50%, -50%, 0) scale3d(1, 1, 1);
     }
 }
 
-/* Slide In From Bottom - For toasts/sheets */
+/* Slide In From Bottom - For toasts/sheets with GPU acceleration */
 .animate-slide-up {
     animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translateY(100%);
+        transform: translate3d(0, 100%, 0);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
@@ -107,37 +126,43 @@
    Interactive Elements
    ================================ */
 
-/* Apple-style button press effect */
+/* Apple-style button press effect - GPU accelerated */
 .btn-press {
     transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
         opacity 0.15s ease;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .btn-press:active {
-    transform: scale(0.97);
+    transform: scale3d(0.97, 0.97, 1);
     opacity: 0.9;
 }
 
-/* Soft hover lift effect */
+/* Soft hover lift effect - GPU accelerated */
 .hover-lift {
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
         box-shadow 0.2s ease;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .hover-lift:hover {
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Card hover effect - subtle scale */
+/* Card hover effect - subtle scale with GPU acceleration */
 .card-hover {
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
         box-shadow 0.2s ease,
         border-color 0.2s ease;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .card-hover:hover {
-    transform: scale(1.01);
+    transform: scale3d(1.01, 1.01, 1);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
@@ -148,6 +173,8 @@
 .stagger-item {
     opacity: 0;
     animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 .stagger-item:nth-child(1) {
@@ -199,15 +226,17 @@
    Smooth State Transitions
    ================================ */
 
-/* Checkbox/toggle smooth transition */
+/* Checkbox/toggle smooth transition - GPU accelerated */
 .smooth-check {
     transition: background-color 0.2s ease,
         border-color 0.2s ease,
         transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .smooth-check:active {
-    transform: scale(0.95);
+    transform: scale3d(0.95, 0.95, 1);
 }
 
 /* Input focus animation */
@@ -227,17 +256,21 @@
 
 .backdrop-animate {
     animation: backdropFade 0.2s ease-out forwards;
+    will-change: opacity, backdrop-filter;
+    backface-visibility: hidden;
 }
 
 @keyframes backdropFade {
     from {
         opacity: 0;
         backdrop-filter: blur(0px);
+        transform: translateZ(0);
     }
 
     to {
         opacity: 1;
         backdrop-filter: blur(8px);
+        transform: translateZ(0);
     }
 }
 
@@ -247,21 +280,25 @@
 
 .spin-slow {
     animation: spin 1.2s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 @keyframes spin {
     from {
-        transform: rotate(0deg);
+        transform: rotate(0deg) translateZ(0);
     }
 
     to {
-        transform: rotate(360deg);
+        transform: rotate(360deg) translateZ(0);
     }
 }
 
-/* Pulse dot animation */
+/* Pulse dot animation - GPU accelerated */
 .pulse-dot {
     animation: pulseDot 1.5s ease-in-out infinite;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 @keyframes pulseDot {
@@ -269,12 +306,12 @@
     0%,
     100% {
         opacity: 0.4;
-        transform: scale(0.95);
+        transform: scale3d(0.95, 0.95, 1);
     }
 
     50% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale3d(1, 1, 1);
     }
 }
 
@@ -287,10 +324,12 @@
         color 0.2s ease,
         border-color 0.2s ease,
         transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .tab-transition:active {
-    transform: scale(0.98);
+    transform: scale3d(0.98, 0.98, 1);
 }
 
 /* ================================
@@ -303,15 +342,15 @@
 
 @keyframes numberPop {
     0% {
-        transform: scale(1);
+        transform: scale3d(1, 1, 1);
     }
 
     50% {
-        transform: scale(1.15);
+        transform: scale3d(1.15, 1.15, 1);
     }
 
     100% {
-        transform: scale(1);
+        transform: scale3d(1, 1, 1);
     }
 }
 

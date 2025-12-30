@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { supabase, hasStoredSession, isSupabaseConfigured } from '../lib/supabase'
 import { toast } from 'react-toastify'
 
@@ -373,7 +373,48 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const value = {
+  // Memoize bypassAuth to prevent recreation on every render
+  const bypassAuth = useCallback(async () => {
+    try {
+      setLoading(true)
+      // 1. Try to sign in as the persistent God Mode user
+      if (supabase) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: 'dev@datser.local',
+          password: 'GodMode123!'
+        })
+
+        if (!signInError) {
+          toast.success('Logged in as God Mode User')
+          return
+        }
+
+        // 2. If sign in fails, try to create the account
+        if (signInError.message.includes('Invalid login credentials')) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: 'dev@datser.local',
+            password: 'GodMode123!',
+            options: {
+              data: { full_name: 'God Mode User' }
+            }
+          })
+
+          if (signUpError) throw signUpError
+          toast.success('God Mode Account Created & Logged In')
+        } else {
+          throw signInError
+        }
+      }
+    } catch (error) {
+      console.error('God Mode Error:', error)
+      toast.error('God Mode Failed: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const value = useMemo(() => ({
     user,
     loading,
     preferences,
@@ -385,46 +426,9 @@ export const AuthProvider = ({ children }) => {
     saveUserPreferences,
     updatePreference,
     loadUserPreferences,
-    bypassAuth: async () => {
-      try {
-        setLoading(true)
-        // 1. Try to sign in as the persistent God Mode user
-        if (supabase) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: 'dev@datser.local',
-            password: 'GodMode123!'
-          })
-
-          if (!signInError) {
-            toast.success('Logged in as God Mode User')
-            return
-          }
-
-          // 2. If sign in fails, try to create the account
-          if (signInError.message.includes('Invalid login credentials')) {
-            const { error: signUpError } = await supabase.auth.signUp({
-              email: 'dev@datser.local',
-              password: 'GodMode123!',
-              options: {
-                data: { full_name: 'God Mode User' }
-              }
-            })
-
-            if (signUpError) throw signUpError
-            toast.success('God Mode Account Created & Logged In')
-          } else {
-            throw signInError
-          }
-        }
-      } catch (error) {
-        console.error('God Mode Error:', error)
-        toast.error('God Mode Failed: ' + error.message)
-      } finally {
-        setLoading(false)
-      }
-    },
+    bypassAuth,
     isAuthenticated: !!user
-  }
+  }), [user, loading, preferences, signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, signOut, saveUserPreferences, updatePreference, loadUserPreferences, bypassAuth])
 
   return (
     <AuthContext.Provider value={value}>

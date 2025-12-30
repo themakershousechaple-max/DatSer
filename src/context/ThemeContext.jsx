@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useAuth } from './AuthContext'
 
 const ThemeContext = createContext()
@@ -139,15 +139,16 @@ export const ThemeProvider = ({ children }) => {
     updatePreference('font_family', fontFamily)
   }, [fontFamily, updatePreference, user, preferencesLoaded])
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setThemeMode((prev) => {
       // Toggle logic relative to current resolved state
       // If we are currently visually dark (system or manual), go light. Otherwise dark.
       return isDarkMode ? 'light' : 'dark'
     })
-  }
+  }, [isDarkMode])
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const value = useMemo(() => ({
     isDarkMode,
     toggleTheme,
     themeMode,
@@ -159,7 +160,7 @@ export const ThemeProvider = ({ children }) => {
     setFontFamily,
     commandKEnabled,
     setCommandKEnabled
-  }
+  }), [isDarkMode, toggleTheme, themeMode, resolvedTheme, fontSize, fontFamily, commandKEnabled])
 
   return (
     <ThemeContext.Provider value={value}>
