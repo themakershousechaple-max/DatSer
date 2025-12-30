@@ -93,7 +93,7 @@ export const AppProvider = ({ children }) => {
   const authLoading = authContext?.loading
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
-  
+
   // Collaborator state - tracks if current user is viewing someone else's data
   const [dataOwnerId, setDataOwnerId] = useState(null) // The owner whose data we're viewing
   const [isCollaborator, setIsCollaborator] = useState(false)
@@ -157,17 +157,33 @@ export const AppProvider = ({ children }) => {
       console.log('User is a collaborator, owner_id:', data.owner_id)
       setIsCollaborator(true)
       setDataOwnerId(data.owner_id)
-      
+
+      // Sync Workspace Name from Owner
+      if (authContext?.updatePreference) {
+        const { data: ownerWsName, error: wsError } = await supabase.rpc('get_owner_workspace_name', {
+          owner_uuid: data.owner_id
+        })
+
+        if (!wsError && ownerWsName) {
+          const currentWs = authContext.preferences?.workspace_name
+          if (currentWs !== ownerWsName) {
+            console.log('Syncing workspace name from owner:', ownerWsName)
+            authContext.updatePreference('workspace_name', ownerWsName)
+          }
+        }
+      }
+
+
       // Get owner's email for display
       const { data: ownerData } = await supabase
         .from('collaborators')
         .select('owner_id')
         .eq('owner_id', data.owner_id)
         .limit(1)
-      
+
       // Get owner email from auth.users via a different method
       setOwnerEmail(null) // We'll show owner_id for now
-      
+
       return data.owner_id
     } catch (err) {
       console.error('Error checking collaborator status:', err)
