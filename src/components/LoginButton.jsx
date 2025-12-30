@@ -137,7 +137,7 @@ const LoginButton = ({ onCreateMonth, onToggleAIChat, setCurrentView, setDashboa
   const workspaceName = preferences?.workspace_name || 'My Workspace'
 
   return (
-    <div className="relative z-50 md:z-auto" ref={dropdownRef}>
+    <div className="relative z-[120]" ref={dropdownRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="flex items-center gap-2 px-2 py-1 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -164,11 +164,11 @@ const LoginButton = ({ onCreateMonth, onToggleAIChat, setCurrentView, setDashboa
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[110]"
             onClick={() => setShowDropdown(false)}
           />
 
-          <div className="fixed inset-0 md:absolute md:inset-auto md:right-0 md:mt-2 md:w-72 z-50 md:rounded-xl border-0 md:border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl overflow-hidden animate-scale-in flex flex-col">
+          <div className="fixed inset-0 md:absolute md:inset-auto md:right-0 md:mt-2 md:w-72 z-[120] md:rounded-xl border-0 md:border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl overflow-hidden animate-scale-in flex flex-col">
 
             {/* Mobile Header with Close Button */}
             <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">

@@ -151,7 +151,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
   // Menu items moved to LoginButton profile dropdown
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm md:border-b border-gray-200 dark:border-gray-700 z-50 w-full safe-area-top fixed top-0 left-0 right-0">
+    <header className="bg-white dark:bg-gray-800 shadow-sm md:border-b border-gray-200 dark:border-gray-700 z-[100] w-full safe-area-top fixed top-0 left-0 right-0">
       <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-0 md:py-1 w-full">
         <div className="flex items-center justify-center md:justify-between min-h-[36px] md:min-h-[44px]">
           {/* Compact brand label */}

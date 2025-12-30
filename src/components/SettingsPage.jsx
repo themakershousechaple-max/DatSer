@@ -1372,7 +1372,7 @@ const SettingsPage = ({ onBack }) => {
     const renderMainList = () => (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <div className="fixed top-[40px] md:top-[48px] left-0 right-0 z-50 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
+            <div className="fixed top-[76px] md:top-[48px] left-0 right-0 z-50 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
                 <div className="max-w-4xl mx-auto w-full px-4 py-4 flex items-center gap-4 font-[var(--font-family)]">
                     <button
                         onClick={onBack}
@@ -1384,7 +1384,7 @@ const SettingsPage = ({ onBack }) => {
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 pt-[116px] md:pt-[132px] space-y-3">
+            <div className="max-w-4xl mx-auto px-4 pt-[52px] md:pt-[60px] space-y-3">
                 {/* Search Bar */}
                 <div className="w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
                     <div className="relative">
@@ -1590,7 +1590,7 @@ const SettingsPage = ({ onBack }) => {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                 {/* Sticky Header - stays visible when scrolling */}
-                <div className="fixed top-[40px] md:top-[48px] left-0 right-0 z-50 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
+                <div className="fixed top-[76px] md:top-[48px] left-0 right-0 z-50 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
                     <div className="max-w-4xl mx-auto w-full px-4 py-3 font-[var(--font-family)]">
                         <div className="flex items-center gap-3">
                             <button
@@ -1609,7 +1609,7 @@ const SettingsPage = ({ onBack }) => {
                     </div>
                 </div>
 
-                <div className="max-w-4xl mx-auto px-4 pt-[100px] md:pt-[116px] pb-4 space-y-4">
+                <div className="max-w-4xl mx-auto px-4 pt-[48px] md:pt-[56px] pb-4 space-y-4">
                     {renderContent()}
                 </div>
             </div>

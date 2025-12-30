@@ -397,7 +397,7 @@ const HelpCenterPage = ({ onBack, onNavigate }) => {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+            <div className="fixed top-[76px] md:top-[48px] left-0 right-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-4xl mx-auto px-4 py-4">
                     <div className="flex items-center gap-4">
                         <button
@@ -408,7 +408,7 @@ const HelpCenterPage = ({ onBack, onNavigate }) => {
                         </button>
                         <div>
                             <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <HelpCircle className="w-6 h-6 text-blue-500" />
+                                <HelpCircle className="w-5 h-5 text-blue-500" />
                                 Help Center
                             </h1>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -419,7 +419,7 @@ const HelpCenterPage = ({ onBack, onNavigate }) => {
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            <div className="max-w-4xl mx-auto px-4 pt-[104px] md:pt-[112px] pb-6 space-y-6">
                 {/* Search Bar */}
                 <div className="relative animate-fade-in-up">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
