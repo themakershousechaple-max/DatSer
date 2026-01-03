@@ -205,7 +205,7 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
         }
     }
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-animate">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center p-4 z-[60] backdrop-animate">
             <div className={`max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-all duration-300 scrollbar-hide ring-1 rounded-3xl animate-scale-in ${isOverrideMode
                 ? 'bg-orange-50/90 dark:bg-orange-900/40 backdrop-blur-md ring-orange-300 dark:ring-orange-700'
                 : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700'

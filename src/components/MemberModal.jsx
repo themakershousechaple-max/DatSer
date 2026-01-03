@@ -270,7 +270,7 @@ const MemberModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[1000] backdrop-animate">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[60] backdrop-animate">
       <div className={`shadow-2xl ring-1 max-w-md w-full mx-4 max-h-[90vh] flex flex-col transition-all duration-300 animate-scale-in ${isOverrideMode
         ? 'bg-orange-50/90 dark:bg-orange-900/40 backdrop-blur-md ring-orange-300 dark:ring-orange-700 rounded-3xl'
         : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 rounded-xl'

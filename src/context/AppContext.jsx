@@ -134,6 +134,16 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : [] // Start with no badges selected
   })
 
+  // Auto-Sunday feature (auto-select current Sunday)
+  const [autoSundayEnabled, setAutoSundayEnabled] = useState(() => {
+    return localStorage.getItem('autoSundayEnabled') === 'true'
+  })
+
+  // Auto-All-Dates feature (auto-mark all dates up to today)
+  const [autoAllDatesEnabled, setAutoAllDatesEnabled] = useState(() => {
+    return localStorage.getItem('autoAllDatesEnabled') === 'true'
+  })
+
   const changeCurrentTable = useCallback((tableName) => {
     setCurrentTable(tableName)
     if (tableName) {
@@ -937,6 +947,11 @@ export const AppProvider = ({ children }) => {
         setTimeout(() => processEndOfMonthBadges(), 500)
       }
 
+      // Log the attendance action
+      const memberName = members.find(m => m.id === memberId)?.['full_name'] || members.find(m => m.id === memberId)?.['Full Name'] || 'Unknown'
+      const attendanceStatus = present === null ? 'Cleared' : present ? 'Present' : 'Absent'
+      logActivity('MARK_ATTENDANCE', `Marked ${memberName} as ${attendanceStatus} on ${date.toLocaleDateString()}`)
+
       return { success: true }
     } catch (error) {
       console.error('Error marking attendance:', error)
@@ -1383,6 +1398,11 @@ export const AppProvider = ({ children }) => {
       refreshSearch()
 
       if (!silent) toast.success(`Member updated successfully in ${currentTable}!`)
+      
+      // Log the action
+      const memberName = members.find(m => m.id === id)?.['full_name'] || members.find(m => m.id === id)?.['Full Name'] || 'Unknown'
+      logActivity('UPDATE_MEMBER', `Updated member: ${memberName}`)
+      
       return data[0]
     } catch (error) {
       console.error('Error updating member:', error)
@@ -2511,7 +2531,11 @@ export const AppProvider = ({ children }) => {
     focusDateSelector,
     validateMemberData,
     getPastSundays,
-    getMissingAttendance
+    getMissingAttendance,
+    autoSundayEnabled,
+    setAutoSundayEnabled,
+    autoAllDatesEnabled,
+    setAutoAllDatesEnabled
   }), [
     members, filteredMembers, loading, searchTerm, serverSearchResults,
     attendanceData, currentTable, monthlyTables, selectedAttendanceDate,
@@ -2526,7 +2550,8 @@ export const AppProvider = ({ children }) => {
     updateMemberBadges, processEndOfMonthBadges, isMonthAttendanceComplete,
     toggleMemberBadge, memberHasBadge, setAndSaveAttendanceDate,
     initializeAttendanceDates, getSundaysInMonth, toggleBadgeFilter,
-    focusDateSelector, validateMemberData, getPastSundays, getMissingAttendance
+    focusDateSelector, validateMemberData, getPastSundays, getMissingAttendance,
+    autoSundayEnabled, setAutoSundayEnabled, autoAllDatesEnabled, setAutoAllDatesEnabled
   ])
 
   return (

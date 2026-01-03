@@ -390,7 +390,7 @@ const DecemberQuickView = ({ onOpenFullApp, showPreview, onTogglePreview }) => {
 
       {/* Add Member Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">Add New Member</h2>
@@ -481,7 +481,7 @@ const DecemberQuickView = ({ onOpenFullApp, showPreview, onTogglePreview }) => {
 
       {/* Edit Member Modal */}
       {showEditModal && editingMember && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">Edit Member</h2>

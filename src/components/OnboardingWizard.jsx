@@ -159,7 +159,7 @@ const OnboardingWizard = ({ isOpen, onClose, onNavigate }) => {
   const CurrentIcon = steps[currentStep].icon
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
         {/* Progress bar */}
         <div className="h-1 bg-gray-200 dark:bg-gray-700">

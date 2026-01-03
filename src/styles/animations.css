@@ -1,6 +1,7 @@
 /* 
  * Apple-inspired Subtle Animations
  * Performance-optimized with GPU acceleration and reduced-motion support
+ * Optimized for old/low-end devices
  */
 
 /* GPU acceleration base - promotes elements to their own compositor layer */
@@ -23,6 +24,35 @@
     }
 }
 
+/* Performance mode overrides - disable all animations for maximum speed */
+.performance-mode *,
+.performance-mode *::before,
+.performance-mode *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+}
+
+/* Animations disabled mode */
+.animations-disabled *,
+.animations-disabled *::before,
+.animations-disabled *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* Reduced motion support */
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+    animation-duration: 0.1s !important;
+    transition-duration: 0.1s !important;
+}
+
 /* ================================
    Base Animation Utilities
    ================================ */
@@ -30,7 +60,6 @@
 /* Fade In - GPU accelerated */
 .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
-    will-change: opacity;
     backface-visibility: hidden;
 }
 
@@ -49,7 +78,6 @@
 /* Fade In Up - Subtle slide up effect with GPU acceleration */
 .animate-fade-in-up {
     animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity;
     backface-visibility: hidden;
 }
 
@@ -68,7 +96,6 @@
 /* Scale In - For modals and popups with GPU acceleration */
 .animate-scale-in {
     animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity;
     backface-visibility: hidden;
 }
 
@@ -87,7 +114,6 @@
 /* Scale In Centered - For centered popups using translate-x/y with GPU acceleration */
 .animate-scale-in-centered {
     animation: scaleInCentered 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity;
     backface-visibility: hidden;
 }
 
@@ -106,7 +132,6 @@
 /* Slide In From Bottom - For toasts/sheets with GPU acceleration */
 .animate-slide-up {
     animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity;
     backface-visibility: hidden;
 }
 
@@ -256,7 +281,6 @@
 
 .backdrop-animate {
     animation: backdropFade 0.2s ease-out forwards;
-    will-change: opacity, backdrop-filter;
     backface-visibility: hidden;
 }
 
@@ -280,7 +304,6 @@
 
 .spin-slow {
     animation: spin 1.2s linear infinite;
-    will-change: transform;
     backface-visibility: hidden;
 }
 
@@ -294,7 +317,6 @@
     }
 }
 
-/* Pulse dot animation - GPU accelerated */
 .pulse-dot {
     animation: pulseDot 1.5s ease-in-out infinite;
     will-change: transform, opacity;

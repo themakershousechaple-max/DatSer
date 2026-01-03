@@ -153,7 +153,7 @@ const MonthModal = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 duration-200 
+      className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60] duration-200 
         ${isOpen ? 'animate-in fade-in' : 'animate-out fade-out'}`}
     >
       <div

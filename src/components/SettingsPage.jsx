@@ -53,10 +53,18 @@ import ConfirmModal from './ConfirmModal'
 const SettingsPage = ({ onBack }) => {
     const { user, signOut, preferences } = useAuth()
     const { isDarkMode, toggleTheme, themeMode, setThemeMode, fontSize, setFontSize, fontFamily, setFontFamily, commandKEnabled, setCommandKEnabled } = useTheme()
-    const { members, monthlyTables, currentTable, setCurrentTable, isSupabaseConfigured, createNewMonth, deleteMonthTable } = useApp()
+    const { members, monthlyTables, currentTable, setCurrentTable, isSupabaseConfigured, createNewMonth, deleteMonthTable, isCollaborator, dataOwnerId } = useApp()
 
     const [activeSection, setActiveSection] = useState(null) // null = show main list
     const [showHelpCenter, setShowHelpCenter] = useState(false)
+
+    // Auto-Sunday settings
+    const [autoSundayEnabled, setAutoSundayEnabled] = useState(() => {
+        return localStorage.getItem('autoSundayEnabled') === 'true'
+    })
+    const [autoAllDatesEnabled, setAutoAllDatesEnabled] = useState(() => {
+        return localStorage.getItem('autoAllDatesEnabled') === 'true'
+    })
     useEffect(() => {
         const scrollToTop = () => {
             try {
@@ -98,6 +106,29 @@ const SettingsPage = ({ onBack }) => {
         const saved = localStorage.getItem('performanceMode')
         return saved === 'true'
     })
+
+    // Auto-Sunday toggle handlers
+    const toggleAutoSunday = () => {
+        const newValue = !autoSundayEnabled
+        setAutoSundayEnabled(newValue)
+        localStorage.setItem('autoSundayEnabled', newValue.toString())
+        if (newValue) {
+            toast.success('Auto-Sunday enabled: will auto-select current Sunday')
+        } else {
+            toast.info('Auto-Sunday disabled')
+        }
+    }
+
+    const toggleAutoAllDates = () => {
+        const newValue = !autoAllDatesEnabled
+        setAutoAllDatesEnabled(newValue)
+        localStorage.setItem('autoAllDatesEnabled', newValue.toString())
+        if (newValue) {
+            toast.success('Auto-All-Dates enabled: will auto-mark all dates to present day')
+        } else {
+            toast.info('Auto-All-Dates disabled')
+        }
+    }
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [collaborators, setCollaborators] = useState([])
     const [fetchingCollaborators, setFetchingCollaborators] = useState(false)
@@ -508,6 +539,98 @@ const SettingsPage = ({ onBack }) => {
             {/* Workspace Options */}
             <div className="space-y-3">
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+                    {/* Auto-Sunday Settings */}
+                    <div className="p-4 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-medium text-gray-900 dark:text-white">Automation Settings</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Configure auto-selection and attendance behavior</p>
+                            </div>
+                        </div>
+
+                        {/* Auto-Sunday Toggle */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <label className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                    Auto-Sunday
+                                    {autoSundayEnabled && (
+                                        <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">Active</span>
+                                    )}
+                                </label>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Automatically select the current Sunday when opening the app
+                                </p>
+                            </div>
+                            <button
+                                onClick={toggleAutoSunday}
+                                disabled={isCollaborator && !autoSundayEnabled}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                    isCollaborator && !autoSundayEnabled
+                                        ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                                        : autoSundayEnabled
+                                        ? 'bg-primary-600'
+                                        : 'bg-gray-200 dark:bg-gray-600'
+                                }`}
+                                title={isCollaborator && !autoSundayEnabled ? 'Auto-Sunday is managed by workspace admin' : 'Toggle Auto-Sunday'}
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        autoSundayEnabled ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+
+                        {/* Auto-All-Dates Toggle */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <label className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                    Auto-All-Dates
+                                    {autoAllDatesEnabled && (
+                                        <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">Active</span>
+                                    )}
+                                </label>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    When enabled, automatically mark all dates up to today as present
+                                </p>
+                            </div>
+                            <button
+                                onClick={toggleAutoAllDates}
+                                disabled={isCollaborator && !autoAllDatesEnabled}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                    isCollaborator && !autoAllDatesEnabled
+                                        ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                                        : autoAllDatesEnabled
+                                        ? 'bg-primary-600'
+                                        : 'bg-gray-200 dark:bg-gray-600'
+                                }`}
+                                title={isCollaborator && !autoAllDatesEnabled ? 'Auto-All-Dates is managed by workspace admin' : 'Toggle Auto-All-Dates'}
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        autoAllDatesEnabled ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+
+                        {/* Collaborator Notice */}
+                        {isCollaborator && (!autoSundayEnabled || !autoAllDatesEnabled) && (
+                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                                <div className="flex items-start gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <div className="text-xs text-amber-700 dark:text-amber-300">
+                                        <p className="font-medium mb-1">Workspace Admin Control</p>
+                                        <p>Automation settings are managed by the workspace administrator. Contact your admin to enable these features.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <button
                         onClick={() => setIsWorkspaceModalOpen(true)}
                         className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -1953,7 +2076,7 @@ const SettingsPage = ({ onBack }) => {
 
             {/* Remove Collaborator Modal */}
             {pendingRemoval && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
                         {/* Header */}
                         <div className={`px-6 py-4 flex items-center justify-between border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>

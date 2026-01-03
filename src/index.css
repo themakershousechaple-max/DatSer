@@ -4,47 +4,82 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Smooth grid layout animations - GPU accelerated */
-@keyframes gridReflow {
-  from {
-    opacity: 0.7;
-    transform: scale3d(0.95, 0.95, 1);
+/* Mobile-first responsive design */
+@layer base {
+  /* Ensure proper mobile viewport */
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    touch-action: manipulation;
   }
-
-  to {
-    opacity: 1;
-    transform: scale3d(1, 1, 1);
-  }
-}
-
-.grid-animate>* {
-  animation: gridReflow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-}
-
-/* Page transition animations - GPU accelerated */
-@keyframes pageSlideIn {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 20px, 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
+  
+  body {
+    /* Prevent bounce scroll on iOS */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    /* Optimize for touch */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
 }
 
-@keyframes pageSlideOut {
-  from {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
+/* Smooth grid layout animations - GPU accelerated, disabled on mobile */
+@media (min-width: 768px) {
+  @keyframes gridReflow {
+    from {
+      opacity: 0.7;
+      transform: scale3d(0.95, 0.95, 1);
+    }
+  
+    to {
+      opacity: 1;
+      transform: scale3d(1, 1, 1);
+    }
+  }
+  
+  .grid-animate>* {
+    animation: gridReflow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    backface-visibility: hidden;
+  }
+}
+
+/* Page transition animations - disabled on mobile for performance */
+@media (min-width: 768px) {
+  @keyframes pageSlideIn {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 20px, 0);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+  
+  @keyframes pageSlideOut {
+    from {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  
+    to {
+      opacity: 0;
+      transform: translate3d(0, -20px, 0);
+    }
+  }
+  
+  .page-enter {
+    animation: pageSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
   }
 
-  to {
-    opacity: 0;
-    transform: translate3d(0, -20px, 0);
+  .page-exit {
+    animation: pageSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
   }
 }
 

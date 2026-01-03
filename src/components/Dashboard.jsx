@@ -1246,7 +1246,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       setAttendanceData(prev => ({ ...prev, [dateStr]: map }))
                     }
                   }}
-                  className={`flex-shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 border ${isSelected
+                  className={`flex-shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-150 border ${isSelected
                     ? 'bg-slate-700 dark:bg-slate-600 text-white border-slate-800 shadow-lg scale-[1.02]'
                     : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm'
                     }`}
@@ -1310,7 +1310,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
                     {/* Registered Members List - Stacked on mobile, side by side on desktop */}
                     {(presentCount > 0 || absentCount > 0) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] grid-animate">
+                      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 ${searchTerm ? '' : 'transition-colors duration-300'} grid-animate`}>
                         {/* Present Members - Left Column (Collapsible) */}
                         <details className="bg-white dark:bg-gray-800 rounded-xl border border-green-200 dark:border-green-900/50 overflow-hidden">
                           <summary className="px-3 py-2.5 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-900/50 cursor-pointer list-none flex items-center justify-between hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
@@ -1542,7 +1542,7 @@ const Dashboard = ({ isAdmin = false }) => {
       )}
 
       {/* Members List */}
-      <div className={`${longPressSelectedIds.size > 0 ? '' : 'mt-8 sm:mt-10'} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 ${searchTerm ? '' : 'transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] grid-animate'}`}>
+      <div className={`${longPressSelectedIds.size > 0 ? '' : 'mt-8 sm:mt-10'} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 ${searchTerm ? '' : 'transition-colors duration-200'} grid-animate`}>
         {/* Calculate displayed members based on search and pagination */}
         {(() => {
           // Get tab-filtered members first
@@ -1570,7 +1570,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 const isSelected = longPressSelectedIds.has(member.id)
 
                 return (
-                  <div key={member.id} className={`relative will-change-transform ${searchTerm ? '' : 'transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]'}`}>
+                  <div key={member.id} className={`relative ${searchTerm ? '' : 'transition-colors duration-200'}`}>
                     {/* Selection checkmark */}
                     {isSelected && (
                       <div className="selection-checkmark">
@@ -1589,7 +1589,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       </button>
                     </div>
                     <div
-                      className={`relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${isSelected ? 'selection-highlight' : ''
+                      className={`relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-colors duration-200 overflow-hidden ${isSelected ? 'selection-highlight' : ''
                         }`}
                       style={{ transform: swipeOpenId === member.id ? 'translateX(-64px)' : 'translateX(0)', touchAction: 'pan-y', userSelect: 'none' }}
                       onTouchStart={(e) => {
@@ -1646,7 +1646,7 @@ const Dashboard = ({ isAdmin = false }) => {
                               toggleMemberExpansion(member.id)
                             }
                           }}
-                          className="w-full flex items-center gap-2 mb-2 text-left hover:bg-primary-50 dark:hover:bg-primary-900/40 rounded px-1 py-1 transition-colors"
+                          className="w-full flex items-center gap-2 mb-2 text-left hover:bg-primary-50 dark:hover:bg-primary-900/40 rounded px-1 py-1 transition-colors duration-150"
                         >
                           <div className="p-1 text-gray-500 dark:text-gray-400 rounded flex-shrink-0 flex items-center justify-center">
                             {isExpanded ? (
@@ -1701,7 +1701,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                   <button
                                     onClick={() => handleAttendance(member.id, true)}
                                     disabled={attendanceLoading[member.id]}
-                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap sm:text-sm md:text-sm ${isPresentSelected
+                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150 whitespace-nowrap sm:text-sm md:text-sm ${isPresentSelected
                                       ? 'bg-green-600 dark:bg-green-700 text-white shadow ring-1 ring-green-300 dark:ring-green-500'
                                       : attendanceLoading[member.id]
                                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -1714,7 +1714,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                   <button
                                     onClick={() => handleAttendance(member.id, false)}
                                     disabled={attendanceLoading[member.id]}
-                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap sm:text-sm md:text-sm ${isAbsentSelected
+                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150 whitespace-nowrap sm:text-sm md:text-sm ${isAbsentSelected
                                       ? 'bg-red-600 dark:bg-red-700 text-white shadow ring-1 ring-red-300 dark:ring-red-500'
                                       : attendanceLoading[member.id]
                                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -1735,7 +1735,7 @@ const Dashboard = ({ isAdmin = false }) => {
                             type="button"
                             onClick={(e) => { e.stopPropagation(); openDeleteConfirm(e, member) }}
                             disabled={attendanceLoading[member.id]}
-                            className="hidden md:inline-flex flex-1 items-center justify-center px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-200 dark:hover:border-red-800 text-sm font-medium whitespace-nowrap transition-colors"
+                            className="hidden md:inline-flex flex-1 items-center justify-center px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-200 dark:hover:border-red-800 text-sm font-medium whitespace-nowrap transition-colors duration-150"
                             title="Delete member"
                           >
                             Delete
@@ -1749,7 +1749,7 @@ const Dashboard = ({ isAdmin = false }) => {
                           <div className="pt-2 sm:pt-2.5">
                             {/* Member Details */}
                             {/* Member Details */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 transition-colors duration-300`}>
                               <div className="space-y-3">
                                 <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Member Info</h4>
                                 <div className="space-y-2 text-sm">
@@ -1812,9 +1812,6 @@ const Dashboard = ({ isAdmin = false }) => {
                                     } else if (diffDays < 30) {
                                       const weeks = Math.floor(diffDays / 7)
                                       relativeTime = weeks === 1 ? '1 week ago' : `${weeks} weeks ago`
-                                    } else if (diffDays < 365) {
-                                      const months = Math.floor(diffDays / 30)
-                                      relativeTime = months === 1 ? '1 month ago' : `${months} months ago`
                                     } else {
                                       const years = Math.floor(diffDays / 365)
                                       relativeTime = years === 1 ? '1 year ago' : `${years} years ago`
@@ -1906,7 +1903,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                 <div className="flex flex-col gap-2">
                                   <button
                                     onClick={() => setEditingMember(member)}
-                                    className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600 rounded-lg transition-colors duration-150 shadow-sm hover:shadow-md"
                                   >
                                     <Edit3 className="w-4 h-4" />
                                     <span>Edit Details</span>
@@ -1931,7 +1928,7 @@ const Dashboard = ({ isAdmin = false }) => {
                             {/* Sunday Attendance */}
                             <div className="border-t border-gray-200 dark:border-gray-600 pt-4 transition-colors">
                               <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 transition-colors">{getMonthDisplayName(currentTable)} Sunday Attendance</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] grid-animate">
+                              <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${searchTerm ? '' : 'transition-colors duration-300'} grid-animate`}>
                                 {sundayDates.map(date => {
                                   const dateKey = date
                                   const dateAttendance = attendanceData[dateKey] || {}
@@ -1953,7 +1950,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                         <button
                                           onClick={() => handleAttendanceForDate(member.id, true, date)}
                                           disabled={isLoading}
-                                          className={`flex-1 px-2 py-1 rounded text-xs font-bold transition-all duration-200 ${isPresent
+                                          className={`flex-1 px-2 py-1 rounded text-xs font-bold transition-colors duration-150 ${isPresent
                                             ? 'bg-green-800 dark:bg-green-700 text-white shadow-lg ring-2 ring-green-300 dark:ring-green-400 border border-green-900 dark:border-green-300 font-extrabold'
                                             : isLoading
                                               ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
@@ -1965,7 +1962,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                         <button
                                           onClick={() => handleAttendanceForDate(member.id, false, date)}
                                           disabled={isLoading}
-                                          className={`flex-1 px-2 py-1 rounded text-xs font-bold transition-all duration-200 ${isAbsent
+                                          className={`flex-1 px-2 py-1 rounded text-xs font-bold transition-colors duration-150 ${isAbsent
                                             ? 'bg-red-800 dark:bg-red-700 text-white shadow-lg ring-2 ring-red-300 dark:ring-red-400 border border-red-900 dark:border-red-300 font-extrabold'
                                             : isLoading
                                               ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'

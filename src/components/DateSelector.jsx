@@ -151,7 +151,7 @@ const DateSelector = ({ variant = 'icon' }) => {
 
       {isOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4" 
+          className="fixed inset-0 z-[60] bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4" 
           onClick={() => setIsOpen(false)}
         >
           <div 
