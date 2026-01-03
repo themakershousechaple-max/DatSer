@@ -1404,7 +1404,25 @@ export const AppProvider = ({ children }) => {
       const monthIdentifier = `${monthName}_${year}`
 
       if (!isSupabaseConfigured()) {
-        // Demo mode - just show success message
+        // Demo mode - simulate table creation locally
+        setMonthlyTables(prev => {
+          if (prev.includes(monthIdentifier)) return prev
+
+          const monthsOrder = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December']
+
+          const nextTables = [...prev, monthIdentifier]
+          nextTables.sort((a, b) => {
+            const [monthA, yearA] = a.split('_')
+            const [monthB, yearB] = b.split('_')
+
+            if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB)
+            return monthsOrder.indexOf(monthA) - monthsOrder.indexOf(monthB)
+          })
+          return nextTables
+        })
+
+        changeCurrentTable(monthIdentifier)
         toast.success(`${monthIdentifier} created successfully! (Demo Mode)`)
         return { success: true, tableName: monthIdentifier }
       }
