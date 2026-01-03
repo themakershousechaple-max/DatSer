@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+    
+    <!-- Soft glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Shadow for text -->
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0F172A" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)" />
+  
+  <!-- Subtle pattern overlay -->
+  <rect width="1200" height="630" fill="#FFFFFF" fill-opacity="0.05" />
+  
+  <!-- Large app icon in center -->
+  <g transform="translate(600, 315)">
+    <!-- Icon background -->
+    <rect x="-80" y="-80" width="160" height="160" rx="32" fill="#FFFFFF" fill-opacity="0.1" />
+    <rect x="-80" y="-80" width="160" height="160" rx="32" fill="#FFFFFF" fill-opacity="0.8" />
+    
+    <!-- DS monogram -->
+    <text x="0" y="15" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="72" font-weight="800" fill="#2563EB" letter-spacing="2">
+      DS
+    </text>
+  </g>
+  
+  <!-- App title -->
+  <text x="600" y="450" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="64" font-weight="700" fill="#FFFFFF" filter="url(#textShadow)">
+    Datsar
+  </text>
+  
+  <!-- Tagline -->
+  <text x="600" y="510" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="28" font-weight="400" fill="#FFFFFF" fill-opacity="0.9" filter="url(#textShadow)">
+    Data Search Hub
+  </text>
+  
+  <!-- Subtle description -->
+  <text x="600" y="550" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="20" font-weight="300" fill="#FFFFFF" fill-opacity="0.7" filter="url(#textShadow)">
+    Fast • Reliable • Mobile-Optimized
+  </text>
+</svg>

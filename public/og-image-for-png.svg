@@ -1,0 +1,57 @@
+<!-- PNG version for better mobile compatibility -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+    
+    <!-- Shadow for text -->
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0F172A" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)" />
+  
+  <!-- Subtle pattern overlay -->
+  <rect width="1200" height="630" fill="#FFFFFF" fill-opacity="0.05" />
+  
+  <!-- Large app icon in center -->
+  <g transform="translate(600, 280)">
+    <!-- Icon background with glow -->
+    <rect x="-90" y="-90" width="180" height="180" rx="36" fill="#FFFFFF" fill-opacity="0.15" />
+    <rect x="-85" y="-85" width="170" height="170" rx="32" fill="#FFFFFF" fill-opacity="0.9" />
+    
+    <!-- Inner shadow for depth -->
+    <rect x="-85" y="-85" width="170" height="170" rx="32" fill="#000000" fill-opacity="0.1" />
+    
+    <!-- DS monogram -->
+    <text x="0" y="20" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="80" font-weight="800" fill="#2563EB" letter-spacing="3">
+      DS
+    </text>
+  </g>
+  
+  <!-- App title -->
+  <text x="600" y="440" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="72" font-weight="700" fill="#FFFFFF" filter="url(#textShadow)">
+    Datsar
+  </text>
+  
+  <!-- Tagline -->
+  <text x="600" y="500" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="32" font-weight="400" fill="#FFFFFF" fill-opacity="0.9" filter="url(#textShadow)">
+    Data Search Hub
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="540" text-anchor="middle" font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system" font-size="24" font-weight="300" fill="#FFFFFF" fill-opacity="0.8" filter="url(#textShadow)">
+    Fast • Reliable • Mobile-Optimized
+  </text>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="30" fill="#FFFFFF" fill-opacity="0.1" />
+  <circle cx="1100" cy="530" r="40" fill="#FFFFFF" fill-opacity="0.08" />
+  <circle cx="150" cy="480" r="25" fill="#FFFFFF" fill-opacity="0.06" />
+  <circle cx="1050" cy="150" r="35" fill="#FFFFFF" fill-opacity="0.07" />
+</svg>
