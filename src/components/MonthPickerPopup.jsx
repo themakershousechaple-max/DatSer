@@ -68,7 +68,7 @@ const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
             {/* Popup */}
             <div
                 ref={popupRef}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-[300px] max-w-[90vw] max-h-[70vh] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden animate-scale-in-centered transform-gpu"
+                className="fixed left-1/2 top-1/2 z-[60] w-[300px] max-w-[90vw] max-h-[70vh] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden animate-scale-in-centered"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50 bg-gray-50/80 dark:bg-gray-900/50">

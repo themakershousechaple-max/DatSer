@@ -4,271 +4,116 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile-first responsive design & performance optimizations */
-
-/* Ensure proper viewport behavior on all browsers */
-html {
-  height: 100%;
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-body {
-  min-height: 100%;
-  margin: 0;
-  padding: 0;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Allow text selection for inputs and text areas */
-input, textarea, [contenteditable] {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* Prevent zoom on input focus across all browsers */
-input[type="text"],
-input[type="search"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-textarea,
-select {
-  font-size: 16px !important;
-  touch-action: manipulation;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* Special handling for iOS Safari */
-@supports (-webkit-touch-callout: none) {
-  input[type="text"],
-  input[type="search"],
-  input[type="email"],
-  input[type="password"],
-  input[type="number"],
-  textarea,
-  select {
-    font-size: 16px !important;
-    -webkit-appearance: none;
-    appearance: none;
-    border-radius: 0;
-  }
-}
-
-/* Fixed positioning for all browsers */
-.fixed {
-  position: fixed !important;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  will-change: transform;
-}
-
-/* GPU acceleration for smooth scrolling */
-.transform-gpu {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  will-change: transform;
-}
-
-/* Safe area support for notched displays */
-.safe-area-top {
-  padding-top: env(safe-area-inset-top);
-}
-
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.safe-area-left {
-  padding-left: env(safe-area-inset-left);
-}
-
-.safe-area-right {
-  padding-right: env(safe-area-inset-right);
-}
-
-/* Disable animations on mobile for performance */
-@media (max-width: 767px) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+/* Mobile-first responsive design */
+@layer base {
+  /* Ensure proper mobile viewport */
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    touch-action: manipulation;
   }
   
-  /* Enable essential transitions */
-  .transition-colors {
-    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease !important;
-  }
-  
-  /* Disable complex grid animations */
-  .grid-animate {
-    animation: none !important;
-  }
-  
-  /* Ensure fixed elements work properly on mobile */
-  .fixed {
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: auto !important;
-    bottom: auto !important;
+  body {
+    /* Prevent bounce scroll on iOS */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    /* Optimize for touch */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
 }
 
-/* Performance mode - disable all animations */
-.performance-mode * {
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  
-  .transition-colors {
-    transition: color 0.1s ease, background-color 0.1s ease, border-color 0.1s ease !important;
-  }
-}
-
-/* Animations disabled preference */
-.animations-disabled * {
-  animation: none !important;
-  transition: none !important;
-}
-
-/* Reduced motion preference */
-.reduced-motion * {
-  animation-duration: 0.1s !important;
-  transition-duration: 0.1s !important;
-}
-
-/* Modal and popup centering for all browsers */
-.modal-center {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  -webkit-transform: translate(-50%, -50%) !important;
-  z-index: 60 !important;
-  max-width: 90vw !important;
-  max-height: 90vh !important;
-  overflow: auto !important;
-}
-
-/* Modal backdrop */
-.modal-backdrop {
-  position: fixed !important;
-  inset: 0 !important;
-  background: rgba(0, 0, 0, 0.5) !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  z-index: 60 !important;
-}
-
-/* Ensure all modals are properly centered */
-.fixed.inset-0.z-\[60\] {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 60 !important;
-}
-
-/* Modal content centering */
-.fixed.inset-0.z-\[60\] .flex.items-center.justify-center {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 1rem !important;
-}
-
-/* Modal content container */
-.fixed.inset-0.z-\[60\] .flex.items-center.justify-center > div {
-  max-width: 90vw !important;
-  max-height: 90vh !important;
-  overflow: auto !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-}
-
-/* Special handling for mobile modals */
-@media (max-width: 767px) {
-  .modal-center {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    margin: 0 !important;
-  }
-  
-  .fixed.inset-0.z-\[60\] .flex.items-center.justify-center > div {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    margin: 0 !important;
-  }
-}
-
-/* GPU acceleration for modals */
-.modal-center,
-.modal-backdrop {
-  -webkit-transform: translateZ(0) !important;
-  transform: translateZ(0) !important;
-  -webkit-backface-visibility: hidden !important;
-  backface-visibility: hidden !important;
-  will-change: transform !important;
-}
+/* Smooth grid layout animations - GPU accelerated, disabled on mobile */
 @media (min-width: 768px) {
   @keyframes gridReflow {
     from {
       opacity: 0.7;
-      transform: scale(0.98);
+      transform: scale3d(0.95, 0.95, 1);
     }
+  
     to {
       opacity: 1;
-      transform: scale(1);
+      transform: scale3d(1, 1, 1);
     }
   }
-
-  .grid-animate {
-    animation: gridReflow 0.3s ease-out;
+  
+  .grid-animate>* {
+    animation: gridReflow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    backface-visibility: hidden;
   }
 }
 
-/* Page transition animation - desktop only */
+/* Page transition animations - disabled on mobile for performance */
 @media (min-width: 768px) {
-  @keyframes pageTransition {
+  @keyframes pageSlideIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translate3d(0, 20px, 0);
     }
+  
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
     }
   }
-
-  .page-animate {
-    animation: pageTransition 0.4s ease-out;
+  
+  @keyframes pageSlideOut {
+    from {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  
+    to {
+      opacity: 0;
+      transform: translate3d(0, -20px, 0);
+    }
   }
+  
+  .page-enter {
+    animation: pageSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+
+  .page-exit {
+    animation: pageSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+}
+
+@keyframes filterSlideUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes filterSlideDown {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.page-enter {
+  animation: pageSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.page-exit {
   animation: pageSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
   backface-visibility: hidden;
