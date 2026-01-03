@@ -2601,25 +2601,33 @@ const Dashboard = ({ isAdmin = false }) => {
         </div>
       )}
 
-      {/* Bottom Search Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom">
+      {/* Bottom Search Bar - Fixed positioning for all browsers */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-[60] safe-area-bottom transform-gpu">
         <div className="mx-auto px-3 sm:px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search members..."
                 value={localSearchTerm}
                 onChange={(e) => setLocalSearchTerm(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { setSearchTerm(localSearchTerm); refreshSearch() } }}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors text-base touch-manipulation"
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck="false"
+                inputMode="search"
+                enterKeyHint="search"
+                style={{ fontSize: '16px' }}
               />
               {(searchTerm || localSearchTerm) && (
                 <button
                   onClick={() => { setSearchTerm(''); setLocalSearchTerm('') }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded touch-manipulation"
                   title="Clear search"
+                  type="button"
                 >
                   ×
                 </button>
