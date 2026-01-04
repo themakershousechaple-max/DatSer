@@ -187,7 +187,7 @@ export const AppProvider = ({ children }) => {
         .from('collaborators')
         .select('owner_id, status')
         .eq('email', user.email.toLowerCase())
-        .eq('status', 'pending') // or 'accepted' if you have that status
+        .in('status', ['pending', 'accepted', 'active'])
         .single()
 
       if (error || !data) {
