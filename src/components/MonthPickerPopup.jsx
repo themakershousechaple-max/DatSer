@@ -3,7 +3,7 @@ import { Check, Calendar, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
-    const { monthlyTables, currentTable, setCurrentTable } = useApp()
+    const { monthlyTables, currentTable, setCurrentTable, isCollaborator } = useApp()
     const popupRef = useRef(null)
 
     // Close on outside click
@@ -124,7 +124,17 @@ const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
                     {(!monthlyTables || monthlyTables.length === 0) && (
                         <div className="p-8 text-center text-gray-500 dark:text-gray-400 animate-fade-in">
                             <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No months available</p>
+                            <p className="text-sm">
+                                {isCollaborator 
+                                    ? "No months created by owner yet" 
+                                    : "No months available"
+                                }
+                            </p>
+                            {isCollaborator && (
+                                <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">
+                                    Ask the workspace owner to create a month first
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

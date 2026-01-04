@@ -1496,15 +1496,31 @@ export const AppProvider = ({ children }) => {
 
       if (error) {
         console.error('Error fetching user month tables:', error)
+        // For collaborators, if there's an error fetching owner's tables, show fallback
+        if (isCollaborator) {
+          console.log('Collaborator: Using fallback months due to error')
+          setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+        }
         return
       }
 
       const tableNames = (data || []).map(entry => entry.table_name).filter(Boolean)
-      setMonthlyTables(sortMonthTables(tableNames))
+      
+      // If no tables found for the owner and this is a collaborator, show fallback months
+      if (tableNames.length === 0 && isCollaborator) {
+        console.log('Collaborator: No tables found for owner, showing fallback months')
+        setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+      } else {
+        setMonthlyTables(sortMonthTables(tableNames))
+      }
     } catch (error) {
       console.error('Error fetching monthly tables:', error)
+      // For collaborators, provide fallback on error
+      if (isCollaborator) {
+        setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+      }
     }
-  }, [isSupabaseConfigured, dataOwnerId, user?.id])
+  }, [isSupabaseConfigured, dataOwnerId, user?.id, isCollaborator])
 
   const deleteMonthTable = useCallback(async (tableName) => {
     if (!tableName) return
