@@ -1504,7 +1504,11 @@ export const AppProvider = ({ children }) => {
       }
 
       const ownerId = dataOwnerId || user?.id
-      if (!ownerId) return
+      if (!ownerId) {
+        setMonthlyTables(COLLAB_FALLBACK_TABLES)
+        changeCurrentTable(DEFAULT_COLLAB_TABLE)
+        return
+      }
 
       const { data, error } = await supabase
         .from('user_month_tables')
@@ -1522,14 +1526,12 @@ export const AppProvider = ({ children }) => {
       }
 
       const tableNames = (data || []).map(entry => entry.table_name).filter(Boolean)
-      
-      // If no tables found for the owner and this is a collaborator, show fallback months
-      if (tableNames.length === 0 && isCollaborator) {
-        console.log('Collaborator: No tables found for owner, showing fallback months')
+      if (tableNames.length === 0) {
         applyCollaboratorFallback()
-      } else {
-        setMonthlyTables(sortMonthTables(tableNames))
+        return
       }
+
+      setMonthlyTables(sortMonthTables(tableNames))
     } catch (error) {
       console.error('Error fetching monthly tables:', error)
       // For collaborators, provide fallback on error
