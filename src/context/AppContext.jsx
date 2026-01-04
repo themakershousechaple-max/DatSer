@@ -119,11 +119,7 @@ export const AppProvider = ({ children }) => {
   const searchCacheRef = useRef(new Map())
   const nameColumnCacheRef = useRef(new Map())
   const [attendanceData, setAttendanceData] = useState({})
-  const [currentTable, setCurrentTable] = useState(() => {
-    // Try to restore saved table from localStorage, otherwise use latest
-    const savedTable = localStorage.getItem('selectedMonthTable')
-    return savedTable || getLatestTable()
-  })
+  const [currentTable, setCurrentTable] = useState(getLatestTable())
   const [monthlyTables, setMonthlyTables] = useState(FALLBACK_MONTHLY_TABLES)
   const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(null)
   const [availableSundayDates, setAvailableSundayDates] = useState([])
@@ -146,14 +142,22 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('autoAllDatesEnabled') === 'true'
   })
 
+  const getMonthStorageKey = useCallback(() => {
+    if (isCollaborator && dataOwnerId) {
+      return `selectedMonthTable_${dataOwnerId}`
+    }
+    return 'selectedMonthTable'
+  }, [isCollaborator, dataOwnerId])
+
   const changeCurrentTable = useCallback((tableName) => {
     setCurrentTable(tableName)
+    const storageKey = getMonthStorageKey()
     if (tableName) {
-      localStorage.setItem('selectedMonthTable', tableName)
+      localStorage.setItem(storageKey, tableName)
     } else {
-      localStorage.removeItem('selectedMonthTable')
+      localStorage.removeItem(storageKey)
     }
-  }, [])
+  }, [getMonthStorageKey])
 
   const pruneMissingTable = useCallback((tableName) => {
     if (!tableName) return
@@ -1489,7 +1493,7 @@ export const AppProvider = ({ children }) => {
   // Fetch available month tables from database
   const fetchMonthlyTables = useCallback(async () => {
     const applyCollaboratorFallback = () => {
-      setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+      setMonthlyTables(COLLAB_FALLBACK_TABLES)
       changeCurrentTable(DEFAULT_COLLAB_TABLE)
     }
 
