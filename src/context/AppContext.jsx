@@ -35,6 +35,7 @@ const getCurrentMonthTable = () => {
 
 // Fallback monthly tables for when Supabase is not configured
 const FALLBACK_MONTHLY_TABLES = MONTHS_IN_YEAR.map(month => `${month}_2025`)
+const DEFAULT_COLLAB_TABLE = 'January_2026'
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 const DEFAULT_ATTENDANCE_DATES = {
@@ -1480,6 +1481,11 @@ export const AppProvider = ({ children }) => {
 
   // Fetch available month tables from database
   const fetchMonthlyTables = useCallback(async () => {
+    const applyCollaboratorFallback = () => {
+      setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+      changeCurrentTable(DEFAULT_COLLAB_TABLE)
+    }
+
     try {
       if (!isSupabaseConfigured()) {
         setMonthlyTables(FALLBACK_MONTHLY_TABLES)
@@ -1499,7 +1505,7 @@ export const AppProvider = ({ children }) => {
         // For collaborators, if there's an error fetching owner's tables, show fallback
         if (isCollaborator) {
           console.log('Collaborator: Using fallback months due to error')
-          setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+          applyCollaboratorFallback()
         }
         return
       }
@@ -1509,7 +1515,7 @@ export const AppProvider = ({ children }) => {
       // If no tables found for the owner and this is a collaborator, show fallback months
       if (tableNames.length === 0 && isCollaborator) {
         console.log('Collaborator: No tables found for owner, showing fallback months')
-        setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+        applyCollaboratorFallback()
       } else {
         setMonthlyTables(sortMonthTables(tableNames))
       }
@@ -1517,10 +1523,10 @@ export const AppProvider = ({ children }) => {
       console.error('Error fetching monthly tables:', error)
       // For collaborators, provide fallback on error
       if (isCollaborator) {
-        setMonthlyTables(FALLBACK_MONTHLY_TABLES)
+        applyCollaboratorFallback()
       }
     }
-  }, [isSupabaseConfigured, dataOwnerId, user?.id, isCollaborator])
+  }, [isSupabaseConfigured, dataOwnerId, user?.id, isCollaborator, changeCurrentTable])
 
   const deleteMonthTable = useCallback(async (tableName) => {
     if (!tableName) return
