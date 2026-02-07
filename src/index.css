@@ -11,7 +11,13 @@
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
-    touch-action: manipulation;
+  }
+  
+  /* Only apply touch-action: manipulation on mobile to avoid blocking trackpad scroll on desktop */
+  @media (max-width: 767px) {
+    html {
+      touch-action: manipulation;
+    }
   }
   
   body {

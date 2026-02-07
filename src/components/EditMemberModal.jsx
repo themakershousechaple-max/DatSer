@@ -106,7 +106,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         age: latestMember['Age'] || '',
         current_level: latestMember['Current Level'] || '',
         notes: latestMember['notes'] || '',
-        ministry: latestMember['ministry'] || [],
+        ministry: Array.isArray(latestMember['ministry']) ? latestMember['ministry'] : (latestMember['ministry'] ? [latestMember['ministry']] : []),
         is_visitor: latestMember['is_visitor'] || false
       })
       // Initialize parent info from member
@@ -225,7 +225,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         full_name: formData.full_name,
         Gender: formData.gender,
         'Phone Number': formData.phone_number || null,
-        Age: formData.age ? parseInt(formData.age) : null,
+        Age: formData.age ? String(formData.age).trim() : null,
         'Current Level': formData.current_level,
         // Parent info
         parent_name_1: parentInfo.parent_name_1 || null,

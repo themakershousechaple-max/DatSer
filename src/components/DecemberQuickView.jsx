@@ -105,7 +105,7 @@ const DecemberQuickView = ({ onOpenFullApp, showPreview, onTogglePreview }) => {
 
       const memberData = {
         'Full Name': newMember.name.trim(),
-        'Phone Number': newMember.phone ? parseInt(newMember.phone) : null,
+        'Phone Number': newMember.phone ? String(newMember.phone).trim() : null,
         'Gender': newMember.gender || null,
         'Age': newMember.age || null,
         'Current Level': newMember.level || null,

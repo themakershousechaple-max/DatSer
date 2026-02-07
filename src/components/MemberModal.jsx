@@ -198,7 +198,7 @@ const MemberModal = ({ isOpen, onClose }) => {
       const newMember = await addMember({
         ...formData,
         ...parentInfo,
-        age: formData.age ? parseInt(formData.age) : null,
+        age: formData.age ? String(formData.age).trim() : null,
         phone_number: formData.phone_number || null,
         notes: formData.notes || null,
         ministry: formData.ministry?.length > 0 ? formData.ministry : null,

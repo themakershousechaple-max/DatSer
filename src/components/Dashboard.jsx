@@ -1853,11 +1853,11 @@ const Dashboard = ({ isAdmin = false }) => {
                                 </div>
 
                                 {/* Ministry Tags */}
-                                {member.ministry && member.ministry.length > 0 && (
+                                {member.ministry && (Array.isArray(member.ministry) ? member.ministry : [member.ministry]).filter(Boolean).length > 0 && (
                                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                                     <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Ministry</h4>
                                     <div className="flex flex-wrap gap-1">
-                                      {member.ministry.map(m => (
+                                      {(Array.isArray(member.ministry) ? member.ministry : [member.ministry]).filter(Boolean).map(m => (
                                         <span key={m} className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
                                           {m}
                                         </span>

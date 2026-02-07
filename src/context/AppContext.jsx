@@ -406,23 +406,15 @@ export const AppProvider = ({ children }) => {
         return newMember
       }
 
-      // Helper: sanitize phone to fit int4 (last 9 digits)
-      const sanitizePhoneToInt = (val) => {
-        if (val === undefined || val === null) return null
-        const digits = String(val).replace(/\D+/g, '')
-        if (!digits) return null
-        const last9 = digits.slice(-9)
-        const num = Number.parseInt(last9, 10)
-        return Number.isFinite(num) ? num : null
-      }
-
       // Transform data to match monthly table structure
       const genRaw = memberData.gender || memberData['Gender']
       const gen = typeof genRaw === 'string'
         ? (genRaw.trim().toLowerCase() === 'male' ? 'Male' : genRaw.trim().toLowerCase() === 'female' ? 'Female' : genRaw)
         : genRaw
       const ageRaw = memberData.age || memberData['Age']
-      const ageParsed = ageRaw === undefined || ageRaw === null || ageRaw === '' ? null : Number.parseInt(ageRaw, 10)
+      const ageStr = (ageRaw === undefined || ageRaw === null || ageRaw === '') ? null : String(ageRaw).trim()
+      const phoneRaw = memberData.phone_number ?? memberData.phoneNumber ?? memberData['Phone Number']
+      const phoneStr = (phoneRaw === undefined || phoneRaw === null) ? null : String(phoneRaw).trim() || null
 
       // Get workspace name from auth preferences
       const workspaceName = authContext?.preferences?.workspace_name || null
@@ -430,8 +422,8 @@ export const AppProvider = ({ children }) => {
       const transformedData = {
         'Full Name': memberData.full_name || memberData.fullName || memberData['Full Name'],
         'Gender': gen,
-        'Phone Number': sanitizePhoneToInt(memberData.phone_number ?? memberData.phoneNumber ?? memberData['Phone Number']),
-        'Age': Number.isFinite(ageParsed) ? ageParsed : null,
+        'Phone Number': phoneStr,
+        'Age': ageStr,
         'Current Level': memberData.current_level || memberData.currentLevel || memberData['Current Level'],
         // Auto-fill workspace from user preferences
         workspace: workspaceName,
@@ -1269,22 +1261,19 @@ export const AppProvider = ({ children }) => {
         delete normalized.gender
       }
 
-      // Normalize phone number (string -> integer, empty -> null)
+      // Normalize phone number (keep as string since column is TEXT)
       const incomingPhone = normalized.phone_number ?? normalized['Phone Number']
       if (incomingPhone !== undefined) {
-        const digits = String(incomingPhone).replace(/\D+/g, '')
-        const last9 = digits ? digits.slice(-9) : ''
-        const parsed = last9 ? Number.parseInt(last9, 10) : null
-        normalized = { ...normalized, 'Phone Number': Number.isFinite(parsed) ? parsed : null }
+        const phoneStr = String(incomingPhone || '').trim()
+        normalized = { ...normalized, 'Phone Number': phoneStr || null }
         delete normalized.phone_number
       }
 
-      // Normalize age (string/number -> integer, empty -> null)
+      // Normalize age (keep as string since column is TEXT)
       const incomingAge = normalized.age ?? normalized['Age']
       if (incomingAge !== undefined) {
-        const rawAge = typeof incomingAge === 'string' ? incomingAge.trim() : incomingAge
-        const ageParsed = rawAge === '' || rawAge === null ? null : Number.parseInt(rawAge, 10)
-        normalized = { ...normalized, Age: Number.isFinite(ageParsed) ? ageParsed : null }
+        const ageStr = String(incomingAge ?? '').trim()
+        normalized = { ...normalized, Age: ageStr || null }
         delete normalized.age
       }
 
