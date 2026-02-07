@@ -33,6 +33,7 @@ export default function SimpleAttendance({ onBack }) {
   const [addAttendance, setAddAttendance] = useState(null)
   const [activeSunday, setActiveSunday] = useState(SUNDAYS[1].key)
   const [expandedId, setExpandedId] = useState(null)
+  const [filterMode, setFilterMode] = useState('all')
   const [editingMember, setEditingMember] = useState(null)
   const [editName, setEditName] = useState('')
   const [editAge, setEditAge] = useState('')
@@ -184,15 +185,19 @@ export default function SimpleAttendance({ onBack }) {
     }
   }
 
-  // Filter by search
-  const filtered = search.trim()
+  // Filter by search + attendance filter
+  let filtered = search.trim()
     ? members.filter(m => (m['Full Name'] || '').toLowerCase().includes(search.toLowerCase()))
     : members
 
-  // Counts for active sunday
+  // Counts based on search-filtered list (before attendance filter)
   const presentCount = filtered.filter(m => m[activeSunday] === 'Present').length
   const absentCount = filtered.filter(m => m[activeSunday] === 'Absent').length
   const unmarkedCount = filtered.length - presentCount - absentCount
+
+  // Apply attendance filter after counting
+  if (filterMode === 'present') filtered = filtered.filter(m => m[activeSunday] === 'Present')
+  else if (filterMode === 'absent') filtered = filtered.filter(m => m[activeSunday] === 'Absent')
 
   return (
     <div className="min-h-screen text-gray-800" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', overflowY: 'auto', overscrollBehavior: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', backgroundColor: '#f8f7f4', colorScheme: 'light' }}>
@@ -230,7 +235,7 @@ export default function SimpleAttendance({ onBack }) {
             return (
               <button
                 key={s.key}
-                onClick={() => setActiveSunday(s.key)}
+                onClick={() => { setActiveSunday(s.key); setFilterMode('all') }}
                 className={`flex-shrink-0 px-3 sm:px-4 lg:px-6 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm lg:text-base font-medium transition-all cursor-pointer active:scale-95 ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-md'
@@ -251,9 +256,19 @@ export default function SimpleAttendance({ onBack }) {
 
         {/* Summary */}
         <div className="max-w-6xl mx-auto px-4 lg:px-8 pb-1.5 sm:pb-2 flex gap-3 sm:gap-4 text-[11px] sm:text-xs lg:text-sm">
-          <span className="text-green-600 font-medium">✓ {presentCount} Present</span>
-          <span className="text-red-500 font-medium">✗ {absentCount} Absent</span>
-          <span className="text-gray-400">○ {unmarkedCount} Unmarked</span>
+          <button
+            onClick={() => setFilterMode(filterMode === 'present' ? 'all' : 'present')}
+            className={`font-medium cursor-pointer transition-all px-2 py-0.5 rounded-lg ${filterMode === 'present' ? 'bg-green-100 ring-1 ring-green-400 text-green-700' : 'text-green-600'}`}
+          >
+            ✓ {presentCount} Present
+          </button>
+          <button
+            onClick={() => setFilterMode(filterMode === 'absent' ? 'all' : 'absent')}
+            className={`font-medium cursor-pointer transition-all px-2 py-0.5 rounded-lg ${filterMode === 'absent' ? 'bg-red-100 ring-1 ring-red-400 text-red-700' : 'text-red-500'}`}
+          >
+            ✗ {absentCount} Absent
+          </button>
+          <span className="text-gray-400">○ {unmarkedCount}</span>
           {search && <span className="text-blue-500 ml-auto">{filtered.length} found</span>}
         </div>
       </div>
