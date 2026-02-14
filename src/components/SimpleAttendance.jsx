@@ -86,6 +86,7 @@ export default function SimpleAttendance({ onBack }) {
   const [activeSunday, setActiveSunday] = useState(SUNDAYS[2].key)
   const [expandedId, setExpandedId] = useState(null)
   const [filterMode, setFilterMode] = useState('all')
+  const [ministryFilter, setMinistryFilter] = useState(null)
   const [visibleCount, setVisibleCount] = useState(20)
   const [editingMember, setEditingMember] = useState(null)
   const [editName, setEditName] = useState('')
@@ -240,10 +241,25 @@ export default function SimpleAttendance({ onBack }) {
     }
   }
 
-  // Filter by search + attendance filter
-  let filtered = search.trim()
-    ? members.filter(m => (m['Full Name'] || '').toLowerCase().includes(search.toLowerCase()))
-    : members
+  // Collect unique ministry tags from members + defaults
+  const defaultMinistries = ['Choir', 'Tech Team', 'Media Department', 'Ushering Department']
+  const allMinistries = React.useMemo(() => {
+    const fromMembers = new Set()
+    members.forEach(m => {
+      if (Array.isArray(m.ministry)) m.ministry.forEach(t => fromMembers.add(t))
+    })
+    defaultMinistries.forEach(t => fromMembers.add(t))
+    return [...fromMembers].sort()
+  }, [members])
+
+  // Filter by ministry, search, + attendance filter
+  let filtered = members
+  if (ministryFilter) {
+    filtered = filtered.filter(m => Array.isArray(m.ministry) && m.ministry.includes(ministryFilter))
+  }
+  if (search.trim()) {
+    filtered = filtered.filter(m => (m['Full Name'] || '').toLowerCase().includes(search.toLowerCase()))
+  }
 
   // Counts based on search-filtered list (before attendance filter)
   const presentCount = filtered.filter(m => m[activeSunday] === 'Present').length
@@ -293,7 +309,7 @@ export default function SimpleAttendance({ onBack }) {
             return (
               <button
                 key={s.key}
-                onClick={() => { setActiveSunday(s.key); setFilterMode('all'); setVisibleCount(20) }}
+                onClick={() => { setActiveSunday(s.key); setFilterMode('all'); setVisibleCount(20); setMinistryFilter(null) }}
                 className={`flex-shrink-0 px-3 sm:px-4 lg:px-6 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm lg:text-base font-medium transition-all cursor-pointer active:scale-95 ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-md'
@@ -310,6 +326,24 @@ export default function SimpleAttendance({ onBack }) {
               </button>
             )
           })}
+        </div>
+
+        {/* Ministry Tags */}
+        <div className="max-w-6xl mx-auto px-4 lg:px-8 pb-1.5 sm:pb-2 flex gap-1.5 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {allMinistries.map(tag => (
+            <button
+              key={tag}
+              onClick={() => { setMinistryFilter(ministryFilter === tag ? null : tag); setVisibleCount(20) }}
+              className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium transition-all cursor-pointer active:scale-95 ${
+                ministryFilter === tag
+                  ? 'bg-purple-600 text-white shadow-md'
+                  : 'text-gray-500 border border-gray-200'
+              }`}
+              style={ministryFilter !== tag ? { backgroundColor: '#f8f7f4' } : {}}
+            >
+              {tag}
+            </button>
+          ))}
         </div>
 
         {/* Summary */}
@@ -332,7 +366,7 @@ export default function SimpleAttendance({ onBack }) {
       </div>
 
       {/* Members List - top padding for fixed header, bottom padding for sticky search bar */}
-      <div className="max-w-6xl mx-auto px-4 lg:px-8 pt-36 sm:pt-40 pb-24">
+      <div className="max-w-6xl mx-auto px-4 lg:px-8 pt-44 sm:pt-48 pb-24">
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
         {loading ? (
           <div className="col-span-full flex items-center justify-center py-20">
