@@ -32,3 +32,12 @@ dist-ssr
 
 # Supabase
 .supabase
+
+# Test/debug scripts with keys
+check-models.js
+test-gemini.js
+
+# Sensitive files
+*.pem
+*.key
+*.cert

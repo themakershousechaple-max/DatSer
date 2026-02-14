@@ -19,7 +19,7 @@ import {
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Initialize Gemini API
-const GEMINI_API_KEY = "AIzaSyDMMXxZSQABzr5wTWxecIKrzvOcrtbkdVk"
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
