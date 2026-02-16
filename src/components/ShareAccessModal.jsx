@@ -124,13 +124,23 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
 
       if (error) throw error
 
-      // Copy invite link to clipboard automatically
+      // Copy invite link to clipboard and show appropriate message
       if (inviteResult.inviteLink) {
         try {
           await navigator.clipboard.writeText(inviteResult.inviteLink)
-          toast.success(`Invite link copied to clipboard! Share it with ${collaboratorEmail}`)
+          if (inviteResult.emailSent) {
+            toast.success(`Invite email sent to ${collaboratorEmail}! Link also copied to clipboard.`)
+          } else if (inviteResult.alreadyExists) {
+            toast.success(`${collaboratorEmail} already has an account. Login link copied to clipboard.`)
+          } else {
+            toast.success(`Invite link copied to clipboard! Share it with ${collaboratorEmail}`)
+          }
         } catch {
-          toast.success(`Invite created for ${collaboratorEmail}. Use the copy button to share the link.`)
+          if (inviteResult.emailSent) {
+            toast.success(`Invite email sent to ${collaboratorEmail}!`)
+          } else {
+            toast.success(`Invite created for ${collaboratorEmail}. Use the copy button to share the link.`)
+          }
         }
       }
 

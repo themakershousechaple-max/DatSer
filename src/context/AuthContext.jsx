@@ -387,6 +387,37 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  // Sign in with magic link (passwordless - for collaborators)
+  const signInWithMagicLink = async (email, captchaToken) => {
+    try {
+      if (supabase) {
+        const redirectUrl = `${window.location.origin}${window.location.pathname}`
+        const otpOptions = {
+          email,
+          options: {
+            emailRedirectTo: redirectUrl,
+            shouldCreateUser: false // Only allow existing users
+          }
+        }
+        if (captchaToken) {
+          otpOptions.options.captchaToken = captchaToken
+        }
+        const { error } = await supabase.auth.signInWithOtp(otpOptions)
+        if (error) throw error
+        toast.success('Magic link sent! Check your email inbox.')
+        return { success: true }
+      }
+    } catch (error) {
+      console.error('Error sending magic link:', error)
+      if (error.message?.includes('Signups not allowed')) {
+        toast.error('No account found with this email. Please ask the admin for an invite.')
+      } else {
+        toast.error(error.message || 'Failed to send magic link')
+      }
+      throw error
+    }
+  }
+
   // Reset password
   const resetPassword = async (email, captchaToken) => {
     try {
@@ -484,6 +515,7 @@ export const AuthProvider = ({ children }) => {
     signInWithGoogle,
     signUpWithEmail,
     signInWithEmail,
+    signInWithMagicLink,
     resetPassword,
     signOut,
     saveUserPreferences,
@@ -491,7 +523,7 @@ export const AuthProvider = ({ children }) => {
     loadUserPreferences,
     bypassAuth,
     isAuthenticated: !!user
-  }), [user, loading, preferences, signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, signOut, saveUserPreferences, updatePreference, loadUserPreferences, bypassAuth])
+  }), [user, loading, preferences, signInWithGoogle, signUpWithEmail, signInWithEmail, signInWithMagicLink, resetPassword, signOut, saveUserPreferences, updatePreference, loadUserPreferences, bypassAuth])
 
   return (
     <AuthContext.Provider value={value}>

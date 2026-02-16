@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Check, X } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Check, X, Sparkles } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 
 // Turnstile site key from environment - use test key that always passes if not configured
@@ -32,12 +32,12 @@ const getPasswordStrength = (password) => {
 }
 
 const LoginPage = ({ onRequestSimple }) => {
-  const { signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, bypassAuth } = useAuth()
+  const { signInWithGoogle, signUpWithEmail, signInWithEmail, signInWithMagicLink, resetPassword, bypassAuth } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
   // Form state
-  const [mode, setMode] = useState('login') // 'login', 'signup', 'forgot'
+  const [mode, setMode] = useState('login') // 'login', 'signup', 'forgot', 'magiclink'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -146,6 +146,27 @@ const LoginPage = ({ onRequestSimple }) => {
     }
   }
 
+  const handleMagicLinkSignIn = async (e) => {
+    e.preventDefault()
+    if (!email) {
+      setError('Please enter your email address')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    try {
+      await signInWithMagicLink(email, captchaToken || undefined)
+      setCaptchaToken(null)
+      turnstileRef.current?.reset()
+      setConfirmationSent(true)
+    } catch (err) {
+      // Error is handled in AuthContext
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleForgotPassword = async (e) => {
     e.preventDefault()
     if (!email) {
@@ -220,6 +241,8 @@ const LoginPage = ({ onRequestSimple }) => {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               {mode === 'forgot'
                 ? `We've sent a password reset link to ${email}`
+                : mode === 'magiclink'
+                ? `We've sent a magic login link to ${email}. Click it to sign in instantly!`
                 : `We've sent a confirmation link to ${email}. Click it to activate your account.`
               }
             </p>
@@ -260,7 +283,7 @@ const LoginPage = ({ onRequestSimple }) => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
           {/* Mode Header */}
           <div className="text-center mb-5">
-            {mode === 'forgot' && (
+            {(mode === 'forgot' || mode === 'magiclink') && (
               <button
                 onClick={() => switchMode('login')}
                 className="absolute left-4 top-4 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -272,11 +295,13 @@ const LoginPage = ({ onRequestSimple }) => {
               {mode === 'login' && 'Welcome Back'}
               {mode === 'signup' && 'Create Account'}
               {mode === 'forgot' && 'Reset Password'}
+              {mode === 'magiclink' && 'Magic Link Login'}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {mode === 'login' && 'Sign in to continue'}
               {mode === 'signup' && 'Sign up to get started'}
               {mode === 'forgot' && 'Enter your email to reset'}
+              {mode === 'magiclink' && 'We\'ll email you a login link'}
             </p>
             {mode === 'login' && onRequestSimple && (
               <button
@@ -296,7 +321,7 @@ const LoginPage = ({ onRequestSimple }) => {
           )}
 
           {/* Email/Password Form */}
-          <form onSubmit={mode === 'login' ? handleEmailSignIn : mode === 'signup' ? handleEmailSignUp : handleForgotPassword}>
+          <form onSubmit={mode === 'login' ? handleEmailSignIn : mode === 'signup' ? handleEmailSignUp : mode === 'magiclink' ? handleMagicLinkSignIn : handleForgotPassword}>
             {/* Full Name - Signup only */}
             {mode === 'signup' && (
               <div className="mb-3">
@@ -327,8 +352,8 @@ const LoginPage = ({ onRequestSimple }) => {
               </div>
             </div>
 
-            {/* Password - Not for forgot mode */}
-            {mode !== 'forgot' && (
+            {/* Password - Not for forgot or magiclink mode */}
+            {mode !== 'forgot' && mode !== 'magiclink' && (
               <div className="mb-4">
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -407,9 +432,17 @@ const LoginPage = ({ onRequestSimple }) => {
               />
             </div>
 
-            {/* Forgot Password Link - Login only */}
+            {/* Forgot Password & Magic Link - Login only */}
             {mode === 'login' && (
-              <div className="text-right mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="button"
+                  onClick={() => switchMode('magiclink')}
+                  className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Magic link
+                </button>
                 <button
                   type="button"
                   onClick={() => switchMode('forgot')}
@@ -429,12 +462,13 @@ const LoginPage = ({ onRequestSimple }) => {
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  {mode === 'login' ? 'Signing in...' : mode === 'signup' ? 'Creating account...' : 'Sending...'}
+                  {mode === 'login' ? 'Signing in...' : mode === 'signup' ? 'Creating account...' : mode === 'magiclink' ? 'Sending link...' : 'Sending...'}
                 </span>
               ) : (
                 <>
                   {mode === 'login' && 'Sign In'}
                   {mode === 'signup' && 'Create Account'}
+                  {mode === 'magiclink' && 'Send Magic Link'}
                   {mode === 'forgot' && 'Send Reset Link'}
                 </>
               )}
