@@ -38,8 +38,8 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 // Main app content - only shown when authenticated
 function AppContent({ isMobile, onOpenSimple }) {
 
-  const { preferences } = useAuth()
-  const { members, loading: appLoading } = useApp()
+  const { preferences, signOut } = useAuth()
+  const { members, loading: appLoading, hasAccess, isCollaborator, dataOwnerId } = useApp()
   const [currentView, setCurrentView] = useState('dashboard')
   const [isAdmin, setIsAdmin] = useState(() => {
     return localStorage.getItem('tmht_admin_session') === 'true'
@@ -103,6 +103,36 @@ function AppContent({ isMobile, onOpenSimple }) {
     setShowOnboarding(shouldShow)
     setOnboardingAutoChecked(true)
   }, [appLoading, onboardingAutoChecked, members, preferences])
+
+  // Access control: block users who are not the owner and not in collaborators table
+  if (!appLoading && !hasAccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 4v2M6.343 3.665c-.256-.565.198-1.165.76-1.165h10.794c.562 0 1.016.6.76 1.165l-5.397 11.95c-.256.565-1.264.565-1.52 0L6.343 3.665z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              You don't have permission to access this application. Only the workspace owner and invited collaborators can access this system.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+              If you believe this is an error, please ask the workspace owner to invite you as a collaborator.
+            </p>
+          </div>
+          <button
+            onClick={() => signOut()}
+            className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`min-app-vh bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ios-overscroll-none ${isMobile ? 'mobile-toast-top' : ''}`}>

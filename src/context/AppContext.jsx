@@ -115,6 +115,7 @@ export const AppProvider = ({ children }) => {
   const [dataOwnerId, setDataOwnerId] = useState(null) // The owner whose data we're viewing
   const [isCollaborator, setIsCollaborator] = useState(false)
   const [ownerEmail, setOwnerEmail] = useState(null)
+  const [hasAccess, setHasAccess] = useState(true) // Whether user has permission to access the app
   const [searchTerm, setSearchTerm] = useState('')
   const [serverSearchResults, setServerSearchResults] = useState(null)
   const searchCacheRef = useRef(new Map())
@@ -250,11 +251,12 @@ export const AppProvider = ({ children }) => {
       console.log('Collaborators query result:', { data, error })
 
       if (error || !data) {
-        // Not a collaborator - user views their own data
+        // Not a collaborator - check if they are the owner
         console.log('User is NOT a collaborator. Error:', error?.message || 'No data found')
         setIsCollaborator(false)
         setDataOwnerId(user.id)
         setOwnerEmail(null)
+        setHasAccess(true) // Owner always has access to their own data
         return user.id
       }
 
@@ -2832,7 +2834,10 @@ export const AppProvider = ({ children }) => {
     autoSundayEnabled,
     setAutoSundayEnabled,
     autoAllDatesEnabled,
-    setAutoAllDatesEnabled
+    setAutoAllDatesEnabled,
+    hasAccess,
+    isCollaborator,
+    dataOwnerId
   }), [
     members, filteredMembers, loading, searchTerm, serverSearchResults,
     attendanceData, currentTable, monthlyTables, selectedAttendanceDate,
