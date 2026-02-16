@@ -47,6 +47,7 @@ function AppContent({ isMobile, onOpenSimple }) {
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [showMonthModal, setShowMonthModal] = useState(false)
   const [showAIChat, setShowAIChat] = useState(false)
+  const [navigateToSettingsSection, setNavigateToSettingsSection] = useState(null)
 
   // Onboarding wizard for new users
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -141,7 +142,13 @@ function AppContent({ isMobile, onOpenSimple }) {
 
         {currentView === 'settings' && (
           <Suspense fallback={<LazyFallback />}>
-            <SettingsPage onBack={() => setCurrentView('dashboard')} />
+            <SettingsPage 
+              onBack={() => {
+                setCurrentView('dashboard')
+                setNavigateToSettingsSection(null)
+              }}
+              navigateToSection={navigateToSettingsSection}
+            />
           </Suspense>
         )}
 
@@ -227,6 +234,10 @@ function AppContent({ isMobile, onOpenSimple }) {
           setCurrentView={setCurrentView}
           onAddMember={() => setShowMemberModal(true)}
           isExecutive={isExecutive}
+          onNavigateToSettingsSection={(section) => {
+            setCurrentView('settings')
+            setNavigateToSettingsSection(section)
+          }}
         />
       </Suspense>
 

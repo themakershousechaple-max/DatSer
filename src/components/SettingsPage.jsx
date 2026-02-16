@@ -52,13 +52,20 @@ import ExportCenterPage from './ExportCenterPage'
 import ConfirmModal from './ConfirmModal'
 import AdminControlsModal from './AdminControlsModal'
 
-const SettingsPage = ({ onBack }) => {
+const SettingsPage = ({ onBack, navigateToSection }) => {
     const { user, signOut, preferences } = useAuth()
     const { isDarkMode, toggleTheme, themeMode, setThemeMode, fontSize, setFontSize, fontFamily, setFontFamily, commandKEnabled, setCommandKEnabled } = useTheme()
     const { members, monthlyTables, currentTable, setCurrentTable, isSupabaseConfigured, createNewMonth, deleteMonthTable, isCollaborator, dataOwnerId } = useApp()
 
     const [activeSection, setActiveSection] = useState(null) // null = show main list
     const [showHelpCenter, setShowHelpCenter] = useState(false)
+
+    // Handle navigation from command palette
+    useEffect(() => {
+        if (navigateToSection) {
+            setActiveSection(navigateToSection)
+        }
+    }, [navigateToSection])
 
     // Auto-Sunday settings
     const [autoSundayEnabled, setAutoSundayEnabled] = useState(() => {

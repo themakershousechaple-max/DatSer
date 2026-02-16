@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { X, UserPlus, Mail, Trash2, Users, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react'
+import { X, UserPlus, Mail, Trash2, Users, AlertCircle, Send, CheckCircle, Clock, RefreshCw, Copy, Link2 } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { supabase } from '../lib/supabase'
 
 const ShareAccessModal = ({ isOpen, onClose }) => {
-  const { user } = useAuth()
+  const { user, preferences } = useAuth()
   const { isDarkMode } = useTheme()
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [resendingId, setResendingId] = useState(null)
   const [collaborators, setCollaborators] = useState([])
   const [fetchingCollaborators, setFetchingCollaborators] = useState(false)
   const [error, setError] = useState('')
@@ -46,6 +45,35 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
     }
   }
 
+  const sendInvite = async (collaboratorEmail) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const appUrl = 'https://datser.vercel.app/'
+    const inviterName = preferences?.workspace_name || user?.user_metadata?.full_name || user?.email
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-collaborator-user`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({ 
+          email: collaboratorEmail,
+          inviterName,
+          appUrl
+        })
+      }
+    )
+    
+    const result = await response.json()
+    if (!response.ok || result.error) {
+      throw new Error(result.error || 'Failed to send invite')
+    }
+    return result
+  }
+
   const handleAddCollaborator = async (e) => {
     e.preventDefault()
     
@@ -54,22 +82,21 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
       return
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email.trim())) {
       toast.error('Please enter a valid email address')
       return
     }
 
-    // Password validation
-    if (!password.trim() || password.length < 6) {
-      toast.error('Password must be at least 6 characters')
+    // Can't invite yourself
+    if (email.trim().toLowerCase() === user?.email?.toLowerCase()) {
+      toast.warning("You can't invite yourself")
       return
     }
 
     // Check if already added
     if (collaborators.some(c => c.email.toLowerCase() === email.trim().toLowerCase())) {
-      toast.warning('This email has already been added')
+      toast.warning('This person has already been invited')
       return
     }
 
@@ -79,114 +106,90 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
     try {
       const collaboratorEmail = email.trim().toLowerCase()
       
-      // First, create the auth user via Edge Function (email = password)
-      const { data: { session } } = await supabase.auth.getSession()
-      try {
-        const createUserResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-collaborator-user`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token}`
-            },
-            body: JSON.stringify({ 
-              email: collaboratorEmail, 
-              password: password.trim(),
-              appUrl: window.location.origin + '/DatSer/'
-            })
-          }
-        )
-        
-        const createUserResult = await createUserResponse.json()
-        console.log('Edge function response:', createUserResponse.status, createUserResult)
-        if (!createUserResponse.ok) {
-          console.error('Edge function error:', createUserResult.error)
-          toast.error(`Failed to create user: ${createUserResult.error || 'Unknown error'}`)
-          setLoading(false)
-          return
-        }
-        if (createUserResult.error) {
-          console.warn('Could not create auth user:', createUserResult.error)
-          toast.error(`Failed to create user: ${createUserResult.error}`)
-          setLoading(false)
-          return
-        } else if (createUserResult.alreadyExists) {
-          console.log('User already exists in auth, password updated')
-        } else {
-          console.log('Auth user created successfully:', createUserResult.userId)
-        }
-        
-        // Log magic link for debugging (in production, this would be emailed)
-        if (createUserResult.magicLink) {
-          console.log('Magic link generated (backup login method):', createUserResult.magicLink)
-        }
-      } catch (createUserErr) {
-        console.warn('Could not create auth user:', createUserErr)
-        toast.error('Failed to create user account')
-        setLoading(false)
-        return
-      }
+      // 1. Generate invite link via Edge Function
+      const inviteResult = await sendInvite(collaboratorEmail)
 
-      // Add to collaborators table
+      // 2. Add to collaborators table
       const { data, error } = await supabase
         .from('collaborators')
-        .insert([
-          {
-            owner_id: user.id,
-            email: collaboratorEmail,
-            status: 'pending'
-          }
-        ])
+        .insert([{
+          owner_id: user.id,
+          email: collaboratorEmail,
+          status: 'pending',
+          invite_token: inviteResult.inviteLink || null,
+          invited_by_name: preferences?.workspace_name || user?.user_metadata?.full_name || user?.email
+        }])
         .select()
         .single()
 
       if (error) throw error
 
-      // Send invitation email via Edge Function
-      const appUrl = window.location.origin + '/DatSer/'
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-collaborator-invite`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token}`
-            },
-            body: JSON.stringify({
-              email: collaboratorEmail,
-              inviterName: user.email,
-              appUrl: appUrl
-            })
-          }
-        )
-        
-        const result = await response.json()
-        if (result.success) {
-          toast.success(`Invitation sent to ${email}! They can login with their email as password.`)
-        } else if (result.error) {
-          console.warn('Email sending failed:', result.error)
-          toast.success(`Collaborator added! They can login with their email as password.`)
+      // Copy invite link to clipboard automatically
+      if (inviteResult.inviteLink) {
+        try {
+          await navigator.clipboard.writeText(inviteResult.inviteLink)
+          toast.success(`Invite link copied to clipboard! Share it with ${collaboratorEmail}`)
+        } catch {
+          toast.success(`Invite created for ${collaboratorEmail}. Use the copy button to share the link.`)
         }
-      } catch (emailErr) {
-        console.warn('Could not send invitation email:', emailErr)
-        toast.success(`Collaborator added! They can login with their email as password.`)
       }
 
       setCollaborators(prev => [data, ...prev])
       setEmail('')
-      setPassword('')
     } catch (err) {
       console.error('Error adding collaborator:', err)
       if (err.code === '23505') {
         toast.error('This email has already been invited')
       } else {
-        toast.error('Failed to add collaborator. Please try again.')
+        toast.error(err.message || 'Failed to send invite. Please try again.')
       }
-      setError('Failed to add collaborator')
+      setError('Failed to send invite')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendInvite = async (collaborator) => {
+    setResendingId(collaborator.id)
+    try {
+      const result = await sendInvite(collaborator.email)
+      if (result.inviteLink) {
+        // Update the stored invite link
+        await supabase
+          .from('collaborators')
+          .update({ invite_token: result.inviteLink })
+          .eq('id', collaborator.id)
+        
+        // Update local state
+        setCollaborators(prev => prev.map(c => 
+          c.id === collaborator.id ? { ...c, invite_token: result.inviteLink } : c
+        ))
+
+        try {
+          await navigator.clipboard.writeText(result.inviteLink)
+          toast.success(`New invite link copied to clipboard!`)
+        } catch {
+          toast.success(`New invite link generated. Use the copy button to share it.`)
+        }
+      }
+    } catch (err) {
+      console.error('Error resending invite:', err)
+      toast.error('Failed to generate new invite link')
+    } finally {
+      setResendingId(null)
+    }
+  }
+
+  const handleCopyLink = async (inviteLink) => {
+    if (!inviteLink) {
+      toast.error('No invite link available. Try resending the invite.')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      toast.success('Invite link copied to clipboard!')
+    } catch {
+      toast.error('Failed to copy link')
     }
   }
 
@@ -211,21 +214,30 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'accepted':
+      case 'active':
         return (
-          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-            Accepted
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+            <CheckCircle className="w-3 h-3" />
+            Joined
           </span>
         )
       case 'rejected':
         return (
           <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-            Rejected
+            Declined
+          </span>
+        )
+      case 'expired':
+        return (
+          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+            Expired
           </span>
         )
       default:
         return (
-          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
-            Pending
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+            <Clock className="w-3 h-3" />
+            Invite Sent
           </span>
         )
     }
@@ -244,7 +256,7 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Share Access</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Add people by email to give them access to your database. They'll be able to view and edit all data.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Invite people by email. They'll receive a link to join and access your data.</p>
             </div>
           </div>
           <button
@@ -257,48 +269,43 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
 
         {/* Content */}
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          {/* Add Collaborator Form */}
+          {/* Invite Form */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Add collaborator
+              Invite by email
             </label>
-            <form onSubmit={handleAddCollaborator} className="space-y-3">
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+            <form onSubmit={handleAddCollaborator} className="flex gap-2">
+              <div className="relative flex-1">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
+                  placeholder="name@email.com"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
                 />
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Set password for this user"
-                  className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
               </div>
               <button
                 type="submit"
-                disabled={loading || !email.trim() || !password.trim()}
-                className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={loading || !email.trim()}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium whitespace-nowrap"
               >
-                <UserPlus className="w-4 h-4 mr-1.5" />
-                {loading ? 'Adding...' : 'Add Collaborator'}
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Invite
+                  </>
+                )}
               </button>
             </form>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              They'll receive an email with a link to join. Works with any email — Gmail, Outlook, Yahoo, etc.
+            </p>
           </div>
 
           {/* Collaborators List */}
@@ -317,8 +324,8 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
             ) : collaborators.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No collaborators yet</p>
-                <p className="text-xs mt-1">Add someone using the form above</p>
+                <p className="text-sm">No one has been invited yet</p>
+                <p className="text-xs mt-1">Enter an email above to send an invite</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -342,13 +349,34 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleRemoveCollaborator(collaborator.id, collaborator.email)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      title="Remove collaborator"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {collaborator.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleCopyLink(collaborator.invite_token)}
+                            className="p-1.5 text-gray-400 hover:text-green-500 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                            title="Copy invite link"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleResendInvite(collaborator)}
+                            disabled={resendingId === collaborator.id}
+                            className="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title="Generate new invite link"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${resendingId === collaborator.id ? 'animate-spin' : ''}`} />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => handleRemoveCollaborator(collaborator.id, collaborator.email)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="Remove access"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

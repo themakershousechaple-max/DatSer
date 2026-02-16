@@ -3,7 +3,7 @@ import { Search, UserPlus, Settings, Moon, Sun, Download, Home, X, Users, LogOut
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 
-const CommandPalette = ({ setCurrentView, onAddMember, isExecutive = false }) => {
+const CommandPalette = ({ setCurrentView, onAddMember, isExecutive = false, onNavigateToSettingsSection }) => {
     const [isOpen, setIsOpen] = useState(false)
     const [query, setQuery] = useState('')
     const [selectedIndex, setSelectedIndex] = useState(0)
@@ -98,6 +98,87 @@ const CommandPalette = ({ setCurrentView, onAddMember, isExecutive = false }) =>
                 setIsOpen(false)
             }
         },
+        // Account Settings
+        {
+            id: 'settings-account',
+            label: 'Settings → Account',
+            icon: Users,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('account')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-profile',
+            label: 'Settings → Profile Picture',
+            icon: Users,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('account')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-password',
+            label: 'Settings → Change Password',
+            icon: Users,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('account')
+                setIsOpen(false)
+            }
+        },
+        // Workspace Settings
+        {
+            id: 'settings-workspace',
+            label: 'Settings → Workspace',
+            icon: Building2,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('workspace')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-month',
+            label: 'Settings → Select Month',
+            icon: Building2,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('workspace')
+                setIsOpen(false)
+            }
+        },
+        // Team Settings
+        {
+            id: 'settings-team',
+            label: 'Settings → Team & Collaborators',
+            icon: Users,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('team')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-share',
+            label: 'Settings → Share Access',
+            icon: Users,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('team')
+                setIsOpen(false)
+            }
+        },
+        // Appearance Settings
         {
             id: 'settings-appearance',
             label: 'Settings → Appearance',
@@ -105,10 +186,33 @@ const CommandPalette = ({ setCurrentView, onAddMember, isExecutive = false }) =>
             category: 'settings',
             action: () => {
                 setCurrentView('settings')
-                // In a real app, you'd pass a parameter to open the appearance section
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('appearance')
                 setIsOpen(false)
             }
         },
+        {
+            id: 'settings-theme',
+            label: 'Settings → Theme',
+            icon: Palette,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('appearance')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-font',
+            label: 'Settings → Font Size & Family',
+            icon: Palette,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('appearance')
+                setIsOpen(false)
+            }
+        },
+        // Accessibility Settings
         {
             id: 'settings-accessibility',
             label: 'Settings → Accessibility',
@@ -117,21 +221,22 @@ const CommandPalette = ({ setCurrentView, onAddMember, isExecutive = false }) =>
             shortcut: 'K',
             action: () => {
                 setCurrentView('settings')
-                // In a real app, you'd pass a parameter to open the accessibility section
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('accessibility')
                 setIsOpen(false)
             }
         },
         {
-            id: 'settings-workspace',
-            label: 'Settings → Workspace',
-            icon: Building2,
+            id: 'settings-dyslexic-font',
+            label: 'Settings → Dyslexic Font',
+            icon: Zap,
             category: 'settings',
             action: () => {
                 setCurrentView('settings')
-                // In a real app, you'd pass a parameter to open the workspace section
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('accessibility')
                 setIsOpen(false)
             }
         },
+        // Data Management Settings
         {
             id: 'settings-data',
             label: 'Settings → Data Management',
@@ -139,7 +244,52 @@ const CommandPalette = ({ setCurrentView, onAddMember, isExecutive = false }) =>
             category: 'settings',
             action: () => {
                 setCurrentView('settings')
-                // In a real app, you'd pass a parameter to open the data section
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('data')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-export',
+            label: 'Settings → Export Data',
+            icon: Download,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('data')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-import',
+            label: 'Settings → Import Data',
+            icon: Database,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('data')
+                setIsOpen(false)
+            }
+        },
+        // Help & Support
+        {
+            id: 'settings-help',
+            label: 'Settings → Help Center',
+            icon: HelpCircle,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('help')
+                setIsOpen(false)
+            }
+        },
+        {
+            id: 'settings-activity',
+            label: 'Settings → Activity Log',
+            icon: Database,
+            category: 'settings',
+            action: () => {
+                setCurrentView('settings')
+                if (onNavigateToSettingsSection) onNavigateToSettingsSection('activity')
                 setIsOpen(false)
             }
         },

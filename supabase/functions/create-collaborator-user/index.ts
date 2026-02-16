@@ -13,7 +13,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { email } = await req.json();
+    const { email, inviterName, appUrl } = await req.json();
 
     if (!email) {
       return new Response(
@@ -34,29 +34,47 @@ Deno.serve(async (req: Request) => {
       }
     );
 
-    // Use email as password (user can change it later)
-    const password = email;
+    const normalizedEmail = email.trim().toLowerCase();
 
-    // Check if user already exists
+    // Build the redirect URL - where user lands after clicking invite link
+    const redirectTo = appUrl || Deno.env.get('SITE_URL') || 'https://datser.vercel.app/DatSer/';
+
+    // Check if user already exists in auth
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUsers?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase());
+    const existingUser = existingUsers?.users?.find(
+      (u: any) => u.email?.toLowerCase() === normalizedEmail
+    );
 
-    if (userExists) {
+    if (existingUser) {
+      // User already has an account - just return success
+      // The collaborators table entry is what grants access, not the auth account
       return new Response(
-        JSON.stringify({ success: true, message: 'User already exists', alreadyExists: true }),
+        JSON.stringify({ 
+          success: true, 
+          message: 'User already has an account. They can log in to access shared data.',
+          alreadyExists: true,
+          userId: existingUser.id
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create the user with email as password
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: email,
-      password: password,
-      email_confirm: true, // Auto-confirm so they can login immediately
-    });
+    // User doesn't exist - invite them via Supabase's built-in invite system
+    // This sends a professional invite email with a magic link automatically
+    const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      normalizedEmail,
+      {
+        redirectTo: redirectTo,
+        data: {
+          invited_by: inviterName || 'A team member',
+          role: 'collaborator',
+          full_name: normalizedEmail.split('@')[0] // Default name from email
+        }
+      }
+    );
 
     if (error) {
-      console.error('Error creating user:', error);
+      console.error('Error inviting user:', error);
       return new Response(
         JSON.stringify({ error: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,7 +82,12 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, userId: data.user?.id }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Invite email sent successfully',
+        userId: data.user?.id,
+        emailSent: true
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {

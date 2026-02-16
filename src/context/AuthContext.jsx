@@ -26,6 +26,25 @@ export const AuthProvider = ({ children }) => {
     scheduleLoad(() => loadUserPreferences(userId))
   }, [])
 
+  // Auto-accept collaborator invite when user signs in
+  const autoAcceptInvite = async (userEmail) => {
+    if (!userEmail || !supabase) return
+    try {
+      const { data, error } = await supabase.rpc('accept_invite_for_user', {
+        user_email: userEmail.toLowerCase()
+      })
+      if (error) {
+        console.log('[INVITE] No pending invite or error:', error.message)
+        return
+      }
+      if (data?.accepted) {
+        console.log('[INVITE] Auto-accepted invite, owner_id:', data.owner_id)
+      }
+    } catch (err) {
+      console.error('[INVITE] Error auto-accepting invite:', err)
+    }
+  }
+
   // Initialize auth state - optimized for speed
   useEffect(() => {
     let mounted = true
@@ -47,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        // Check if there's a hash fragment with tokens (OAuth callback)
+        // Check if there's a hash fragment with tokens (OAuth callback - implicit flow)
         if (window.location.hash && window.location.hash.includes('access_token')) {
           // Fresh login via OAuth - allow welcome toast
           welcomeToastShownRef.current = false
@@ -60,6 +79,34 @@ export const AuthProvider = ({ children }) => {
             // Clear the hash from URL
             window.history.replaceState(null, '', window.location.pathname)
           }
+          return
+        }
+
+        // Check for PKCE code in URL params (OAuth callbacks with PKCE flow)
+        const urlParams = new URLSearchParams(window.location.search)
+        const code = urlParams.get('code')
+        if (code) {
+          welcomeToastShownRef.current = false
+          if (supabase) {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+            if (error) {
+              console.error('Error exchanging code for session:', error)
+            }
+            // Clear the code from URL
+            window.history.replaceState(null, '', window.location.pathname)
+          }
+          return
+        }
+
+        // Supabase will handle invite/magic links automatically via the hash fragment
+        // The onAuthStateChange listener below will detect when the user is authenticated
+        // Just ensure the hash is present and let Supabase process it
+        if (window.location.hash) {
+          console.log('[INVITE] Hash detected, letting Supabase process it')
+          welcomeToastShownRef.current = false
+          // Supabase's detectSessionInUrl will handle this automatically
+          // Just wait a moment for it to process
+          await new Promise(resolve => setTimeout(resolve, 500))
           return
         }
 
@@ -101,10 +148,18 @@ export const AuthProvider = ({ children }) => {
         if (event === 'SIGNED_IN' && session?.user) {
           // Load preferences in background
           loadUserPreferencesBackground(session.user.id)
+          // Auto-accept collaborator invite if user was invited
+          autoAcceptInvite(session.user.email)
           // Show welcome toast only on fresh login (not refresh)
           if (!welcomeToastShownRef.current) {
             welcomeToastShownRef.current = true
-            toast.success(`Welcome, ${session.user.user_metadata?.full_name || session.user.email}!`)
+            const isInvitedUser = session.user.user_metadata?.role === 'collaborator'
+            const invitedBy = session.user.user_metadata?.invited_by
+            if (isInvitedUser && invitedBy) {
+              toast.success(`Welcome! You've been invited by ${invitedBy}.`)
+            } else {
+              toast.success(`Welcome, ${session.user.user_metadata?.full_name || session.user.email}!`)
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           setPreferences(null)

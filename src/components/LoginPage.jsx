@@ -44,6 +44,17 @@ const LoginPage = ({ onRequestSimple }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [confirmationSent, setConfirmationSent] = useState(false)
 
+  // Detect if user arrived via invite link (token_hash in URL, PKCE code, or hash fragment)
+  const [isInviteFlow] = useState(() => {
+    const hash = window.location.hash
+    const params = new URLSearchParams(window.location.search)
+    const tokenType = params.get('type')
+    const hasTokenHash = !!params.get('token_hash') && (tokenType === 'invite' || tokenType === 'magiclink')
+    const hasCode = !!params.get('code')
+    const hasInviteHash = hash && (hash.includes('type=invite') || hash.includes('type=magiclink') || hash.includes('access_token'))
+    return hasTokenHash || hasCode || hasInviteHash
+  })
+
   const [loginAttempts, setLoginAttempts] = useState(0)
   const [captchaToken, setCaptchaToken] = useState(null)
   const turnstileRef = useRef(null)
@@ -168,6 +179,30 @@ const LoginPage = ({ onRequestSimple }) => {
   const switchMode = (newMode) => {
     setMode(newMode)
     resetForm()
+  }
+
+  // Invite flow loading screen - shown while Supabase processes the invite token
+  if (isInviteFlow) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <Mail className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-pulse" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Accepting your invite...
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Setting up your access. This will only take a moment.
+            </p>
+            <div className="flex justify-center">
+              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Confirmation sent screen
