@@ -397,10 +397,8 @@ export const AuthProvider = ({ children }) => {
           options: {
             emailRedirectTo: redirectUrl,
             shouldCreateUser: true // Allow both new and existing users
+            // Note: Don't include captchaToken for magic links - they're for returning users
           }
-        }
-        if (captchaToken) {
-          otpOptions.options.captchaToken = captchaToken
         }
         const { error } = await supabase.auth.signInWithOtp(otpOptions)
         if (error) throw error
