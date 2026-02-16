@@ -104,14 +104,6 @@ export const useApp = () => {
 }
 
 export const AppProvider = ({ children }) => {
-  // Restore the user's last selected month table from localStorage (no forced override)
-  useEffect(() => {
-    const saved = localStorage.getItem('selectedMonthTable')
-    if (!saved) {
-      localStorage.setItem('selectedMonthTable', DEFAULT_TABLE)
-    }
-  }, [])
-  
   // Get user from auth context - may be null during initial load
   const authContext = useAuth()
   const user = authContext?.user
@@ -130,6 +122,44 @@ export const AppProvider = ({ children }) => {
   const membersCacheRef = useRef(new Map()) // tableName -> { data, ts }
   const [attendanceData, setAttendanceData] = useState({})
   const [currentTable, setCurrentTable] = useState(getLatestTable())
+
+  // Load saved month from user preferences on app startup
+  useEffect(() => {
+    const loadSavedMonth = async () => {
+      if (!user || authLoading) return
+
+      try {
+        // Try to load from Supabase preferences first (persisted across devices)
+        if (authContext?.preferences?.current_month_table) {
+          const savedMonth = authContext.preferences.current_month_table
+          console.log('[MONTH] Loaded saved month from Supabase preferences:', savedMonth)
+          setCurrentTable(savedMonth)
+          localStorage.setItem('selectedMonthTable', savedMonth)
+          return
+        }
+
+        // Fallback to localStorage if preferences not yet synced
+        const localSaved = localStorage.getItem('selectedMonthTable')
+        if (localSaved) {
+          console.log('[MONTH] Loaded month from localStorage:', localSaved)
+          setCurrentTable(localSaved)
+          return
+        }
+
+        // Default to DEFAULT_TABLE if nothing is saved
+        console.log('[MONTH] No saved month found, using default:', DEFAULT_TABLE)
+        localStorage.setItem('selectedMonthTable', DEFAULT_TABLE)
+      } catch (error) {
+        console.error('[MONTH] Error loading saved month:', error)
+        // Fallback to localStorage on error
+        const localSaved = localStorage.getItem('selectedMonthTable') || DEFAULT_TABLE
+        setCurrentTable(localSaved)
+        localStorage.setItem('selectedMonthTable', localSaved)
+      }
+    }
+
+    loadSavedMonth()
+  }, [user, authLoading, authContext?.preferences?.current_month_table])
   const [monthlyTables, setMonthlyTables] = useState(FALLBACK_MONTHLY_TABLES)
   const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(null)
   const [availableSundayDates, setAvailableSundayDates] = useState([])
@@ -340,12 +370,25 @@ export const AppProvider = ({ children }) => {
         return
       }
 
-      // Fetch data - RLS policies handle user filtering
+      // Fetch data - paginate to avoid Supabase default 1000-row cap
       console.log(`Querying ${tableName} with session user: ${session.user?.id}`)
 
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*')
+      let data = []
+      let fetchOffset = 0
+      const FETCH_PAGE = 1000
+      let error = null
+      while (true) {
+        const { data: page, error: pageError } = await supabase
+          .from(tableName)
+          .select('*')
+          .range(fetchOffset, fetchOffset + FETCH_PAGE - 1)
+
+        if (pageError) { error = pageError; break }
+        if (!page || page.length === 0) break
+        data = data.concat(page)
+        if (page.length < FETCH_PAGE) break
+        fetchOffset += FETCH_PAGE
+      }
 
       console.log(`Query result: ${data?.length || 0} rows, error: ${error?.message || 'none'}`)
 
@@ -1197,15 +1240,26 @@ export const AppProvider = ({ children }) => {
         return {}
       }
 
-      const { data, error } = await supabase
-        .from(currentTable)
-        .select(`id, "${attendanceColumn}"`)
+      // Paginate to avoid Supabase default 1000-row cap
+      let allRecords = []
+      let fetchOff = 0
+      const PG_SIZE = 1000
+      while (true) {
+        const { data: pg, error: pgErr } = await supabase
+          .from(currentTable)
+          .select(`id, "${attendanceColumn}"`)
+          .range(fetchOff, fetchOff + PG_SIZE - 1)
 
-      if (error) throw error
+        if (pgErr) throw pgErr
+        if (!pg || pg.length === 0) break
+        allRecords = allRecords.concat(pg)
+        if (pg.length < PG_SIZE) break
+        fetchOff += PG_SIZE
+      }
 
       // Transform to object format - include both Present (true) and Absent (false)
       const attendanceMap = {}
-      data.forEach(record => {
+      allRecords.forEach(record => {
         const value = record[attendanceColumn]
         if (value === 'Present') {
           attendanceMap[record.id] = true
@@ -1457,9 +1511,23 @@ export const AppProvider = ({ children }) => {
 
   // Delete member
   const deleteMember = async (memberId) => {
+    console.log(`[DELETE] Starting deletion for member ID: ${memberId}`)
+    
+    // Validate memberId
+    if (!memberId) {
+      console.error('[DELETE] Error: No member ID provided')
+      toast.error('Error: Invalid member ID')
+      return { success: false }
+    }
+
     // Support deletion in demo mode by updating local state so mobile users on static deployments can manage entries
     if (!isSupabaseConfigured()) {
-      setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId))
+      console.log(`[DELETE] Demo mode - deleting member ${memberId} from local state`)
+      setMembers(prevMembers => {
+        const updated = prevMembers.filter(member => member.id !== memberId)
+        console.log(`[DELETE] Members before: ${prevMembers.length}, after: ${updated.length}`)
+        return updated
+      })
       // Also remove from attendanceData snapshots to keep UI consistent
       setAttendanceData(prev => {
         const next = {}
@@ -1476,25 +1544,103 @@ export const AppProvider = ({ children }) => {
 
     setLoading(true)
     try {
-      const { error } = await supabase
+      console.log(`[DELETE] Attempting Supabase delete from table: ${currentTable}, member ID: ${memberId}`)
+      
+      let deleted = false
+
+      // Attempt 1: Direct delete with .select() to verify rows were actually removed
+      const { data, error } = await supabase
         .from(currentTable)
         .delete()
         .eq('id', memberId)
+        .select()
+
+      console.log(`[DELETE] Direct delete response - Error: ${error ? error.message : 'none'}, Rows deleted:`, data?.length || 0, data)
 
       if (error) {
-        throw error
+        console.warn(`[DELETE] Direct delete error (will try RPC fallback):`, error.message)
+      } else if (data && data.length > 0) {
+        deleted = true
+        console.log(`[DELETE] Direct delete succeeded - ${data.length} row(s) removed`)
       }
 
-      setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId))
-      refreshSearch() // Re-run search to update filtered list
-      console.log(`Member with ID ${memberId} deleted successfully.`)
-      toast.success('Member deleted')
+      // Attempt 2: If direct delete returned 0 rows (RLS silently blocked), try RPC
+      if (!deleted) {
+        console.log(`[DELETE] Direct delete returned 0 rows (likely RLS blocking). Trying RPC fallback...`)
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('delete_member_by_id', {
+          target_table: currentTable,
+          member_id: memberId
+        })
 
-      // Log Activity
+        console.log(`[DELETE] RPC response - Error: ${rpcError ? rpcError.message : 'none'}, Result:`, rpcResult)
+
+        if (!rpcError) {
+          deleted = true
+        } else {
+          console.warn(`[DELETE] RPC fallback failed:`, rpcError.message)
+        }
+      }
+
+      // Attempt 3: Verify the row is actually gone from the database
+      const { data: verifyData } = await supabase
+        .from(currentTable)
+        .select('id')
+        .eq('id', memberId)
+        .maybeSingle()
+
+      if (verifyData) {
+        console.error(`[DELETE] VERIFICATION FAILED - member ${memberId} still exists in ${currentTable}`)
+        console.error(`[DELETE] This means RLS policies are blocking DELETE. You need to add a DELETE policy in Supabase.`)
+        console.error(`[DELETE] Go to Supabase Dashboard > Authentication > Policies > ${currentTable} > Add policy:`)
+        console.error(`[DELETE]   Policy name: "Allow authenticated users to delete"`)
+        console.error(`[DELETE]   Operation: DELETE`)
+        console.error(`[DELETE]   Target roles: authenticated`)
+        console.error(`[DELETE]   USING expression: true`)
+        console.error(`[DELETE] Or run this SQL in the Supabase SQL Editor:`)
+        console.error(`[DELETE]   CREATE POLICY "Allow delete for authenticated" ON "${currentTable}" FOR DELETE TO authenticated USING (true);`)
+        throw new Error(`Delete blocked by database policy. Please add a DELETE policy for the "${currentTable}" table in Supabase. Check browser console for instructions.`)
+      }
+
+      console.log(`[DELETE] VERIFIED - member ${memberId} successfully removed from ${currentTable}`)
+
+      // Confirmed deleted — now update local state
+      setMembers(prevMembers => {
+        const updated = prevMembers.filter(member => member.id !== memberId)
+        console.log(`[DELETE] Members state updated: ${prevMembers.length} -> ${updated.length}`)
+        return updated
+      })
+
+      // Also remove from attendanceData snapshots to keep UI consistent
+      setAttendanceData(prev => {
+        const next = {}
+        Object.entries(prev).forEach(([dateKey, map]) => {
+          const { [memberId]: _removed, ...rest } = map || {}
+          next[dateKey] = rest
+        })
+        return next
+      })
+
+      // Clear search results to force re-filtering with updated members
+      setServerSearchResults(prev => {
+        if (!prev) return null
+        // Filter out the deleted member from search results
+        const filtered = prev.filter(member => member.id !== memberId)
+        console.log(`[DELETE] Search results updated: ${prev.length} -> ${filtered.length}`)
+        return filtered.length > 0 ? filtered : null
+      })
+
+      // Invalidate caches so refreshSearch / fetchMembers don't restore stale data
+      searchCacheRef.current.clear()
+      const cacheKey = currentTable || 'default'
+      membersCacheRef.current.delete(cacheKey)
+      console.log(`[DELETE] Member ${memberId} deleted successfully and UI updated`)
+      toast.success('Member deleted')
       logActivity('DELETE_MEMBER', `Deleted member ID: ${memberId}`)
+      return { success: true }
     } catch (error) {
-      console.error('Error deleting member:', error.message)
-      toast.error('Error deleting member: ' + error.message)
+      console.error(`[DELETE] Error deleting member ${memberId}:`, error)
+      toast.error(error.message || 'Error deleting member')
+      return { success: false, error }
     } finally {
       setLoading(false)
     }
@@ -2043,9 +2189,13 @@ export const AppProvider = ({ children }) => {
 
   // Function to refresh search results
   const refreshSearch = useCallback(() => {
-    // Search is now instant, so we just log or do nothing
-    // console.log('Refreshing search with term:', searchTerm)
-  }, [searchTerm])
+    // Clear server search results to force re-filtering with updated members
+    if (searchTerm) {
+      setServerSearchResults(null)
+      // Re-run the search with current term to update results
+      performServerSearch(searchTerm)
+    }
+  }, [searchTerm, performServerSearch])
 
   // Function to force refresh members from database
   const forceRefreshMembers = useCallback(async () => {
@@ -2225,6 +2375,11 @@ export const AppProvider = ({ children }) => {
       }
       // Current table is invalid — try localStorage, then DEFAULT_TABLE, then latest
       const saved = localStorage.getItem('selectedMonthTable')
+      // Only override if we have real data from Supabase (not just fallback)
+      // If saved month exists and we're still on fallback, wait for real data to load
+      if (saved && !monthlyTables.includes(saved) && monthlyTables.length === 1 && monthlyTables[0] === DEFAULT_TABLE) {
+        return // Don't override yet, real tables are still loading
+      }
       if (saved && monthlyTables.includes(saved)) {
         setCurrentTable(saved)
       } else if (monthlyTables.includes(DEFAULT_TABLE)) {
@@ -2341,11 +2496,22 @@ export const AppProvider = ({ children }) => {
       // Build select query for all attendance columns
       const selectColumns = ['id', ...attendanceColumns.map(col => `"${col.column_name}"`)]
 
-      const { data, error } = await supabase
-        .from(currentTable)
-        .select(selectColumns.join(', '))
+      // Fetch all rows - use high limit to avoid Supabase default 1000-row cap
+      let allData = []
+      let offset = 0
+      const PAGE_SIZE = 1000
+      while (true) {
+        const { data: page, error: pageError } = await supabase
+          .from(currentTable)
+          .select(selectColumns.join(', '))
+          .range(offset, offset + PAGE_SIZE - 1)
 
-      if (error) throw error
+        if (pageError) throw pageError
+        if (!page || page.length === 0) break
+        allData = allData.concat(page)
+        if (page.length < PAGE_SIZE) break
+        offset += PAGE_SIZE
+      }
 
       // Transform data into the format expected by the UI
       const newAttendanceData = {}
@@ -2388,9 +2554,11 @@ export const AppProvider = ({ children }) => {
         if (dateKey) {
           newAttendanceData[dateKey] = {}
 
-          data.forEach(record => {
-            if (record[columnName]) {
-              newAttendanceData[dateKey][record.id] = record[columnName] === 'Present'
+          allData.forEach(record => {
+            const val = record[columnName]
+            // Include both Present (true) and Absent (false) records
+            if (val === 'Present' || val === 'Absent') {
+              newAttendanceData[dateKey][record.id] = val === 'Present'
             }
           })
         }
@@ -2398,7 +2566,7 @@ export const AppProvider = ({ children }) => {
 
       // Update attendance data state
       setAttendanceData(newAttendanceData)
-      console.log('Loaded attendance data for all dates:', Object.keys(newAttendanceData))
+      console.log('Loaded attendance data for all dates:', Object.keys(newAttendanceData), 'from', allData.length, 'rows')
 
     } catch (error) {
       console.error('Error loading attendance data:', error)

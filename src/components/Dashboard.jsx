@@ -96,6 +96,11 @@ const Dashboard = ({ isAdmin = false }) => {
   const [showFilters, setShowFilters] = useState(false)
   const [isClosingFilters, setIsClosingFilters] = useState(false)
 
+  
+  // Track the timestamp of each attendance action for chronological sorting (most recent first)
+  // Key: `${memberId}_${dateKey}`, Value: Date.now()
+  const actionTimestampsRef = useRef({})
+
   // Handle filter closing with animation
   const closeFilters = () => {
     setIsClosingFilters(true)
@@ -219,6 +224,12 @@ const Dashboard = ({ isAdmin = false }) => {
     setIsBulkApplying(true)
     try {
       await bulkAttendance(memberIds, dateToUse, present)
+      // Record action timestamps for chronological sorting
+      const dateKey = getDateString(dateToUse)
+      const now = Date.now()
+      memberIds.forEach(id => {
+        actionTimestampsRef.current[`${id}_${dateKey}`] = now
+      })
       toast.success(`Marked ${memberIds.length} member${memberIds.length !== 1 ? 's' : ''} as ${present ? 'present' : 'absent'}!`)
       clearSelection()
     } catch (error) {
@@ -456,8 +467,21 @@ const Dashboard = ({ isAdmin = false }) => {
     if (dashboardTab === 'edited') {
       const dateKey = selectedSundayDate || (selectedAttendanceDate ? selectedAttendanceDate.toISOString().split('T')[0] : null)
       if (!dateKey) {
-        const editedOnly = filteredMembers.filter(member => isEditedMember(member))
+        const editedOnly = filteredMembers.filter(member => {
+          if (!isEditedMember(member)) return false
+          // Apply name search only to members who have been edited (marked on any Sunday)
+          if (searchTerm) {
+            const lowerTerm = searchTerm.toLowerCase()
+            const name = (member['full_name'] || member['Full Name'] || '').toLowerCase()
+            if (!name.includes(lowerTerm)) return false
+          }
+          return true
+        })
         return editedOnly.sort((a, b) => {
+          // Sort by most recent action timestamp first
+          const tsA = Math.max(...sundayDates.map(d => actionTimestampsRef.current[`${a.id}_${d}`] || 0))
+          const tsB = Math.max(...sundayDates.map(d => actionTimestampsRef.current[`${b.id}_${d}`] || 0))
+          if (tsA !== tsB) return tsB - tsA
           const an = (a['full_name'] || a['Full Name'] || '').toLowerCase()
           const bn = (b['full_name'] || b['Full Name'] || '').toLowerCase()
           return an.localeCompare(bn)
@@ -465,42 +489,40 @@ const Dashboard = ({ isAdmin = false }) => {
       }
       // Check both attendanceData map AND member record columns for the selected date
       const map = attendanceData[dateKey] || {}
-      const filteredByDate = filteredMembers.filter(m => {
-        // Check attendanceData map first (real-time updates)
-        if (map[m.id] === true || map[m.id] === false) return true
-        // Fallback: check member record columns directly (persisted DB data)
-        for (const key in m) {
+
+      // Helper to resolve attendance value for a member on this date
+      const getVal = (member) => {
+        if (map[member.id] === true) return true
+        if (map[member.id] === false) return false
+        for (const key in member) {
           const keyLower = key.toLowerCase()
-          const isNewFormat = /^attendance_\d{4}_\d{2}_\d{2}$/.test(keyLower)
-          const isOldFormat = key.startsWith('Attendance ')
-          if (isNewFormat || isOldFormat) {
-            // Check if this column matches the selected date
-            const newMatch = keyLower.match(/attendance_(\d{4})_(\d{2})_(\d{2})/)
-            if (newMatch) {
-              const colDateKey = `${newMatch[1]}-${newMatch[2]}-${newMatch[3]}`
-              if (colDateKey === dateKey && (m[key] === 'Present' || m[key] === 'Absent')) return true
-            }
+          const newMatch = keyLower.match(/^attendance_(\d{4})_(\d{2})_(\d{2})$/)
+          if (newMatch && `${newMatch[1]}-${newMatch[2]}-${newMatch[3]}` === dateKey) {
+            if (member[key] === 'Present') return true
+            if (member[key] === 'Absent') return false
           }
         }
-        return false
+        return undefined
+      }
+
+      let filteredByDate = filteredMembers.filter(m => {
+        const val = getVal(m)
+        if (val === undefined) return false
+        // Apply name search only to members who have been marked Present or Absent
+        if (searchTerm) {
+          const lowerTerm = searchTerm.toLowerCase()
+          const name = (m['full_name'] || m['Full Name'] || '').toLowerCase()
+          if (!name.includes(lowerTerm)) return false
+        }
+        return true
       })
+
       return filteredByDate.sort((a, b) => {
-        const av = map[a.id]
-        const bv = map[b.id]
-        // Also check member columns for sort ranking
-        const getVal = (member) => {
-          if (map[member.id] === true) return true
-          if (map[member.id] === false) return false
-          for (const key in member) {
-            const keyLower = key.toLowerCase()
-            const newMatch = keyLower.match(/^attendance_(\d{4})_(\d{2})_(\d{2})$/)
-            if (newMatch && `${newMatch[1]}-${newMatch[2]}-${newMatch[3]}` === dateKey) {
-              if (member[key] === 'Present') return true
-              if (member[key] === 'Absent') return false
-            }
-          }
-          return undefined
-        }
+        // Sort by most recent action timestamp first (chronological, newest on top)
+        const tsA = actionTimestampsRef.current[`${a.id}_${dateKey}`] || 0
+        const tsB = actionTimestampsRef.current[`${b.id}_${dateKey}`] || 0
+        if (tsA !== tsB) return tsB - tsA
+        // Fallback: group Present before Absent, then alphabetical
         const avResolved = getVal(a)
         const bvResolved = getVal(b)
         const rank = (v) => (v === true ? 0 : v === false ? 1 : 2)
@@ -526,19 +548,29 @@ const Dashboard = ({ isAdmin = false }) => {
 
   // Aggregated counts across selected/all Sundays for members in current view
   const { presentCount, absentCount } = useMemo(() => {
-    const membersBase = dashboardTab === 'edited'
-      ? members.filter(isEditedMember)
-      : members
     let present = 0
     let absent = 0
-    selectedDatesForCounting.forEach((dateKey) => {
-      const map = attendanceData[dateKey] || {}
-      for (const m of membersBase) {
-        const val = map[m.id]
-        if (val === true) present += 1
-        else if (val === false) absent += 1
-      }
-    })
+    if (dashboardTab === 'edited') {
+      // Edited tab: count only edited members
+      const membersBase = members.filter(isEditedMember)
+      selectedDatesForCounting.forEach((dateKey) => {
+        const map = attendanceData[dateKey] || {}
+        for (const m of membersBase) {
+          const val = map[m.id]
+          if (val === true) present += 1
+          else if (val === false) absent += 1
+        }
+      })
+    } else {
+      // All tab: count from map values directly to include all records
+      selectedDatesForCounting.forEach((dateKey) => {
+        const map = attendanceData[dateKey] || {}
+        for (const val of Object.values(map)) {
+          if (val === true) present += 1
+          else if (val === false) absent += 1
+        }
+      })
+    }
     return { presentCount: present, absentCount: absent }
   }, [attendanceData, selectedBulkSundayDates, currentTable, dashboardTab, members])
 
@@ -809,14 +841,15 @@ const Dashboard = ({ isAdmin = false }) => {
     if (!memberToDelete) return
     try {
       await deleteMember(memberToDelete.id)
-      const name = memberToDelete['full_name'] || memberToDelete['Full Name']
+      // deleteMember already shows success toast, just close modal and reset state
       setSwipeOpenId(null)
       setIsDeleteConfirmOpen(false)
       setMemberToDelete(null)
-      toast.success(`Your ${name} has been deleted.`)
     } catch (error) {
       console.error('Error deleting member:', error)
+      toast.error('Failed to delete member. Please try again.')
       setIsDeleteConfirmOpen(false)
+      setMemberToDelete(null)
     }
   }
 
@@ -843,6 +876,8 @@ const Dashboard = ({ isAdmin = false }) => {
       // Toggle functionality: if clicking the same status, deselect it (set to null)
       if (currentStatus === present) {
         await markAttendance(memberId, new Date(targetDate), null)
+        // Record action timestamp for chronological sorting
+        actionTimestampsRef.current[`${memberId}_${targetDate}`] = Date.now()
         toast.success(`Attendance cleared for: ${memberName}`, {
           style: {
             background: '#f3f4f6',
@@ -851,6 +886,8 @@ const Dashboard = ({ isAdmin = false }) => {
         })
       } else {
         await markAttendance(memberId, new Date(targetDate), present)
+        // Record action timestamp for chronological sorting
+        actionTimestampsRef.current[`${memberId}_${targetDate}`] = Date.now()
         toast.success(`Marked ${present ? 'present' : 'absent'} for ${dateLabel}: ${memberName}`, {
           style: {
             background: present ? '#10b981' : '#ef4444',
@@ -876,9 +913,13 @@ const Dashboard = ({ isAdmin = false }) => {
       // Toggle functionality: if clicking the same status, deselect it (set to null)
       if (currentStatus === present) {
         await markAttendance(memberId, new Date(specificDate), null)
+        // Record action timestamp for chronological sorting
+        actionTimestampsRef.current[`${memberId}_${specificDate}`] = Date.now()
         toast.success(`Attendance cleared for ${new Date(specificDate).toLocaleDateString()}`)
       } else {
         await markAttendance(memberId, new Date(specificDate), present)
+        // Record action timestamp for chronological sorting
+        actionTimestampsRef.current[`${memberId}_${specificDate}`] = Date.now()
         toast.success(`Marked as ${present ? 'present' : 'absent'} for ${new Date(specificDate).toLocaleDateString()}`)
       }
     } catch (error) {
@@ -904,6 +945,12 @@ const Dashboard = ({ isAdmin = false }) => {
         try {
           const memberIds = contextFilteredMembers.map(member => member.id)
           await bulkAttendance(memberIds, dateToUse, present)
+          // Record action timestamps for chronological sorting
+          const bulkDateKey = getDateString(dateToUse)
+          const bulkNow = Date.now()
+          memberIds.forEach(id => {
+            actionTimestampsRef.current[`${id}_${bulkDateKey}`] = bulkNow
+          })
           toast.success(`All members marked as ${present ? 'present' : 'absent'} successfully!`, {
             style: { background: present ? '#10b981' : '#ef4444', color: '#ffffff' }
           })
@@ -1099,6 +1146,11 @@ const Dashboard = ({ isAdmin = false }) => {
       } else {
         await bulkAttendance(memberIds, new Date(targetDate), status)
       }
+      // Record action timestamps for chronological sorting
+      const multiNow = Date.now()
+      memberIds.forEach(id => {
+        actionTimestampsRef.current[`${id}_${targetDate}`] = multiNow
+      })
       const actionText = status === null ? 'cleared' : status ? 'present' : 'absent'
       toast.success(`Bulk ${actionText} applied to ${memberIds.length} member(s) for ${dateLabel}.`)
     } catch (error) {
@@ -1277,10 +1329,10 @@ const Dashboard = ({ isAdmin = false }) => {
               const label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
               const map = attendanceData[dateStr]
               const presentCount = map
-                ? members.filter(m => map[m.id] === true).length
+                ? Object.values(map).filter(v => v === true).length
                 : 0
               const absentCount = map
-                ? members.filter(m => map[m.id] === false).length
+                ? Object.values(map).filter(v => v === false).length
                 : 0
               return (
                 <button
@@ -1321,17 +1373,21 @@ const Dashboard = ({ isAdmin = false }) => {
                 const map = attendanceData[selectedSundayDate] || {}
                 const presentMembers = members.filter(m => map[m.id] === true)
                 const absentMembers = members.filter(m => map[m.id] === false)
-                const presentCount = presentMembers.length
-                const absentCount = absentMembers.length
+                // Count from map values directly to include all records (e.g. members added via SimpleAttendance)
+                const presentCount = Object.values(map).filter(v => v === true).length
+                const absentCount = Object.values(map).filter(v => v === false).length
 
-                // Sort by name
-                const sortByName = (a, b) => {
+                // Sort by action timestamp (most recent first), fallback to name
+                const sortByTimestamp = (a, b) => {
+                  const tsA = actionTimestampsRef.current[`${a.id}_${selectedSundayDate}`] || 0
+                  const tsB = actionTimestampsRef.current[`${b.id}_${selectedSundayDate}`] || 0
+                  if (tsA !== tsB) return tsB - tsA
                   const nameA = (a['full_name'] || a['Full Name'] || '').toLowerCase()
                   const nameB = (b['full_name'] || b['Full Name'] || '').toLowerCase()
                   return nameA.localeCompare(nameB)
                 }
-                presentMembers.sort(sortByName)
-                absentMembers.sort(sortByName)
+                presentMembers.sort(sortByTimestamp)
+                absentMembers.sort(sortByTimestamp)
 
                 return (
                   <>
@@ -1495,7 +1551,14 @@ const Dashboard = ({ isAdmin = false }) => {
                       <button
                         onClick={async () => {
                           const toDelete = group.members.map(m => m.id).filter(id => id !== keepId)
-                          for (const id of toDelete) { await deleteMember(id) }
+                          console.log(`[DELETE] Delete Others clicked - deleting ${toDelete.length} members:`, toDelete)
+                          for (const id of toDelete) {
+                            try {
+                              await deleteMember(id)
+                            } catch (error) {
+                              console.error(`[DELETE] Failed to delete member ${id}:`, error)
+                            }
+                          }
                         }}
                         className="px-2 py-1 rounded text-xs bg-red-600 text-white hover:bg-red-700"
                       >
@@ -1536,7 +1599,14 @@ const Dashboard = ({ isAdmin = false }) => {
                             </div>
                           </div>
                           <button
-                            onClick={() => deleteMember(m.id)}
+                            onClick={async () => {
+                              console.log(`[DELETE] Delete button clicked for member ID: ${m.id}`)
+                              try {
+                                await deleteMember(m.id)
+                              } catch (error) {
+                                console.error(`[DELETE] Failed to delete member ${m.id}:`, error)
+                              }
+                            }}
                             className={`px-2 py-1 rounded text-xs border ${isKeepMember
                               ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 cursor-not-allowed opacity-50'
                               : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 border-red-300 dark:border-red-700'
@@ -2672,26 +2742,51 @@ const Dashboard = ({ isAdmin = false }) => {
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom">
         <div className="mx-auto px-3 sm:px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search members..."
-                value={localSearchTerm}
-                onChange={(e) => setLocalSearchTerm(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { setSearchTerm(localSearchTerm); refreshSearch() } }}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
-              />
-              {(searchTerm || localSearchTerm) && (
-                <button
-                  onClick={() => { setSearchTerm(''); setLocalSearchTerm('') }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Clear search"
-                >
-                  ×
-                </button>
-              )}
-            </div>
+            {dashboardTab === 'edited' ? (
+              /* Marked tab: Search bar that only searches within Present/Absent members */
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search marked members..."
+                  value={localSearchTerm}
+                  onChange={(e) => setLocalSearchTerm(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { setSearchTerm(localSearchTerm); refreshSearch() } }}
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+                />
+                {(searchTerm || localSearchTerm) && (
+                  <button
+                    onClick={() => { setSearchTerm(''); setLocalSearchTerm('') }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ) : (
+              /* Other tabs: Normal text search */
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search members..."
+                  value={localSearchTerm}
+                  onChange={(e) => setLocalSearchTerm(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { setSearchTerm(localSearchTerm); refreshSearch() } }}
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+                />
+                {(searchTerm || localSearchTerm) && (
+                  <button
+                    onClick={() => { setSearchTerm(''); setLocalSearchTerm('') }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
             {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}

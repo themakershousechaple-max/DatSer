@@ -220,16 +220,6 @@ function AppContent({ isMobile, onOpenSimple }) {
         </Suspense>
       )}
 
-      {/* Quick Access: Simple February Attendance */}
-      {onOpenSimple && (
-        <button
-          onClick={onOpenSimple}
-          className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all text-sm font-semibold"
-          title="Open Simple February Attendance"
-        >
-          📋 Feb Attendance
-        </button>
-      )}
 
       {/* Global Command Palette - lazy loaded */}
       <Suspense fallback={null}>

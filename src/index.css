@@ -21,12 +21,17 @@
   }
   
   body {
-    /* Prevent bounce scroll on iOS */
-    overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
     /* Optimize for touch */
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+  }
+
+  /* Prevent bounce scroll on iOS - mobile only to avoid blocking trackpad scroll on desktop */
+  @media (max-width: 767px) {
+    body {
+      overscroll-behavior: none;
+    }
   }
   
   /* Prevent iOS zoom on input focus - must be 16px minimum */
@@ -37,9 +42,11 @@
     appearance: none;
   }
   
-  /* Ensure buttons and interactive elements don't trigger zoom */
-  button, a, [role="button"] {
-    touch-action: manipulation;
+  /* Ensure buttons and interactive elements don't trigger zoom - mobile only */
+  @media (max-width: 767px) {
+    button, a, [role="button"] {
+      touch-action: manipulation;
+    }
   }
 }
 
@@ -210,12 +217,16 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200;
-    overscroll-behavior-x: none;
-    /* Disable sideways overscroll bounce */
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
     /* Belt-and-suspenders to ensure no horizontal scroll */
+  }
+
+  @media (max-width: 767px) {
+    body {
+      overscroll-behavior-x: none;
+    }
   }
 
   /* Ensure proper dark mode colors throughout */
@@ -289,9 +300,11 @@
     /* promote to its own layer to reduce jank */
   }
 
-  /* Avoid odd overscroll glows in PWA */
-  .ios-overscroll-none {
-    overscroll-behavior: none;
+  /* Avoid odd overscroll glows in PWA - mobile only to preserve desktop trackpad scroll */
+  @media (max-width: 767px) {
+    .ios-overscroll-none {
+      overscroll-behavior: none;
+    }
   }
 
   /* Selection highlight - GREEN instead of wiggle animation */
