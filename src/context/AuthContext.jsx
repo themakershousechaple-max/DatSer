@@ -396,9 +396,11 @@ export const AuthProvider = ({ children }) => {
           email,
           options: {
             emailRedirectTo: redirectUrl,
-            shouldCreateUser: true // Allow both new and existing users
-            // Note: Don't include captchaToken for magic links - they're for returning users
+            shouldCreateUser: false // Only allow existing invited users - prevents random signups
           }
+        }
+        if (captchaToken) {
+          otpOptions.options.captchaToken = captchaToken
         }
         const { error } = await supabase.auth.signInWithOtp(otpOptions)
         if (error) throw error
@@ -407,7 +409,11 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error sending magic link:', error)
-      toast.error(error.message || 'Failed to send magic link')
+      if (error.message?.includes('Signups not allowed') || error.message?.includes('otp_disabled')) {
+        toast.error('No account found with this email. Please ask the admin for an invite.')
+      } else {
+        toast.error(error.message || 'Failed to send magic link')
+      }
       throw error
     }
   }
