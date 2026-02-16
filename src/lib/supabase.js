@@ -19,7 +19,7 @@ export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabas
     detectSessionInUrl: true,
     storage: window.localStorage,
     storageKey: 'tmh-teen-auth',
-    flowType: 'pkce' // PKCE is faster and more secure than implicit
+    flowType: 'implicit' // Implicit flow required for invite/magic link compatibility
   },
   // Optimize for slower devices
   global: {

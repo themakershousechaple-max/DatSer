@@ -66,47 +66,38 @@ export const AuthProvider = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        // Check if there's a hash fragment with tokens (OAuth callback - implicit flow)
-        if (window.location.hash && window.location.hash.includes('access_token')) {
-          // Fresh login via OAuth - allow welcome toast
+        // Check if there's a hash fragment (OAuth callback, invite link, magic link)
+        // With implicit flow, Supabase puts tokens in the hash fragment
+        const hash = window.location.hash
+        if (hash && hash.length > 1) {
           welcomeToastShownRef.current = false
-          // Let Supabase handle the hash - it will trigger onAuthStateChange
+          
+          // Check for error in hash (e.g. expired invite link)
+          if (hash.includes('error=')) {
+            const hashParams = new URLSearchParams(hash.substring(1))
+            const errorCode = hashParams.get('error_code')
+            const errorDesc = hashParams.get('error_description')
+            console.error('[AUTH] Auth error in URL:', errorCode, errorDesc)
+            if (errorCode === 'otp_expired') {
+              toast.error('This invite link has expired. Please ask the admin to send a new one.')
+            }
+            // Clear the hash from URL
+            window.history.replaceState(null, '', window.location.pathname)
+            if (mounted) setLoading(false)
+            return
+          }
+          
+          // Hash contains tokens (access_token from OAuth, invite, or magic link)
+          // Supabase's detectSessionInUrl will automatically process this
+          console.log('[AUTH] Hash with tokens detected, Supabase will process it')
           if (supabase) {
             const { data, error } = await supabase.auth.getSession()
             if (error) {
-              console.error('Error processing OAuth callback:', error)
+              console.error('[AUTH] Error processing auth callback:', error)
             }
             // Clear the hash from URL
             window.history.replaceState(null, '', window.location.pathname)
           }
-          return
-        }
-
-        // Check for PKCE code in URL params (OAuth callbacks with PKCE flow)
-        const urlParams = new URLSearchParams(window.location.search)
-        const code = urlParams.get('code')
-        if (code) {
-          welcomeToastShownRef.current = false
-          if (supabase) {
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-            if (error) {
-              console.error('Error exchanging code for session:', error)
-            }
-            // Clear the code from URL
-            window.history.replaceState(null, '', window.location.pathname)
-          }
-          return
-        }
-
-        // Supabase will handle invite/magic links automatically via the hash fragment
-        // The onAuthStateChange listener below will detect when the user is authenticated
-        // Just ensure the hash is present and let Supabase process it
-        if (window.location.hash) {
-          console.log('[INVITE] Hash detected, letting Supabase process it')
-          welcomeToastShownRef.current = false
-          // Supabase's detectSessionInUrl will handle this automatically
-          // Just wait a moment for it to process
-          await new Promise(resolve => setTimeout(resolve, 500))
           return
         }
 
