@@ -201,13 +201,19 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
 
             {/* Right: Help + Profile + Menu */}
             <div className="flex items-center gap-2">
-              {/* Help Button */}
+              {/* Help/Settings Button */}
               <button
                 onClick={() => setCurrentView('settings')}
-                className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title="Help Center"
+                className="relative p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Settings"
               >
                 <HelpCircle className="w-4 h-4" />
+                {window.__needsPasswordSetup && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex items-center justify-center h-3.5 w-3.5 rounded-full bg-red-500 text-white text-[8px] font-bold">1</span>
+                  </span>
+                )}
               </button>
 
               {/* Profile/Login Button - now contains all menu options */}

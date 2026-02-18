@@ -22,6 +22,7 @@ const AIChatAssistant = lazy(() => import('./components/AIChatAssistant'))
 const CommandPalette = lazy(() => import('./components/CommandPalette'))
 const ExecAttendancePage = lazy(() => import('./components/ExecAttendancePage'))
 const SimpleAttendance = lazy(() => import('./components/SimpleAttendance'))
+const SetPasswordModal = lazy(() => import('./components/SetPasswordModal'))
 
 // Minimal loading fallback for lazy components
 const LazyFallback = memo(() => (
@@ -57,6 +58,10 @@ function AppContent({ isMobile, onOpenSimple }) {
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showExportData, setShowExportData] = useState(false)
+
+  // Password setup prompt for collaborators who logged in via magic link/invite
+  const [showSetPassword, setShowSetPassword] = useState(false)
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false)
 
   // Handle navigation from onboarding wizard
   const handleOnboardingNavigate = (view, options) => {
@@ -103,6 +108,30 @@ function AppContent({ isMobile, onOpenSimple }) {
     setShowOnboarding(shouldShow)
     setOnboardingAutoChecked(true)
   }, [appLoading, onboardingAutoChecked, members, preferences])
+
+  // Check if collaborator needs to set up a password (logged in via magic link/invite)
+  useEffect(() => {
+    if (appLoading || !isCollaborator) return
+    const passwordComplete = localStorage.getItem('passwordSetup_complete')
+    const dismissed = sessionStorage.getItem('passwordSetup_dismissed')
+    if (!passwordComplete && !dismissed) {
+      setNeedsPasswordSetup(true)
+      // Show the modal after a short delay so the app loads first
+      setTimeout(() => setShowSetPassword(true), 1500)
+    } else if (passwordComplete) {
+      setNeedsPasswordSetup(false)
+    }
+  }, [appLoading, isCollaborator])
+
+  // Expose password setup state globally for Settings badge
+  useEffect(() => {
+    window.__needsPasswordSetup = needsPasswordSetup
+    window.__openSetPassword = () => setShowSetPassword(true)
+    return () => {
+      delete window.__needsPasswordSetup
+      delete window.__openSetPassword
+    }
+  }, [needsPasswordSetup])
 
   // Access control: block users who are not the owner and not in collaborators table
   if (!appLoading && !hasAccess) {
@@ -233,6 +262,17 @@ function AppContent({ isMobile, onOpenSimple }) {
           <ExportDataModal
             isOpen={showExportData}
             onClose={() => setShowExportData(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Password Setup Modal for collaborators */}
+      {showSetPassword && (
+        <Suspense fallback={<LazyFallback />}>
+          <SetPasswordModal
+            isOpen={showSetPassword}
+            onClose={() => setShowSetPassword(false)}
+            onSuccess={() => setNeedsPasswordSetup(false)}
           />
         </Suspense>
       )}

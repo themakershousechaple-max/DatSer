@@ -521,25 +521,42 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                 </h4>
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
                     <div className="p-4 flex items-center justify-between">
-                        <div>
-                            <p className="font-medium text-gray-900 dark:text-white">Password</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {user?.app_metadata?.provider === 'google'
-                                    ? 'Managed by Google'
-                                    : 'Change your password'}
-                            </p>
+                        <div className="flex items-center gap-3">
+                            <div>
+                                <p className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                    Password
+                                    {window.__needsPasswordSetup && (
+                                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
+                                            Action needed
+                                        </span>
+                                    )}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {user?.app_metadata?.provider === 'google'
+                                        ? 'Managed by Google'
+                                        : window.__needsPasswordSetup
+                                        ? 'Set up a password for email login'
+                                        : 'Change your password'}
+                                </p>
+                            </div>
                         </div>
                         <button
                             onClick={() => {
                                 if (user?.app_metadata?.provider === 'google') {
                                     toast.info('Your account is secured via Google. Manage it at myaccount.google.com')
+                                } else if (window.__needsPasswordSetup && window.__openSetPassword) {
+                                    window.__openSetPassword()
                                 } else {
                                     toast.info('Password reset link sent to your email')
                                 }
                             }}
-                            className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                                window.__needsPasswordSetup
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
                         >
-                            {user?.app_metadata?.provider === 'google' ? 'View' : 'Change'}
+                            {user?.app_metadata?.provider === 'google' ? 'View' : window.__needsPasswordSetup ? 'Set Up' : 'Change'}
                         </button>
                     </div>
                     <div className="p-4 flex items-center justify-between">
@@ -2033,6 +2050,12 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {section.id === 'account' && window.__needsPasswordSetup && (
+                                            <span className="relative flex h-5 w-5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold">1</span>
+                                            </span>
+                                        )}
                                         {section.highlight && (
                                             <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
                                                 New
