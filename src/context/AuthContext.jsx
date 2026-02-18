@@ -409,10 +409,11 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error sending magic link:', error)
-      if (error.message?.includes('Signups not allowed') || error.message?.includes('otp_disabled')) {
+      const errorMsg = error.message || ''
+      if (errorMsg.includes('Signups not allowed') || errorMsg.includes('otp_disabled') || errorMsg.includes('User not found')) {
         toast.error('No account found with this email. Please ask the admin for an invite.')
       } else {
-        toast.error(error.message || 'Failed to send magic link')
+        toast.error(errorMsg || 'Failed to send magic link')
       }
       throw error
     }
