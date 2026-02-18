@@ -251,12 +251,40 @@ export const AppProvider = ({ children }) => {
       console.log('Collaborators query result:', { data, error })
 
       if (error || !data) {
-        // Not a collaborator - check if they are the owner
-        console.log('User is NOT a collaborator. Error:', error?.message || 'No data found')
+        // Not a collaborator - verify they are an actual owner with data
+        console.log('User is NOT a collaborator. Checking if they are an owner...')
+        
+        // Check if this user has any month tables (i.e., they are a real owner)
+        const { data: ownerTables, error: ownerError } = await supabase
+          .from('user_month_tables')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1)
+        
+        // Also check if they have user_preferences (created during onboarding)
+        const { data: prefs, error: prefsError } = await supabase
+          .from('user_preferences')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1)
+        
+        const isRealOwner = (ownerTables && ownerTables.length > 0) || (prefs && prefs.length > 0)
+        
+        if (!isRealOwner) {
+          // Random user with no data and not a collaborator - DENY ACCESS
+          console.log('❌ User is NOT an owner and NOT a collaborator - ACCESS DENIED')
+          setIsCollaborator(false)
+          setDataOwnerId(null)
+          setOwnerEmail(null)
+          setHasAccess(false)
+          return null
+        }
+        
+        console.log('✅ User is a verified owner')
         setIsCollaborator(false)
         setDataOwnerId(user.id)
         setOwnerEmail(null)
-        setHasAccess(true) // Owner always has access to their own data
+        setHasAccess(true)
         return user.id
       }
 
@@ -266,6 +294,7 @@ export const AppProvider = ({ children }) => {
       console.log('Status:', data.status)
       setIsCollaborator(true)
       setDataOwnerId(data.owner_id)
+      setHasAccess(true)
 
       // Sync Workspace Name from Owner
       if (authContext?.updatePreference) {
@@ -296,9 +325,11 @@ export const AppProvider = ({ children }) => {
       return data.owner_id
     } catch (err) {
       console.error('ERROR in checkCollaboratorStatus:', err)
+      // On error, deny access by default for safety
       setIsCollaborator(false)
-      setDataOwnerId(user.id)
-      return user.id
+      setDataOwnerId(null)
+      setHasAccess(false)
+      return null
     }
   }
 
@@ -2853,7 +2884,8 @@ export const AppProvider = ({ children }) => {
     toggleMemberBadge, memberHasBadge, setAndSaveAttendanceDate,
     initializeAttendanceDates, getSundaysInMonth, toggleBadgeFilter,
     focusDateSelector, validateMemberData, getPastSundays, getMissingAttendance,
-    autoSundayEnabled, setAutoSundayEnabled, autoAllDatesEnabled, setAutoAllDatesEnabled
+    autoSundayEnabled, setAutoSundayEnabled, autoAllDatesEnabled, setAutoAllDatesEnabled,
+    hasAccess, isCollaborator, dataOwnerId
   ])
 
   return (
