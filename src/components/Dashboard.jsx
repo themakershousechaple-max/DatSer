@@ -653,12 +653,16 @@ const Dashboard = ({ isAdmin = false }) => {
     })
   }
 
-  // Select all duplicates
+  // Select all duplicates (excluding the "Keep" members)
   const selectAllDuplicates = () => {
     const allDuplicateIds = new Set()
     duplicateGroups.forEach(group => {
+      const keepId = groupKeepId(group.members)
       group.members.forEach(member => {
-        allDuplicateIds.add(member.id)
+        // Only select non-keep members (the duplicates to delete)
+        if (member.id !== keepId) {
+          allDuplicateIds.add(member.id)
+        }
       })
     })
     setSelectedDuplicateIds(allDuplicateIds)
