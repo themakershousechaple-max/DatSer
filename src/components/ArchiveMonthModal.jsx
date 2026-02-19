@@ -169,14 +169,6 @@ const ArchiveMonthModal = ({ isOpen, onClose, tableName, onArchiveComplete }) =>
         return val
     }
 
-    // Get cell value for display
-    const getCellValue = (row, col) => {
-        let v = row[col] ?? row[col.toLowerCase().replace(/ /g, '_')] ?? ''
-        if (col === 'Phone Number' || col === 'Parent Phone Number') return formatPhoneDisplay(v)
-        if (col === 'Gender') return normalizeGender(v)
-        return v || '-'
-    }
-
     // Find attendance date columns
     const dateColumns = useMemo(() => {
         const dates = new Set()
@@ -188,9 +180,31 @@ const ArchiveMonthModal = ({ isOpen, onClose, tableName, onArchiveComplete }) =>
         return [...dates].sort()
     }, [monthData])
 
+    // Compute present/absent counts for a row
+    const getAttendanceCounts = useCallback((row) => {
+        let present = 0
+        let absent = 0
+        dateColumns.forEach(date => {
+            const val = row[date]
+            if (val === 'Present' || val === true) present++
+            else if (val === 'Absent' || val === false) absent++
+        })
+        return { present, absent }
+    }, [dateColumns])
+
+    // Get cell value for display
+    const getCellValue = (row, col) => {
+        if (col === 'Present') return getAttendanceCounts(row).present
+        if (col === 'Absent') return getAttendanceCounts(row).absent
+        let v = row[col] ?? row[col.toLowerCase().replace(/ /g, '_')] ?? ''
+        if (col === 'Phone Number' || col === 'Parent Phone Number') return formatPhoneDisplay(v)
+        if (col === 'Gender') return normalizeGender(v)
+        return v || '-'
+    }
+
     // Generate CSV - clean format optimized for Google Sheets
     const generateCSV = useCallback(() => {
-        const allColumns = [...columns, ...dateColumns]
+        const allColumns = [...columns, 'Present', 'Absent', ...dateColumns]
         const colCount = allColumns.length
 
         const padRow = (cells) => {
@@ -224,6 +238,14 @@ const ArchiveMonthModal = ({ isOpen, onClose, tableName, onArchiveComplete }) =>
             const cells = allColumns.map(col => {
                 let v = row[col] ?? row[col.toLowerCase().replace(/ /g, '_')] ?? ''
 
+                if (col === 'Present') {
+                    const counts = getAttendanceCounts(row)
+                    return `"${counts.present}"`
+                }
+                if (col === 'Absent') {
+                    const counts = getAttendanceCounts(row)
+                    return `"${counts.absent}"`
+                }
                 if (col === 'Phone Number' || col === 'Parent Phone Number') {
                     return formatPhoneCSV(v)
                 }
@@ -241,7 +263,7 @@ const ArchiveMonthModal = ({ isOpen, onClose, tableName, onArchiveComplete }) =>
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
         setCsvBlob(blob)
         return blob
-    }, [monthData, columns, dateColumns, label, stats])
+    }, [monthData, columns, dateColumns, label, stats, getAttendanceCounts])
 
     // Download CSV
     const handleDownload = useCallback(() => {
@@ -466,28 +488,35 @@ const ArchiveMonthModal = ({ isOpen, onClose, tableName, onArchiveComplete }) =>
                                                     {columns.map(col => (
                                                         <th key={col} className="px-3 py-2 text-left text-gray-700 dark:text-gray-200 font-semibold whitespace-nowrap">{col}</th>
                                                     ))}
+                                                    <th className="px-3 py-2 text-left text-green-700 dark:text-green-300 font-semibold whitespace-nowrap">Present</th>
+                                                    <th className="px-3 py-2 text-left text-red-700 dark:text-red-300 font-semibold whitespace-nowrap">Absent</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {monthData.slice(0, 50).map((row, i) => (
+                                                {monthData.slice(0, 50).map((row, i) => {
+                                                    const counts = getAttendanceCounts(row)
+                                                    return (
                                                     <tr key={i} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                                         {columns.map(col => (
                                                             <td key={col} className="px-3 py-2 text-gray-800 dark:text-gray-100 whitespace-nowrap">
                                                                 {getCellValue(row, col)}
                                                             </td>
                                                         ))}
+                                                        <td className="px-3 py-2 text-green-600 dark:text-green-400 font-semibold whitespace-nowrap">{counts.present}</td>
+                                                        <td className="px-3 py-2 text-red-600 dark:text-red-400 font-semibold whitespace-nowrap">{counts.absent}</td>
                                                     </tr>
-                                                ))}
+                                                    )
+                                                })}
                                                 {monthData.length > 50 && (
                                                     <tr>
-                                                        <td colSpan={columns.length} className="px-3 py-3 text-center text-gray-400 text-xs bg-gray-50 dark:bg-gray-700/50">
+                                                        <td colSpan={columns.length + 2} className="px-3 py-3 text-center text-gray-400 text-xs bg-gray-50 dark:bg-gray-700/50">
                                                             ...and {monthData.length - 50} more rows (all will be included in export)
                                                         </td>
                                                     </tr>
                                                 )}
                                                 {monthData.length === 0 && (
                                                     <tr>
-                                                        <td colSpan={columns.length} className="px-2 py-4 text-center text-gray-400">No data</td>
+                                                        <td colSpan={columns.length + 2} className="px-2 py-4 text-center text-gray-400">No data</td>
                                                     </tr>
                                                 )}
                                             </tbody>
