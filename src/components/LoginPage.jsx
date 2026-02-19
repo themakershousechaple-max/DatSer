@@ -259,7 +259,7 @@ const LoginPage = ({ onRequestSimple }) => {
   if (isPasswordResetFlow) {
     if (resetSuccess) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -281,7 +281,7 @@ const LoginPage = ({ onRequestSimple }) => {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo/Brand Section */}
           <div className="text-center mb-6">
@@ -290,27 +290,27 @@ const LoginPage = ({ onRequestSimple }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
               TMH Teen Ministry
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600">
               Attendance & Data Management
             </p>
           </div>
 
           {/* Reset Password Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
             <div className="text-center mb-5">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-semibold text-gray-900">
                 Set New Password
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-600 mt-1">
                 Create a new password for your account
               </p>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm text-center">
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center">
                 {error}
               </div>
             )}
@@ -328,13 +328,13 @@ const LoginPage = ({ onRequestSimple }) => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
-                    className="w-full pl-11 pr-12 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    className="w-full pl-11 pr-12 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -343,7 +343,7 @@ const LoginPage = ({ onRequestSimple }) => {
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Confirm Password
                 </label>
                 <div className="relative">
@@ -365,7 +365,7 @@ const LoginPage = ({ onRequestSimple }) => {
                   <button
                     type="button"
                     onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showConfirmNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -424,16 +424,16 @@ const LoginPage = ({ onRequestSimple }) => {
   // Invite flow loading screen - shown while Supabase processes the invite token
   if (isInviteFlow) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Mail className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-pulse" />
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+              <Mail className="w-8 h-8 text-blue-600 animate-pulse" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
               Accepting your invite...
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-gray-600 mb-6">
               Setting up your access. This will only take a moment.
             </p>
             <div className="flex justify-center">
@@ -448,16 +448,16 @@ const LoginPage = ({ onRequestSimple }) => {
   // Confirmation sent screen
   if (confirmationSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <Mail className="w-8 h-8 text-green-600 dark:text-green-400" />
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+              <Mail className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
               Check your email
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-gray-600 mb-6">
               {mode === 'forgot'
                 ? `We've sent a password reset link to ${email}`
                 : mode === 'magiclink'
@@ -481,7 +481,7 @@ const LoginPage = ({ onRequestSimple }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Brand Section */}
         <div className="text-center mb-6">
@@ -490,16 +490,16 @@ const LoginPage = ({ onRequestSimple }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
             TMH Teen Ministry
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600">
             Attendance & Data Management
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           {/* Mode Header */}
           <div className="text-center mb-5">
             {(mode === 'forgot' || mode === 'magiclink') && (
@@ -510,13 +510,13 @@ const LoginPage = ({ onRequestSimple }) => {
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold text-gray-900">
               {mode === 'login' && 'Welcome Back'}
               {mode === 'signup' && 'Create Account'}
               {mode === 'forgot' && 'Reset Password'}
               {mode === 'magiclink' && 'Magic Link Login'}
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {mode === 'login' && 'Sign in to continue'}
               {mode === 'signup' && 'Sign up to get started'}
               {mode === 'forgot' && 'Enter your email to reset'}
@@ -525,7 +525,7 @@ const LoginPage = ({ onRequestSimple }) => {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm text-center">
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center">
               {error}
             </div>
           )}
@@ -542,7 +542,7 @@ const LoginPage = ({ onRequestSimple }) => {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Full Name"
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -572,12 +572,12 @@ const LoginPage = ({ onRequestSimple }) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
-                    className="w-full pl-11 pr-12 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    className="w-full pl-11 pr-12 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -588,7 +588,7 @@ const LoginPage = ({ onRequestSimple }) => {
                   <div className="mt-2 space-y-2">
                     {/* Strength Bar */}
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className={`h-full ${passwordStrength.color} transition-all duration-300`}
                           style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
@@ -601,23 +601,23 @@ const LoginPage = ({ onRequestSimple }) => {
 
                     {/* Requirements Checklist */}
                     <div className="grid grid-cols-2 gap-1 text-xs">
-                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.length ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.length ? 'text-green-600' : 'text-gray-400'}`}>
                         {passwordStrength.checks?.length ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                         10+ characters
                       </div>
-                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.uppercase ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.uppercase ? 'text-green-600' : 'text-gray-400'}`}>
                         {passwordStrength.checks?.uppercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                         Uppercase
                       </div>
-                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.lowercase ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.lowercase ? 'text-green-600' : 'text-gray-400'}`}>
                         {passwordStrength.checks?.lowercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                         Lowercase
                       </div>
-                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.number ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.number ? 'text-green-600' : 'text-gray-400'}`}>
                         {passwordStrength.checks?.number ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                         Number
                       </div>
-                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.special ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                      <div className={`flex items-center gap-1 ${passwordStrength.checks?.special ? 'text-green-600' : 'text-gray-400'}`}>
                         {passwordStrength.checks?.special ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                         Special char
                       </div>
@@ -626,7 +626,7 @@ const LoginPage = ({ onRequestSimple }) => {
                 )}
 
                 {mode === 'signup' && !password && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Create a strong password</p>
+                  <p className="mt-1 text-xs text-gray-500">Create a strong password</p>
                 )}
               </div>
             )}
