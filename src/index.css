@@ -556,6 +556,86 @@
   scroll-behavior: auto !important;
 }
 
+/* ================================
+   Mobile-First Responsive Fixes
+   ================================ */
+
+/* Smooth page transitions on mobile */
+@media (max-width: 767px) {
+  .animate-fade-in-up {
+    animation: mFadeInUp 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  @keyframes mFadeInUp {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  /* Smoother card transitions on mobile */
+  .grid-animate > * {
+    animation: mCardIn 0.2s ease-out both;
+  }
+
+  @keyframes mCardIn {
+    from {
+      opacity: 0.8;
+      transform: translate3d(0, 4px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+}
+
+/* Phone number display - monospace for readability */
+.phone-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Prevent content from being hidden under fixed header on mobile */
+@media (max-width: 767px) {
+  main {
+    padding-top: 6rem !important;
+  }
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 767px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Smooth expand/collapse for details elements */
+details summary {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+details[open] summary ~ * {
+  animation: detailsOpen 0.2s ease-out;
+}
+
+@keyframes detailsOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Force toasts to render at the top on mobile when root has .mobile-toast-top */
 .mobile-toast-top .Toastify__toast-container {
   top: calc(env(safe-area-inset-top) + 8px) !important;

@@ -1517,12 +1517,12 @@ const Dashboard = ({ isAdmin = false }) => {
       )}
 
       {dashboardTab === 'duplicates' && (
-        <div className={`rounded-lg border p-4 mt-8 sm:mt-10 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className={`rounded-lg border p-3 sm:p-4 mt-4 sm:mt-10 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Duplicate Names</h3>
+            <h3 className={`text-base sm:text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Duplicate Names</h3>
           </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{duplicateGroups.length} names with duplicates</div>
               <button
                 onClick={deleteSelectedDuplicates}
@@ -1540,14 +1540,14 @@ const Dashboard = ({ isAdmin = false }) => {
               const keepMember = group.members.find(m => m.id === keepId)
               const keepMemberName = keepMember ? (keepMember['Full Name'] || keepMember.full_name) : 'Unknown'
               return (
-                <div key={group.name} className={`rounded-lg border p-3 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary-600" />
-                      <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{group.members[0]['Full Name'] || group.members[0].full_name}</span>
+                <div key={group.name} className={`rounded-lg border p-2.5 sm:p-3 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Users className="w-4 h-4 text-primary-600 flex-shrink-0" />
+                      <span className={`font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{group.members[0]['Full Name'] || group.members[0].full_name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700">Keep: {keepMemberName}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700 truncate max-w-[120px] sm:max-w-none">Keep: {keepMemberName}</span>
                       <button
                         onClick={async () => {
                           const toDelete = group.members.map(m => m.id).filter(id => id !== keepId)
@@ -1701,7 +1701,7 @@ const Dashboard = ({ isAdmin = false }) => {
                       </button>
                     </div>
                     <div
-                      className={`relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-colors duration-200 overflow-hidden ${isSelected ? 'selection-highlight' : ''
+                      className={`relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${isSelected ? 'selection-highlight' : ''
                         }`}
                       style={{ transform: swipeOpenId === member.id ? 'translateX(-64px)' : 'translateX(0)', touchAction: 'pan-y', userSelect: 'none' }}
                       onTouchStart={(e) => {
@@ -1873,7 +1873,7 @@ const Dashboard = ({ isAdmin = false }) => {
                           <div className="pt-2 sm:pt-2.5">
                             {/* Member Details */}
                             {/* Member Details */}
-                            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 transition-colors duration-300`}>
+                            <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 transition-colors duration-300`}>
                               <div className="space-y-3">
                                 <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Member Info</h4>
                                 <div className="space-y-2 text-sm">
@@ -1887,7 +1887,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                   </div>
                                   <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
                                     <span className="text-gray-500 dark:text-gray-400">Phone</span>
-                                    <span className="font-medium text-gray-900 dark:text-white truncate ml-2 font-mono tracking-tight">{member['Phone Number'] || 'N/A'}</span>
+                                    <span className="font-medium text-gray-900 dark:text-white truncate ml-2 font-mono tracking-tight phone-display">{member['Phone Number'] || 'N/A'}</span>
                                   </div>
                                   <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
                                     <span className="text-gray-500 dark:text-gray-400">Age</span>
@@ -2000,7 +2000,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                           <div className="text-right">
                                             <span className="block font-medium text-gray-900 dark:text-white">{member['parent_name_1']}</span>
                                             {member['parent_phone_1'] && (
-                                              <span className="block text-xs text-gray-500 dark:text-gray-400 font-mono tracking-tight">{member['parent_phone_1']}</span>
+                                              <span className="block text-xs text-gray-500 dark:text-gray-400 font-mono tracking-tight phone-display">{member['parent_phone_1']}</span>
                                             )}
                                           </div>
                                         </div>
@@ -2011,7 +2011,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                           <div className="text-right">
                                             <span className="block font-medium text-gray-900 dark:text-white">{member['parent_name_2']}</span>
                                             {member['parent_phone_2'] && (
-                                              <span className="block text-xs text-gray-500 dark:text-gray-400 font-mono tracking-tight">{member['parent_phone_2']}</span>
+                                              <span className="block text-xs text-gray-500 dark:text-gray-400 font-mono tracking-tight phone-display">{member['parent_phone_2']}</span>
                                             )}
                                           </div>
                                         </div>

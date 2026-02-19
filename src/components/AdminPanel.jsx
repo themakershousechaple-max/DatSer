@@ -635,20 +635,20 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   // Password protection screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-3 sm:p-4">
         <div className="w-full max-w-2xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-800 dark:to-slate-900 px-6 py-8 text-center">
-              <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                <Shield className="w-8 h-8 text-white" />
+            <div className="bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-800 dark:to-slate-900 px-4 sm:px-6 py-6 sm:py-8 text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-white/20">
+                <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-              <p className="text-slate-300 text-sm mt-1">Secure Access Required</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">Admin Panel</h1>
+              <p className="text-slate-300 text-xs sm:text-sm mt-1">Secure Access Required</p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handlePasswordSubmit} className="p-6 space-y-5">
+            <form onSubmit={handlePasswordSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Account Password
@@ -797,7 +797,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Print Attendance Sheet Button */}
         <div className="flex justify-end animate-fade-in-up">
           <button
@@ -810,51 +810,51 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-fade-in-up transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] grid-animate">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 animate-fade-in-up transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] grid-animate">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg sm:rounded-xl">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalMembers}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Total Members</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.totalMembers}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Total Members</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900/30 rounded-lg sm:rounded-xl">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.totalPresent}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Total Present</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{stats.totalPresent}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Total Present</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
-                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-red-100 dark:bg-red-900/30 rounded-lg sm:rounded-xl">
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.totalAbsent}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Total Absent</p>
+                <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">{stats.totalAbsent}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Total Absent</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-                <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.attendanceRate}%</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Attendance Rate</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.attendanceRate}%</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Attendance Rate</p>
               </div>
             </div>
           </div>

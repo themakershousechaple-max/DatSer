@@ -1942,19 +1942,19 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
     const renderMainList = () => (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <div className="fixed top-[76px] md:top-[48px] left-0 right-0 z-50 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
-                <div className="max-w-4xl mx-auto w-full px-4 py-4 flex items-center gap-4 font-[var(--font-family)]">
+            <div className="fixed top-[90px] sm:top-[76px] md:top-[48px] left-0 right-0 z-50 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
+                <div className="max-w-4xl mx-auto w-full px-4 py-3 sm:py-4 flex items-center gap-3 sm:gap-4 font-[var(--font-family)]">
                     <button
                         onClick={onBack}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors touch-target"
                     >
                         <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                     </button>
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">Settings</h1>
+                    <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Settings</h1>
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 pt-[52px] md:pt-[60px] space-y-3">
+            <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-[56px] sm:pt-[52px] md:pt-[60px] pb-8 space-y-3">
                 {/* Search Bar */}
                 <div className="w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
                     <div className="relative">
@@ -2397,12 +2397,12 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                 {/* Sticky Header - stays visible when scrolling */}
-                <div className="fixed top-[76px] md:top-[48px] left-0 right-0 z-30 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
-                    <div className="max-w-4xl mx-auto w-full px-4 py-3 font-[var(--font-family)]">
-                        <div className="flex items-center gap-3">
+                <div className="fixed top-[90px] sm:top-[76px] md:top-[48px] left-0 right-0 z-30 w-full bg-gray-100/95 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="max-w-4xl mx-auto w-full px-3 sm:px-4 py-2.5 sm:py-3 font-[var(--font-family)]">
+                        <div className="flex items-center gap-2 sm:gap-3">
                             <button
                                 onClick={() => setActiveSection(null)}
-                                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm"
+                                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm touch-target"
                             >
                                 <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                             </button>
@@ -2410,13 +2410,13 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                                 <div className={`p-1.5 rounded-lg ${getIconBgColor(currentSection?.color || 'blue')}`}>
                                     <Icon className={`w-4 h-4 ${getIconColor(currentSection?.color || 'blue')}`} />
                                 </div>
-                                <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">{currentSection?.label || 'Settings'}</h1>
+                                <h1 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">{currentSection?.label || 'Settings'}</h1>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="max-w-4xl mx-auto px-4 pt-[120px] md:pt-[100px] pb-4 space-y-4">
+                <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-[56px] sm:pt-[52px] md:pt-[100px] pb-8 space-y-4">
                     {renderContent()}
                 </div>
             </div>
