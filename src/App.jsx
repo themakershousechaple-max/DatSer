@@ -102,14 +102,22 @@ function AppContent({ isMobile, onOpenSimple }) {
     }
   }, [currentView, isExecutive])
 
-  // Auto-show onboarding only for new users without data/workspace
+  // Auto-show tutorial prompt for new users (optional onboarding)
   useEffect(() => {
     if (appLoading || onboardingAutoChecked) return
     const onboardingComplete = localStorage.getItem('onboardingComplete')
+    const tutorialDismissed = localStorage.getItem('tutorialPrompt_dismissed')
     const hasWorkspace = !!preferences?.workspace_name
     const hasMembers = (members?.length || 0) > 0
-    const shouldShow = !onboardingComplete && (!hasWorkspace || !hasMembers)
-    setShowOnboarding(shouldShow)
+    
+    // Show tutorial prompt for new users who haven't dismissed it
+    if (!tutorialDismissed && (!hasWorkspace || !hasMembers)) {
+      setTimeout(() => setShowTutorialPrompt(true), 1000)
+    }
+    
+    // Show full onboarding only if explicitly needed
+    const shouldShowOnboarding = !onboardingComplete && (!hasWorkspace || !hasMembers)
+    setShowOnboarding(shouldShowOnboarding)
     setOnboardingAutoChecked(true)
   }, [appLoading, onboardingAutoChecked, members, preferences])
 
@@ -118,15 +126,10 @@ function AppContent({ isMobile, onOpenSimple }) {
     if (appLoading || !isCollaborator) return
     const passwordComplete = localStorage.getItem('passwordSetup_complete')
     const dismissed = sessionStorage.getItem('passwordSetup_dismissed')
-    const tutorialDismissed = localStorage.getItem('tutorialPrompt_dismissed')
     
     if (passwordComplete || dismissed) {
       setNeedsPasswordSetup(false)
       setShowSetPassword(false)
-      // Show tutorial prompt after password is complete (if not dismissed)
-      if (passwordComplete && !tutorialDismissed) {
-        setTimeout(() => setShowTutorialPrompt(true), 500)
-      }
     } else {
       setNeedsPasswordSetup(true)
       // Show the modal after a short delay so the app loads first
