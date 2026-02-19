@@ -34,7 +34,8 @@ import {
     RotateCcw,
     Sparkles,
     Plus,
-    List
+    List,
+    Archive
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -51,6 +52,7 @@ import ActivityLogViewer from './ActivityLogViewer'
 import ExportCenterPage from './ExportCenterPage'
 import ConfirmModal from './ConfirmModal'
 import AdminControlsModal from './AdminControlsModal'
+import ArchiveMonthModal from './ArchiveMonthModal'
 
 const SettingsPage = ({ onBack, navigateToSection }) => {
     const { user, signOut, preferences, resetPassword } = useAuth()
@@ -59,6 +61,7 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
 
     const [activeSection, setActiveSection] = useState(null) // null = show main list
     const [showHelpCenter, setShowHelpCenter] = useState(false)
+    const [archiveMonth, setArchiveMonth] = useState(null) // table name to archive
 
     // Handle navigation from command palette
     useEffect(() => {
@@ -1132,11 +1135,50 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                 </button>
             </div>
 
+            {/* Archive Months */}
+            {monthlyTables && monthlyTables.length > 0 && (
+                <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                        <Archive className="w-4 h-4 text-amber-500" />
+                        Archive Months
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                        Export data as CSV and remove from database to save storage space.
+                        Use Export Center above if you just want a backup without deleting.
+                    </p>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+                        {monthlyTables.map(table => {
+                            const isCurrent = table === currentTable
+                            return (
+                                <div key={table} className="p-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                            {table.replace('_', ' ')}
+                                        </span>
+                                        {isCurrent && (
+                                            <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                                                Current
+                                            </span>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => setArchiveMonth(table)}
+                                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                                    >
+                                        Archive
+                                    </button>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Storage Info */}
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Storage Used</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{members?.length || 0} records</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{monthlyTables?.length || 0} months • {members?.length || 0} records</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                     <div
@@ -1144,7 +1186,9 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                         style={{ width: `${Math.min((members?.length || 0) / 1000 * 100, 100)}%` }}
                     />
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Free tier: Up to 1,000 members</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Free tier: 500 MB database. Archive old months to stay within limits.
+                </p>
             </div>
         </div>
     )
@@ -1731,6 +1775,16 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
             action: () => setActiveSection('appearance')
         },
 
+        {
+            id: 'archive_month',
+            section: 'data',
+            label: 'Archive Month',
+            description: 'Export and delete old months to save storage',
+            keywords: 'archive month delete export csv storage space free cleanup',
+            icon: Archive,
+            action: () => setActiveSection('data')
+        },
+
         // --- Help & Danger ---
         {
             id: 'help_center',
@@ -2259,6 +2313,17 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                     </div>
                 </div>
             )}
+
+            {/* Archive Month Modal */}
+            <ArchiveMonthModal
+                isOpen={!!archiveMonth}
+                onClose={() => setArchiveMonth(null)}
+                tableName={archiveMonth}
+                onArchiveComplete={(archivedTable) => {
+                    setArchiveMonth(null)
+                    toast.success(`${archivedTable.replace('_', ' ')} archived successfully!`)
+                }}
+            />
         </>
     )
 }

@@ -416,6 +416,11 @@ const ExportCenterPage = ({ onBack }) => {
                 <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
                     The exported CSV includes a summary header and can be imported directly into Google Sheets.
                 </p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-3">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 text-center">
+                        This export keeps your data in the database. To free up storage space, use <strong>Archive Month</strong> in Settings → Data Management.
+                    </p>
+                </div>
             </div>
         </div>
     )
