@@ -45,6 +45,7 @@ const ExportCenterPage = ({ onBack }) => {
 
     // Exporting
     const [isExporting, setIsExporting] = useState(false)
+    const [exportMode, setExportMode] = useState('standard') // 'standard' or 'attendance-only'
 
     // Group months by year
     const monthsByYear = useMemo(() => {
@@ -219,6 +220,99 @@ const ExportCenterPage = ({ onBack }) => {
             setIsExporting(false)
         }
     }, [previewData, columns, selectedMonths, summary])
+
+    // Export attendance-only (present/absent only, no nulls)
+    const handleExportAttendanceOnly = useCallback(() => {
+        if (selectedMonths.length === 0) {
+            toast.info('Select at least one month to export')
+            return
+        }
+        setIsExporting(true)
+        try {
+            const lines = []
+            
+            // Summary section
+            const monthsList = selectedMonths.map(m => m.replace('_', ' ')).join(', ')
+            lines.push(`"ATTENDANCE EXPORT: ${monthsList}","","","Generated: ${new Date().toLocaleDateString()}"`)
+            lines.push('')
+            lines.push(`"Total Records","${previewData.length}"`)
+            lines.push('')
+
+            // Headers: Name, Date, Status
+            lines.push('"Member Name","Date","Status"')
+
+            // Collect all attendance records (present/absent only, exclude nulls)
+            const attendanceRecords = []
+            
+            previewData.forEach(row => {
+                const memberName = row['full_name'] || row['Full Name'] || row.name || 'Unknown'
+                const month = row._month || ''
+                
+                // Iterate through all columns to find attendance columns
+                Object.keys(row).forEach(key => {
+                    const keyLower = key.toLowerCase()
+                    // Match attendance columns: attendance_YYYY_MM_DD or Attendance DD
+                    const isAttendanceCol = /^attendance_\d{4}_\d{2}_\d{2}$/.test(keyLower) || /^attendance\s+\d+/.test(key)
+                    
+                    if (isAttendanceCol) {
+                        const value = row[key]
+                        // Only include if it's explicitly true (present) or false (absent)
+                        if (value === true || value === 'Present' || value === 'P') {
+                            const dateStr = keyLower.includes('_') 
+                                ? keyLower.replace('attendance_', '').replace(/_/g, '-')
+                                : key.replace(/^Attendance\s+/, '')
+                            attendanceRecords.push({
+                                name: memberName,
+                                date: dateStr,
+                                status: 'Present'
+                            })
+                        } else if (value === false || value === 'Absent' || value === 'A') {
+                            const dateStr = keyLower.includes('_')
+                                ? keyLower.replace('attendance_', '').replace(/_/g, '-')
+                                : key.replace(/^Attendance\s+/, '')
+                            attendanceRecords.push({
+                                name: memberName,
+                                date: dateStr,
+                                status: 'Absent'
+                            })
+                        }
+                        // Null, undefined, empty string, or '-' are excluded
+                    }
+                })
+            })
+
+            // Sort by name, then by date
+            attendanceRecords.sort((a, b) => {
+                if (a.name !== b.name) return a.name.localeCompare(b.name)
+                return a.date.localeCompare(b.date)
+            })
+
+            // Add data rows
+            attendanceRecords.forEach(record => {
+                lines.push(`"${record.name.replace(/"/g, '""')}","${record.date}","${record.status}"`)
+            })
+
+            const csvContent = lines.join('\n')
+
+            // Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `attendance_only_${selectedMonths.length > 1 ? 'multiple_months' : selectedMonths[0] || 'data'}.csv`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
+            toast.success(`Exported ${attendanceRecords.length} attendance records (present/absent only)`)
+        } catch (err) {
+            console.error('Attendance export error:', err)
+            toast.error('Export failed')
+        } finally {
+            setIsExporting(false)
+        }
+    }, [previewData, selectedMonths])
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
@@ -405,18 +499,60 @@ const ExportCenterPage = ({ onBack }) => {
                     </section>
                 )}
 
+                {/* Export Mode Selection */}
+                <div className="flex gap-3 mb-4">
+                    <button
+                        onClick={() => setExportMode('standard')}
+                        className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${exportMode === 'standard'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                    >
+                        Standard Export
+                    </button>
+                    <button
+                        onClick={() => setExportMode('attendance-only')}
+                        className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${exportMode === 'attendance-only'
+                            ? 'bg-purple-600 text-white shadow-md'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                    >
+                        Attendance Only
+                    </button>
+                </div>
+
+                {/* Export Mode Description */}
+                <div className="bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-4">
+                    <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-300">
+                        {exportMode === 'standard'
+                            ? '📋 Standard Export: Includes all member data with attendance columns (P/A/-)'
+                            : '✓ Attendance Only: Exports only Present/Absent records, excludes nulls and unmarked entries. Format: Member Name, Date, Status'}
+                    </p>
+                </div>
+
                 {/* Export Button */}
                 <button
-                    onClick={handleExport}
+                    onClick={exportMode === 'standard' ? handleExport : handleExportAttendanceOnly}
                     disabled={previewData.length === 0 || isExporting}
-                    className="w-full flex items-center justify-center gap-2 py-4 lg:py-5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-base lg:text-lg font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 py-4 lg:py-5 rounded-xl text-white text-base lg:text-lg font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                        backgroundColor: exportMode === 'standard' ? '#16a34a' : '#9333ea',
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = exportMode === 'standard' ? '#15803d' : '#7e22ce'
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = exportMode === 'standard' ? '#16a34a' : '#9333ea'
+                    }}
                 >
                     {isExporting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Download className="w-6 h-6" />}
-                    {isExporting ? 'Exporting...' : 'Export to CSV for Google Sheets'}
+                    {isExporting ? 'Exporting...' : `Export ${exportMode === 'standard' ? 'to CSV for Google Sheets' : 'Attendance Records'}`}
                 </button>
 
                 <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                    The exported CSV includes a summary header and can be imported directly into Google Sheets.
+                    {exportMode === 'standard'
+                        ? 'The exported CSV includes a summary header and can be imported directly into Google Sheets.'
+                        : 'Exports only Present/Absent records with member name, date, and status. Perfect for attendance reports.'}
                 </p>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-3">
                     <p className="text-xs text-blue-600 dark:text-blue-400 text-center">
