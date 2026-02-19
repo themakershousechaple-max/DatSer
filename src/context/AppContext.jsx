@@ -369,6 +369,11 @@ export const AppProvider = ({ children }) => {
 
   // Fetch members from current monthly table or use mock data
   const fetchMembers = async (tableName = currentTable) => {
+    if (!tableName) {
+      console.warn('fetchMembers called with null/undefined tableName, skipping')
+      setMembers([])
+      return
+    }
     try {
       setLoading(true)
       console.log(`Fetching members from table: ${tableName} for user: ${user?.id}`)
@@ -563,6 +568,7 @@ export const AppProvider = ({ children }) => {
   const getAttendanceColumns = async () => {
     try {
       if (!isSupabaseConfigured()) return []
+      if (!currentTable) return []
 
       const { data, error } = await supabase.rpc('get_table_columns', {
         table_name: currentTable
@@ -2429,14 +2435,15 @@ export const AppProvider = ({ children }) => {
   // Fetch members on component mount and when current table changes
   // Wait for auth to finish loading before fetching to avoid race condition
   useEffect(() => {
-    if (authLoading) {
-      return // Don't fetch while auth is still loading
+    if (authLoading || !currentTable) {
+      return // Don't fetch while auth is still loading or table is null
     }
     fetchMembers()
   }, [currentTable, authLoading])
 
   // Initialize attendance dates when current table changes
   useEffect(() => {
+    if (!currentTable) return
     initializeAttendanceDates()
   }, [currentTable])
 
