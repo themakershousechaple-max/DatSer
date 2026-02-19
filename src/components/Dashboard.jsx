@@ -478,10 +478,15 @@ const Dashboard = ({ isAdmin = false }) => {
           return true
         })
         return editedOnly.sort((a, b) => {
-          // Sort by most recent action timestamp first
+          // Sort by join date first (newest members first)
+          const dateA = new Date(a.inserted_at || a.created_at || 0)
+          const dateB = new Date(b.inserted_at || b.created_at || 0)
+          if (dateA !== dateB) return dateB - dateA
+          // Then by most recent action timestamp
           const tsA = Math.max(...sundayDates.map(d => actionTimestampsRef.current[`${a.id}_${d}`] || 0))
           const tsB = Math.max(...sundayDates.map(d => actionTimestampsRef.current[`${b.id}_${d}`] || 0))
           if (tsA !== tsB) return tsB - tsA
+          // Finally by name
           const an = (a['full_name'] || a['Full Name'] || '').toLowerCase()
           const bn = (b['full_name'] || b['Full Name'] || '').toLowerCase()
           return an.localeCompare(bn)
