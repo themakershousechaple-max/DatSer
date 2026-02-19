@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Check, X, Sparkles } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
+import { supabase } from '../lib/supabase'
 
 // Turnstile site key from environment - use test key that always passes if not configured
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
@@ -54,6 +55,20 @@ const LoginPage = ({ onRequestSimple }) => {
     const hasInviteHash = hash && (hash.includes('type=invite') || hash.includes('type=magiclink') || hash.includes('access_token'))
     return hasTokenHash || hasCode || hasInviteHash
   })
+
+  // Detect if user arrived via password reset link
+  const [isPasswordResetFlow] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tokenType = params.get('type')
+    return tokenType === 'recovery'
+  })
+
+  // Password reset form state
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
 
   const [loginAttempts, setLoginAttempts] = useState(0)
   const [captchaToken, setCaptchaToken] = useState(null)
@@ -189,6 +204,44 @@ const LoginPage = ({ onRequestSimple }) => {
     }
   }
 
+  const handlePasswordResetSubmit = async (e) => {
+    e.preventDefault()
+    if (!newPassword || !confirmNewPassword) {
+      setError('Please fill in all fields')
+      return
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      })
+      if (error) throw error
+      setResetSuccess(true)
+      // Auto-redirect to login after 3 seconds
+      setTimeout(() => {
+        setResetSuccess(false)
+        setNewPassword('')
+        setConfirmNewPassword('')
+        setMode('login')
+      }, 3000)
+    } catch (err) {
+      console.error('Password reset error:', err)
+      setError(err.message || 'Failed to reset password. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const resetForm = () => {
     setError(null)
     setConfirmationSent(false)
@@ -200,6 +253,172 @@ const LoginPage = ({ onRequestSimple }) => {
   const switchMode = (newMode) => {
     setMode(newMode)
     resetForm()
+  }
+
+  // Password reset flow - shown when user clicks reset link from email
+  if (isPasswordResetFlow) {
+    if (resetSuccess) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Password Reset Successfully!
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Your password has been updated. Redirecting to login...
+              </p>
+              <div className="flex justify-center">
+                <div className="w-8 h-8 border-3 border-green-600 border-t-transparent rounded-full animate-spin" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo/Brand Section */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg mb-3">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              TMH Teen Ministry
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Attendance & Data Management
+            </p>
+          </div>
+
+          {/* Reset Password Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="text-center mb-5">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Set New Password
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Create a new password for your account
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm text-center">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordResetSubmit} className="space-y-4">
+              {/* New Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full pl-11 pr-12 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type={showConfirmNewPassword ? 'text' : 'password'}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    className={`w-full pl-11 pr-12 py-3 rounded-xl border bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all ${
+                      confirmNewPassword && newPassword !== confirmNewPassword
+                        ? 'border-red-300 dark:border-red-500'
+                        : confirmNewPassword && newPassword === confirmNewPassword
+                        ? 'border-green-300 dark:border-green-500'
+                        : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showConfirmNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {confirmNewPassword && newPassword === confirmNewPassword && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Passwords match
+                  </p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading || !newPassword || !confirmNewPassword || newPassword !== confirmNewPassword}
+                className="w-full py-3 rounded-xl font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-6"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Resetting...
+                  </span>
+                ) : (
+                  'Reset Password'
+                )}
+              </button>
+            </form>
+
+            <div className="mt-5 text-center text-sm">
+              <p className="text-gray-600 dark:text-gray-400">
+                Remember your password?{' '}
+                <button
+                  onClick={() => {
+                    setNewPassword('')
+                    setConfirmNewPassword('')
+                    setError(null)
+                    setMode('login')
+                  }}
+                  className="text-primary-600 dark:text-primary-400 font-medium hover:underline"
+                >
+                  Sign in
+                </button>
+              </p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-5 text-xs text-gray-500 dark:text-gray-400">
+            <p>The Maker's House Chapel Teen Ministry</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Invite flow loading screen - shown while Supabase processes the invite token
