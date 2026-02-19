@@ -348,6 +348,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (data?.user && !data?.session) {
+          recordEmailSend()
           toast.success('Check your email for a confirmation link!')
           return { needsConfirmation: true }
         }
@@ -392,6 +393,18 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  // Track email sends for rate limit display in Settings
+  const recordEmailSend = () => {
+    try {
+      const raw = localStorage.getItem('email_send_timestamps')
+      const timestamps = raw ? JSON.parse(raw) : []
+      const cutoff = Date.now() - 60 * 60 * 1000 // 1 hour window
+      const recent = timestamps.filter(ts => ts > cutoff)
+      recent.push(Date.now())
+      localStorage.setItem('email_send_timestamps', JSON.stringify(recent))
+    } catch { /* ignore */ }
+  }
+
   // Sign in with magic link (passwordless - for collaborators)
   const signInWithMagicLink = async (email, captchaToken) => {
     try {
@@ -409,6 +422,7 @@ export const AuthProvider = ({ children }) => {
         }
         const { error } = await supabase.auth.signInWithOtp(otpOptions)
         if (error) throw error
+        recordEmailSend()
         toast.success('Magic link sent! Check your email inbox.')
         return { success: true }
       }
@@ -438,6 +452,7 @@ export const AuthProvider = ({ children }) => {
         const { error } = await supabase.auth.resetPasswordForEmail(email, resetOptions)
 
         if (error) throw error
+        recordEmailSend()
         toast.success('Password reset email sent! Check your inbox.')
         return true
       }

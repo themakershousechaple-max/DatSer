@@ -124,6 +124,18 @@ const ShareAccessModal = ({ isOpen, onClose }) => {
 
       if (error) throw error
 
+      // Track email send for rate limit display
+      if (inviteResult.emailSent) {
+        try {
+          const raw = localStorage.getItem('email_send_timestamps')
+          const timestamps = raw ? JSON.parse(raw) : []
+          const cutoff = Date.now() - 60 * 60 * 1000
+          const recent = timestamps.filter(ts => ts > cutoff)
+          recent.push(Date.now())
+          localStorage.setItem('email_send_timestamps', JSON.stringify(recent))
+        } catch { /* ignore */ }
+      }
+
       // Copy invite link to clipboard and show appropriate message
       if (inviteResult.inviteLink) {
         try {

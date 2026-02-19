@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
     User,
     Building2,
@@ -179,17 +179,90 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
         label: ''
     })
 
-    // Lightweight usage snapshot (static/mock-friendly for free-plan awareness)
-    const usageMetrics = useMemo(() => ([
-        { label: 'Egress', used: 5.177, limit: 5, unit: 'GB' },
-        { label: 'Database Size', used: 0.037, limit: 0.5, unit: 'GB' },
-        { label: 'Realtime Connections', used: 12, limit: 200, unit: 'conns' },
-    ]), [])
+    // ── Database Usage (real query) ──
+    const [dbUsage, setDbUsage] = useState(null)
+    const [dbLoading, setDbLoading] = useState(false)
+    const DB_LIMIT_MB = 500 // Supabase free tier
 
-    const usagePercent = (used, limit) => {
-        if (!limit || limit <= 0) return 0
-        return Math.min(100, Math.round((used / limit) * 100))
-    }
+    const fetchDbUsage = useCallback(async () => {
+        if (!isSupabaseConfigured) return
+        setDbLoading(true)
+        try {
+            const { data, error } = await supabase.rpc('get_database_usage')
+            if (error) throw error
+            setDbUsage(data)
+        } catch (err) {
+            console.error('Failed to fetch DB usage:', err)
+        } finally {
+            setDbLoading(false)
+        }
+    }, [isSupabaseConfigured])
+
+    useEffect(() => { fetchDbUsage() }, [fetchDbUsage])
+
+    // Find oldest monthly table for archive recommendation
+    const oldestMonthTable = useMemo(() => {
+        if (!dbUsage?.tables) return null
+        const monthTables = dbUsage.tables.filter(t =>
+            /^[A-Z][a-z]+_\d{4}$/.test(t.table_name)
+        )
+        if (monthTables.length <= 1) return null
+        // Sort by size descending, recommend the largest old one
+        return monthTables[monthTables.length - 1] || monthTables[0]
+    }, [dbUsage])
+
+    // ── Email Rate Tracking ──
+    const EMAIL_RATE_LIMIT = 3 // Supabase free tier: 3 emails per hour
+    const EMAIL_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+
+    const getEmailSends = useCallback(() => {
+        try {
+            const raw = localStorage.getItem('email_send_timestamps')
+            if (!raw) return []
+            const timestamps = JSON.parse(raw)
+            const cutoff = Date.now() - EMAIL_WINDOW_MS
+            return timestamps.filter(ts => ts > cutoff)
+        } catch { return [] }
+    }, [])
+
+    const [emailSends, setEmailSends] = useState(() => {
+        try {
+            const raw = localStorage.getItem('email_send_timestamps')
+            if (!raw) return []
+            const timestamps = JSON.parse(raw)
+            const cutoff = Date.now() - EMAIL_WINDOW_MS
+            return timestamps.filter(ts => ts > cutoff)
+        } catch { return [] }
+    })
+    const [emailCountdown, setEmailCountdown] = useState('')
+
+    // Refresh email sends and countdown every second
+    useEffect(() => {
+        const tick = () => {
+            const current = getEmailSends()
+            setEmailSends(current)
+            if (current.length >= EMAIL_RATE_LIMIT && current.length > 0) {
+                const oldest = Math.min(...current)
+                const resetAt = oldest + EMAIL_WINDOW_MS
+                const remaining = resetAt - Date.now()
+                if (remaining > 0) {
+                    const mins = Math.floor(remaining / 60000)
+                    const secs = Math.floor((remaining % 60000) / 1000)
+                    setEmailCountdown(`${mins}m ${secs}s`)
+                } else {
+                    setEmailCountdown('')
+                }
+            } else {
+                setEmailCountdown('')
+            }
+        }
+        tick()
+        const interval = setInterval(tick, 1000)
+        return () => clearInterval(interval)
+    }, [getEmailSends])
+
+    const emailsRemaining = Math.max(0, EMAIL_RATE_LIMIT - emailSends.length)
+    const emailPct = Math.round((emailSends.length / EMAIL_RATE_LIMIT) * 100)
 
     // Apply accessibility settings
     useEffect(() => {
@@ -1905,41 +1978,119 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
 
                 {/* Usage / Free plan awareness */}
                 <div className="w-full bg-white dark:bg-gray-800 rounded-xl border border-blue-200/70 dark:border-blue-900/50 p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-blue-500" />
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Usage (stay under free limits)</p>
+                            <Database className="w-4 h-4 text-blue-500" />
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Storage & Limits</p>
                         </div>
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Target: 0.5 cap</span>
+                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Free Plan</span>
                     </div>
-                    <div className="space-y-3">
-                        {usageMetrics.map((m) => {
-                            const pct = usagePercent(m.used, m.limit)
-                            const over = pct >= 100
-                            return (
-                                <div key={m.label} className="space-y-1.5">
-                                    <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                                        <span className="font-semibold text-gray-800 dark:text-gray-200">{m.label}</span>
-                                        <span className={`${over ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-700 dark:text-gray-200'}`}>
-                                            {m.used} / {m.limit} {m.unit} ({pct}%)
-                                        </span>
-                                    </div>
-                                    <div className="h-2.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden border border-gray-200 dark:border-gray-600">
-                                        <div
-                                            className={`h-full transition-all ${over ? 'bg-red-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}`}
-                                            style={{ width: `${Math.min(pct, 100)}%` }}
-                                        />
-                                    </div>
-                                    {over && (
-                                        <p className="text-[11px] text-red-600 dark:text-red-400">
-                                            Tip: trim large downloads and disable extra polling to reduce egress.
-                                        </p>
-                                    )}
+
+                    <div className="space-y-4">
+                        {/* Database Size Bar */}
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-gray-800 dark:text-gray-200">Database Storage</span>
+                                {dbLoading ? (
+                                    <span className="text-gray-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Loading...</span>
+                                ) : dbUsage ? (
+                                    <span className={`font-medium ${dbUsage.db_size_mb > DB_LIMIT_MB * 0.8 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                        {dbUsage.db_size_mb} / {DB_LIMIT_MB} MB ({Math.round((dbUsage.db_size_mb / DB_LIMIT_MB) * 100)}%)
+                                    </span>
+                                ) : (
+                                    <span className="text-gray-400">Unavailable</span>
+                                )}
+                            </div>
+                            <div className="h-3 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden border border-gray-200 dark:border-gray-600">
+                                <div
+                                    className={`h-full rounded-full transition-all ${
+                                        dbUsage && dbUsage.db_size_mb > DB_LIMIT_MB * 0.8
+                                            ? 'bg-gradient-to-r from-orange-400 to-red-500'
+                                            : 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                                    }`}
+                                    style={{ width: `${dbUsage ? Math.max(1, Math.min(100, Math.round((dbUsage.db_size_mb / DB_LIMIT_MB) * 100))) : 0}%` }}
+                                />
+                            </div>
+                            {dbUsage && (
+                                <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                        {(DB_LIMIT_MB - dbUsage.db_size_mb).toFixed(1)} MB free
+                                    </span>
+                                    <button onClick={fetchDbUsage} className="text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition-colors">
+                                        <RefreshCw className={`w-3 h-3 ${dbLoading ? 'animate-spin' : ''}`} /> Refresh
+                                    </button>
                                 </div>
-                            )
-                        })}
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                            Reduce egress by caching on the client, avoiding large exports, and serving files via CDN/Storage with caching.
+                            )}
+                        </div>
+
+                        {/* Archive Recommendation */}
+                        {oldestMonthTable && (
+                            <div className="bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/50 rounded-lg p-2.5 flex items-start gap-2">
+                                <Archive className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                                        <span className="font-semibold">Tip:</span> Archive <strong>{oldestMonthTable.table_name.replace('_', ' ')}</strong> ({oldestMonthTable.size_mb} MB) to free up space.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => { setActiveSection('data'); setArchiveMonth(oldestMonthTable.table_name) }}
+                                    className="text-[11px] font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 whitespace-nowrap underline"
+                                >
+                                    Archive
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Divider */}
+                        <div className="border-t border-gray-100 dark:border-gray-700" />
+
+                        {/* Email Rate Limit Bar */}
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                    <Mail className="w-3.5 h-3.5 text-purple-500" />
+                                    Auth Emails
+                                </span>
+                                <span className={`font-medium ${emailsRemaining === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                    {emailSends.length} / {EMAIL_RATE_LIMIT} per hour
+                                </span>
+                            </div>
+                            <div className="h-3 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden border border-gray-200 dark:border-gray-600">
+                                <div
+                                    className={`h-full rounded-full transition-all ${
+                                        emailsRemaining === 0
+                                            ? 'bg-gradient-to-r from-red-400 to-red-500'
+                                            : emailPct >= 66
+                                            ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                                            : 'bg-gradient-to-r from-purple-400 to-purple-500'
+                                    }`}
+                                    style={{ width: `${Math.max(emailPct > 0 ? 4 : 0, Math.min(100, emailPct))}%` }}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between text-[11px]">
+                                {emailsRemaining > 0 ? (
+                                    <span className="text-purple-600 dark:text-purple-400 font-medium">
+                                        {emailsRemaining} email{emailsRemaining !== 1 ? 's' : ''} remaining
+                                    </span>
+                                ) : (
+                                    <span className="text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
+                                        Rate limit reached
+                                    </span>
+                                )}
+                                {emailCountdown && (
+                                    <span className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-1">
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        Resets in {emailCountdown}
+                                    </span>
+                                )}
+                                {!emailCountdown && emailSends.length === 0 && (
+                                    <span className="text-gray-400">No emails sent recently</span>
+                                )}
+                            </div>
+                        </div>
+
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                            Includes magic links, password resets, and invites. Resets hourly.
                         </p>
                     </div>
                 </div>
