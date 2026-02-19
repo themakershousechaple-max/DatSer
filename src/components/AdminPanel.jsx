@@ -649,13 +649,6 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
 
             {/* Form */}
             <form onSubmit={handlePasswordSubmit} className="p-6 space-y-5">
-              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                <p className="text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2">
-                  <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Enter your account password to verify your identity and access admin features.</span>
-                </p>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Account Password
