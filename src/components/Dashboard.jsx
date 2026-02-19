@@ -523,7 +523,11 @@ const Dashboard = ({ isAdmin = false }) => {
       })
 
       return filteredByDate.sort((a, b) => {
-        // Sort by most recent action timestamp first (chronological, newest on top)
+        // Sort by join date first (newest members first)
+        const joinDateA = new Date(a.inserted_at || a.created_at || 0)
+        const joinDateB = new Date(b.inserted_at || b.created_at || 0)
+        if (joinDateA !== joinDateB) return joinDateB - joinDateA
+        // Then by most recent action timestamp (chronological, newest on top)
         const tsA = actionTimestampsRef.current[`${a.id}_${dateKey}`] || 0
         const tsB = actionTimestampsRef.current[`${b.id}_${dateKey}`] || 0
         if (tsA !== tsB) return tsB - tsA
