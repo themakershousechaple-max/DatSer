@@ -7,6 +7,7 @@ import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './components/LoginPage'
+import TutorialPromptBar from './components/TutorialPromptBar'
 
 // Lazy-loaded components - loaded on demand for faster initial load
 const MemberModal = lazy(() => import('./components/MemberModal'))
@@ -62,6 +63,9 @@ function AppContent({ isMobile, onOpenSimple }) {
   // Password setup prompt for collaborators who logged in via magic link/invite
   const [showSetPassword, setShowSetPassword] = useState(false)
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false)
+  
+  // Tutorial prompt bar instead of auto-popup
+  const [showTutorialPrompt, setShowTutorialPrompt] = useState(false)
 
   // Handle navigation from onboarding wizard
   const handleOnboardingNavigate = (view, options) => {
@@ -114,12 +118,19 @@ function AppContent({ isMobile, onOpenSimple }) {
     if (appLoading || !isCollaborator) return
     const passwordComplete = localStorage.getItem('passwordSetup_complete')
     const dismissed = sessionStorage.getItem('passwordSetup_dismissed')
-    if (!passwordComplete && !dismissed) {
+    const tutorialDismissed = localStorage.getItem('tutorialPrompt_dismissed')
+    
+    if (passwordComplete || dismissed) {
+      setNeedsPasswordSetup(false)
+      setShowSetPassword(false)
+      // Show tutorial prompt after password is complete (if not dismissed)
+      if (passwordComplete && !tutorialDismissed) {
+        setTimeout(() => setShowTutorialPrompt(true), 500)
+      }
+    } else {
       setNeedsPasswordSetup(true)
       // Show the modal after a short delay so the app loads first
       setTimeout(() => setShowSetPassword(true), 1500)
-    } else if (passwordComplete) {
-      setNeedsPasswordSetup(false)
     }
   }, [appLoading, isCollaborator])
 
@@ -276,6 +287,19 @@ function AppContent({ isMobile, onOpenSimple }) {
           />
         </Suspense>
       )}
+
+      {/* Tutorial Prompt Bar - shown after password setup */}
+      <TutorialPromptBar
+        isOpen={showTutorialPrompt}
+        onAccept={() => {
+          setShowTutorialPrompt(false)
+          setShowOnboarding(true)
+        }}
+        onDismiss={() => {
+          setShowTutorialPrompt(false)
+          localStorage.setItem('tutorialPrompt_dismissed', 'true')
+        }}
+      />
 
       {/* Onboarding Wizard for new users */}
       {showOnboarding && (

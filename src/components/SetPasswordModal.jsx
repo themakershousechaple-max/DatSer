@@ -55,6 +55,8 @@ const SetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
 
             // Mark password as set in localStorage
             localStorage.setItem('passwordSetup_complete', 'true')
+            // Clear the dismissed flag so tutorial prompt can show
+            sessionStorage.removeItem('passwordSetup_dismissed')
 
             toast.success('Password created successfully! You can now log in with your email and password.')
             onSuccess?.()
