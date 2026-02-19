@@ -95,6 +95,7 @@ const Dashboard = ({ isAdmin = false }) => {
   const [visitorFilter, setVisitorFilter] = useState(null)
   const [showFilters, setShowFilters] = useState(false)
   const [isClosingFilters, setIsClosingFilters] = useState(false)
+  const [sortNewestFirst, setSortNewestFirst] = useState(true) // Toggle for Marked tab sort order
 
   
   // Track the timestamp of each attendance action for chronological sorting (most recent first)
@@ -478,10 +479,11 @@ const Dashboard = ({ isAdmin = false }) => {
           return true
         })
         return editedOnly.sort((a, b) => {
-          // Sort by join date first (newest members first)
+          // Sort by join date (respecting sortNewestFirst toggle)
           const dateA = new Date(a.inserted_at || a.created_at || 0)
           const dateB = new Date(b.inserted_at || b.created_at || 0)
-          if (dateA !== dateB) return dateB - dateA
+          const dateDiff = sortNewestFirst ? dateB - dateA : dateA - dateB
+          if (dateA !== dateB) return dateDiff
           // Then by most recent action timestamp
           const tsA = Math.max(...sundayDates.map(d => actionTimestampsRef.current[`${a.id}_${d}`] || 0))
           const tsB = Math.max(...sundayDates.map(d => actionTimestampsRef.current[`${b.id}_${d}`] || 0))
@@ -523,10 +525,11 @@ const Dashboard = ({ isAdmin = false }) => {
       })
 
       return filteredByDate.sort((a, b) => {
-        // Sort by join date first (newest members first)
+        // Sort by join date (respecting sortNewestFirst toggle)
         const joinDateA = new Date(a.inserted_at || a.created_at || 0)
         const joinDateB = new Date(b.inserted_at || b.created_at || 0)
-        if (joinDateA !== joinDateB) return joinDateB - joinDateA
+        const dateDiff = sortNewestFirst ? joinDateB - joinDateA : joinDateA - joinDateB
+        if (joinDateA !== joinDateB) return dateDiff
         // Then by most recent action timestamp (chronological, newest on top)
         const tsA = actionTimestampsRef.current[`${a.id}_${dateKey}`] || 0
         const tsB = actionTimestampsRef.current[`${b.id}_${dateKey}`] || 0
@@ -1294,6 +1297,18 @@ const Dashboard = ({ isAdmin = false }) => {
               <span className="truncate">{getMonthDisplayName(currentTable)} Sundays</span>
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              {/* Sort Order Toggle */}
+              <button
+                onClick={() => setSortNewestFirst(!sortNewestFirst)}
+                className={`text-[11px] sm:text-xs px-2 py-1 rounded-full flex items-center gap-1 transition-colors ${sortNewestFirst
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700'
+                  : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-700'
+                  }`}
+                title={sortNewestFirst ? 'Newest to Oldest' : 'Oldest to Newest'}
+              >
+                <span className="text-xs">↓↑</span>
+                {sortNewestFirst ? 'Newest' : 'Oldest'}
+              </button>
               {/* Auto-Sunday Toggle */}
               <button
                 onClick={toggleAutoSunday}
