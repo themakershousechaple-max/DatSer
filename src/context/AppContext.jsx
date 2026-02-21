@@ -183,6 +183,49 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('autoAllDatesEnabled') === 'true'
   })
 
+  // Admin-locked default date — forces collaborators to a specific date
+  const [lockedDefaultDate, setLockedDefaultDate] = useState(null)
+
+  // Fetch the owner's locked default date (for collaborators)
+  const fetchLockedDefaultDate = useCallback(async (ownerId) => {
+    if (!isSupabaseConfigured() || !ownerId) return null
+    try {
+      const { data, error } = await supabase.rpc('get_owner_locked_date', {
+        owner_uuid: ownerId
+      })
+      if (!error && data) {
+        setLockedDefaultDate(data)
+        return data
+      }
+      setLockedDefaultDate(null)
+      return null
+    } catch (err) {
+      console.error('Error fetching locked default date:', err)
+      setLockedDefaultDate(null)
+      return null
+    }
+  }, [])
+
+  // Save locked default date (admin only)
+  const saveLockedDefaultDate = useCallback(async (dateStr) => {
+    if (!isSupabaseConfigured() || !user?.id || isCollaborator) return false
+    try {
+      const { error } = await supabase
+        .from('user_preferences')
+        .update({ locked_default_date: dateStr || null })
+        .eq('user_id', user.id)
+      if (!error) {
+        setLockedDefaultDate(dateStr || null)
+        return true
+      }
+      console.error('Error saving locked default date:', error)
+      return false
+    } catch (err) {
+      console.error('Error saving locked default date:', err)
+      return false
+    }
+  }, [user?.id, isCollaborator])
+
   const getMonthStorageKey = useCallback(() => {
     if (isCollaborator && dataOwnerId) {
       return `selectedMonthTable_${dataOwnerId}`
@@ -285,6 +328,8 @@ export const AppProvider = ({ children }) => {
         setDataOwnerId(user.id)
         setOwnerEmail(null)
         setHasAccess(true)
+        // Load admin's own locked default date setting
+        fetchLockedDefaultDate(user.id)
         return user.id
       }
 
@@ -320,6 +365,9 @@ export const AppProvider = ({ children }) => {
 
       // Get owner email from auth.users via a different method
       setOwnerEmail(null) // We'll show owner_id for now
+
+      // Fetch the owner's locked default date for this collaborator
+      fetchLockedDefaultDate(data.owner_id)
 
       console.log('=== checkCollaboratorStatus COMPLETE - User is COLLABORATOR ===')
       return data.owner_id
@@ -2875,7 +2923,10 @@ export const AppProvider = ({ children }) => {
     setAutoAllDatesEnabled,
     hasAccess,
     isCollaborator,
-    dataOwnerId
+    dataOwnerId,
+    lockedDefaultDate,
+    saveLockedDefaultDate,
+    fetchLockedDefaultDate
   }), [
     members, filteredMembers, loading, searchTerm, serverSearchResults,
     attendanceData, currentTable, monthlyTables, selectedAttendanceDate,
@@ -2892,7 +2943,8 @@ export const AppProvider = ({ children }) => {
     initializeAttendanceDates, getSundaysInMonth, toggleBadgeFilter,
     focusDateSelector, validateMemberData, getPastSundays, getMissingAttendance,
     autoSundayEnabled, setAutoSundayEnabled, autoAllDatesEnabled, setAutoAllDatesEnabled,
-    hasAccess, isCollaborator, dataOwnerId
+    hasAccess, isCollaborator, dataOwnerId,
+    lockedDefaultDate, saveLockedDefaultDate, fetchLockedDefaultDate
   ])
 
   return (

@@ -57,7 +57,7 @@ import ArchiveMonthModal from './ArchiveMonthModal'
 const SettingsPage = ({ onBack, navigateToSection }) => {
     const { user, signOut, preferences, resetPassword } = useAuth()
     const { isDarkMode, toggleTheme, themeMode, setThemeMode, commandKEnabled, setCommandKEnabled } = useTheme()
-    const { members, monthlyTables, currentTable, setCurrentTable, isSupabaseConfigured, createNewMonth, deleteMonthTable, isCollaborator, dataOwnerId } = useApp()
+    const { members, monthlyTables, currentTable, setCurrentTable, isSupabaseConfigured, createNewMonth, deleteMonthTable, isCollaborator, dataOwnerId, lockedDefaultDate, saveLockedDefaultDate } = useApp()
 
     const [activeSection, setActiveSection] = useState(null) // null = show main list
     const [showHelpCenter, setShowHelpCenter] = useState(false)
@@ -719,6 +719,112 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                                 </div>
                             </div>
                         )}
+
+                        {/* Admin-Locked Default Date */}
+                        <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex-1">
+                                    <label className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                        <Lock className="w-4 h-4 text-blue-500" />
+                                        Locked Default Date
+                                        {lockedDefaultDate && (
+                                            <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">Active</span>
+                                        )}
+                                    </label>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        {isCollaborator
+                                            ? 'The admin has locked the default attendance date'
+                                            : 'Set a default date that collaborators cannot change'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {isCollaborator ? (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                    <div className="flex items-center gap-2">
+                                        <Lock className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                        <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                                            {lockedDefaultDate
+                                                ? `Locked to: ${new Date(lockedDefaultDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}`
+                                                : 'No date locked by admin'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {(() => {
+                                        // Generate all dates in the current month
+                                        if (!currentTable) return null
+                                        const [monthName, yearStr] = currentTable.split('_')
+                                        const monthIndex = ['January','February','March','April','May','June','July','August','September','October','November','December'].indexOf(monthName)
+                                        if (monthIndex === -1) return null
+                                        const year = parseInt(yearStr)
+                                        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
+                                        const dates = []
+                                        for (let d = 1; d <= daysInMonth; d++) {
+                                            const dateStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+                                            dates.push({ day: d, dateStr })
+                                        }
+
+                                        return (
+                                            <div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{monthName} {year} — tap a date to lock it for collaborators</p>
+                                                <div className="grid grid-cols-7 gap-1">
+                                                    {dates.map(({ day, dateStr }) => {
+                                                        const isLocked = lockedDefaultDate === dateStr
+                                                        const dayOfWeek = new Date(year, monthIndex, day).getDay()
+                                                        const isSunday = dayOfWeek === 0
+                                                        return (
+                                                            <button
+                                                                key={dateStr}
+                                                                onClick={async () => {
+                                                                    if (isLocked) {
+                                                                        const ok = await saveLockedDefaultDate(null)
+                                                                        if (ok) toast.info('Locked date removed')
+                                                                    } else {
+                                                                        const ok = await saveLockedDefaultDate(dateStr)
+                                                                        if (ok) toast.success(`Locked default date set to ${monthName} ${day}`)
+                                                                    }
+                                                                }}
+                                                                className={`p-1.5 rounded-lg text-xs font-medium transition-all ${
+                                                                    isLocked
+                                                                        ? 'bg-blue-600 text-white ring-2 ring-blue-400 shadow-md'
+                                                                        : isSunday
+                                                                            ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border border-purple-200 dark:border-purple-800'
+                                                                            : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                                                }`}
+                                                                title={`${isSunday ? '(Sunday) ' : ''}${monthName} ${day}, ${year}${isLocked ? ' — Currently locked' : ''}`}
+                                                            >
+                                                                {day}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                                {lockedDefaultDate && (
+                                                    <div className="mt-2 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <Lock className="w-3.5 h-3.5 text-blue-500" />
+                                                            <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                                                                Locked: {new Date(lockedDefaultDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                const ok = await saveLockedDefaultDate(null)
+                                                                if (ok) toast.info('Locked date removed — collaborators can now choose freely')
+                                                            }}
+                                                            className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })()}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <button
