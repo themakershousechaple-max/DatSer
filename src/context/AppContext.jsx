@@ -173,11 +173,6 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : [] // Start with no badges selected
   })
 
-  // Auto-Sunday feature (auto-select current Sunday)
-  const [autoSundayEnabled, setAutoSundayEnabled] = useState(() => {
-    return localStorage.getItem('autoSundayEnabled') === 'true'
-  })
-
   // Auto-All-Dates feature (auto-mark all dates up to today)
   const [autoAllDatesEnabled, setAutoAllDatesEnabled] = useState(() => {
     return localStorage.getItem('autoAllDatesEnabled') === 'true'
@@ -2917,8 +2912,6 @@ export const AppProvider = ({ children }) => {
     validateMemberData,
     getPastSundays,
     getMissingAttendance,
-    autoSundayEnabled,
-    setAutoSundayEnabled,
     autoAllDatesEnabled,
     setAutoAllDatesEnabled,
     hasAccess,
@@ -2942,7 +2935,7 @@ export const AppProvider = ({ children }) => {
     toggleMemberBadge, memberHasBadge, setAndSaveAttendanceDate,
     initializeAttendanceDates, getSundaysInMonth, toggleBadgeFilter,
     focusDateSelector, validateMemberData, getPastSundays, getMissingAttendance,
-    autoSundayEnabled, setAutoSundayEnabled, autoAllDatesEnabled, setAutoAllDatesEnabled,
+    autoAllDatesEnabled, setAutoAllDatesEnabled,
     hasAccess, isCollaborator, dataOwnerId,
     lockedDefaultDate, saveLockedDefaultDate, fetchLockedDefaultDate
   ])

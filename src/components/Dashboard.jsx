@@ -181,11 +181,6 @@ const Dashboard = ({ isAdmin = false }) => {
   const [isTransferring, setIsTransferring] = useState(false)
   const [selectedTransferIds, setSelectedTransferIds] = useState(new Set())
 
-  // Auto-Sunday feature (auto-select current Sunday)
-  const [autoSundayEnabled, setAutoSundayEnabled] = useState(() => {
-    return localStorage.getItem('autoSundayEnabled') === 'true'
-  })
-
   // Long-press selection hook (works with both touch and mouse)
   const {
     selectionMode,
@@ -339,46 +334,13 @@ const Dashboard = ({ isAdmin = false }) => {
   // Generate Sunday dates dynamically based on current table
   const sundayDates = generateSundayDates(currentTable)
 
-  // Auto-Sunday: Find and select current Sunday (if today is Sunday) or most recent past Sunday
+  // Admin-locked default date: apply locked date for all users
   useEffect(() => {
-    if (!autoSundayEnabled || sundayDates.length === 0) return
-
-    const today = new Date()
-    const todayStr = getDateString(today)
-    const isTodaySunday = today.getDay() === 0 // 0 = Sunday
-
-    let targetSunday = null
-
-    // If today is a Sunday and it's in our list, select it
-    if (isTodaySunday && sundayDates.includes(todayStr)) {
-      targetSunday = todayStr
-    } else {
-      // Otherwise find the most recent past Sunday
-      for (const dateStr of sundayDates) {
-        if (dateStr <= todayStr) {
-          targetSunday = dateStr
-        }
-      }
-    }
-
-    // If no past Sunday found, use the first upcoming Sunday
-    if (!targetSunday && sundayDates.length > 0) {
-      targetSunday = sundayDates[0]
-    }
-
-    if (targetSunday && targetSunday !== selectedSundayDate) {
-      setSelectedSundayDate(targetSunday)
-    }
-  }, [autoSundayEnabled, sundayDates, currentTable])
-
-  // Admin-locked default date: force collaborators to the locked date
-  useEffect(() => {
-    if (!isCollaborator || !lockedDefaultDate || sundayDates.length === 0) return
-    // If the locked date is one of the Sunday dates, select it
+    if (!lockedDefaultDate || sundayDates.length === 0) return
     if (sundayDates.includes(lockedDefaultDate)) {
       setSelectedSundayDate(lockedDefaultDate)
     }
-  }, [isCollaborator, lockedDefaultDate, sundayDates, currentTable])
+  }, [lockedDefaultDate, sundayDates, currentTable])
 
   // Aggregated counts across selected or all Sundays for Edited Members
   const selectedDatesForCounting = selectedBulkSundayDates && selectedBulkSundayDates.size > 0
@@ -1152,17 +1114,6 @@ const Dashboard = ({ isAdmin = false }) => {
     })
   }
 
-  // Toggle Auto-Sunday feature
-  const toggleAutoSunday = () => {
-    const newValue = !autoSundayEnabled
-    setAutoSundayEnabled(newValue)
-    localStorage.setItem('autoSundayEnabled', newValue.toString())
-    if (newValue) {
-      toast.success('Auto-Sunday enabled - will auto-select current Sunday')
-    } else {
-      toast.info('Auto-Sunday disabled')
-    }
-  }
 
   // Bulk apply attendance to selected members and Sundays
   const handleMultiAttendanceAction = async (status) => {
@@ -1339,18 +1290,6 @@ const Dashboard = ({ isAdmin = false }) => {
               >
                 <span className="text-xs">↓↑</span>
                 {sortNewestFirst ? 'Newest' : 'Oldest'}
-              </button>
-              {/* Auto-Sunday Toggle */}
-              <button
-                onClick={toggleAutoSunday}
-                className={`text-[11px] sm:text-xs px-2 py-1 rounded-full flex items-center gap-1 transition-colors ${autoSundayEnabled
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600'
-                  }`}
-                title={autoSundayEnabled ? 'Auto-Sunday ON: Will auto-select current Sunday' : 'Auto-Sunday OFF: Manual date selection'}
-              >
-                <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${autoSundayEnabled ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                Auto
               </button>
               {selectedSundayDate && (
                 <>

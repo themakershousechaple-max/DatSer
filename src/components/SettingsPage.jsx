@@ -70,10 +70,6 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
         }
     }, [navigateToSection])
 
-    // Auto-Sunday settings
-    const [autoSundayEnabled, setAutoSundayEnabled] = useState(() => {
-        return localStorage.getItem('autoSundayEnabled') === 'true'
-    })
     const [autoAllDatesEnabled, setAutoAllDatesEnabled] = useState(() => {
         return localStorage.getItem('autoAllDatesEnabled') === 'true'
     })
@@ -93,18 +89,6 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
         return () => cancelAnimationFrame(raf1)
     }, [activeSection, showHelpCenter])
 
-
-    // Auto-Sunday toggle handlers
-    const toggleAutoSunday = () => {
-        const newValue = !autoSundayEnabled
-        setAutoSundayEnabled(newValue)
-        localStorage.setItem('autoSundayEnabled', newValue.toString())
-        if (newValue) {
-            toast.success('Auto-Sunday enabled: will auto-select current Sunday')
-        } else {
-            toast.info('Auto-Sunday disabled')
-        }
-    }
 
     const toggleAutoAllDates = () => {
         const newValue = !autoAllDatesEnabled
@@ -645,37 +629,6 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                             </div>
                         </div>
 
-                        {/* Auto-Sunday Toggle */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                                <label className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                                    Auto-Sunday
-                                    {autoSundayEnabled && (
-                                        <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">Active</span>
-                                    )}
-                                </label>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    Automatically select the current Sunday when opening the app
-                                </p>
-                            </div>
-                            <button
-                                onClick={toggleAutoSunday}
-                                disabled={isCollaborator && !autoSundayEnabled}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isCollaborator && !autoSundayEnabled
-                                        ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
-                                        : autoSundayEnabled
-                                            ? 'bg-primary-600'
-                                            : 'bg-gray-200 dark:bg-gray-600'
-                                    }`}
-                                title={isCollaborator && !autoSundayEnabled ? 'Auto-Sunday is managed by workspace admin' : 'Toggle Auto-Sunday'}
-                            >
-                                <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoSundayEnabled ? 'translate-x-6' : 'translate-x-1'
-                                        }`}
-                                />
-                            </button>
-                        </div>
-
                         {/* Auto-All-Dates Toggle */}
                         <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -708,7 +661,7 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                         </div>
 
                         {/* Collaborator Notice */}
-                        {isCollaborator && (!autoSundayEnabled || !autoAllDatesEnabled) && (
+                        {isCollaborator && !autoAllDatesEnabled && (
                             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                                 <div className="flex items-start gap-2">
                                     <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
