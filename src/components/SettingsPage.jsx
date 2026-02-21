@@ -252,41 +252,25 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
     // Fetch collaborators for Team section display
     useEffect(() => {
         const fetchCollaborators = async () => {
-            console.log('🔍 SettingsPage: fetchCollaborators STARTED')
-            console.log('User ID:', user?.id)
-            console.log('isSupabaseConfigured:', isSupabaseConfigured)
-
-            if (!user?.id || !isSupabaseConfigured) {
-                console.log('⚠️ Skipping fetch - no user ID or Supabase not configured')
-                return
-            }
+            if (!user?.id || !isSupabaseConfigured) return
 
             setFetchingCollaborators(true)
             try {
-                console.log('📡 Querying collaborators table with owner_id:', user.id)
                 const { data, error } = await supabase
                     .from('collaborators')
                     .select('*')
                     .eq('owner_id', user.id)
                     .order('created_at', { ascending: false })
 
-                console.log('📊 Query result:', {
-                    dataCount: data?.length || 0,
-                    error: error?.message,
-                    data: data
-                })
-
                 if (!error && data) {
-                    console.log(`✅ Found ${data.length} collaborators`)
                     setCollaborators(data)
                 } else if (error) {
-                    console.error('❌ Error fetching collaborators:', error)
+                    console.error('Error fetching collaborators:', error)
                 }
             } catch (err) {
-                console.error('❌ Exception in fetchCollaborators:', err)
+                console.error('Error in fetchCollaborators:', err)
             } finally {
                 setFetchingCollaborators(false)
-                console.log('🔍 fetchCollaborators COMPLETE')
             }
         }
         fetchCollaborators()
