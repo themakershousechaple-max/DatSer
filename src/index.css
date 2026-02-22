@@ -4,20 +4,21 @@
 
 /* Mobile-first responsive design */
 @layer base {
+
   /* Ensure proper mobile viewport */
   html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
   }
-  
+
   /* Only apply touch-action: manipulation on mobile to avoid blocking trackpad scroll on desktop */
   @media (max-width: 767px) {
     html {
       touch-action: manipulation;
     }
   }
-  
+
   body {
     -webkit-overflow-scrolling: touch;
     /* Optimize for touch */
@@ -25,24 +26,22 @@
     -webkit-touch-callout: none;
   }
 
-  /* Prevent bounce scroll on iOS - mobile only to avoid blocking trackpad scroll on desktop */
-  @media (max-width: 767px) {
-    body {
-      overscroll-behavior: none;
-    }
-  }
-  
   /* Prevent iOS zoom on input focus - must be 16px minimum */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-size: 16px !important;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
   }
-  
+
   /* Ensure buttons and interactive elements don't trigger zoom - mobile only */
   @media (max-width: 767px) {
-    button, a, [role="button"] {
+
+    button,
+    a,
+    [role="button"] {
       touch-action: manipulation;
     }
   }
@@ -55,13 +54,13 @@
       opacity: 0.7;
       transform: scale3d(0.95, 0.95, 1);
     }
-  
+
     to {
       opacity: 1;
       transform: scale3d(1, 1, 1);
     }
   }
-  
+
   .grid-animate>* {
     animation: gridReflow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     backface-visibility: hidden;
@@ -75,25 +74,25 @@
       opacity: 0;
       transform: translate3d(0, 20px, 0);
     }
-  
+
     to {
       opacity: 1;
       transform: translate3d(0, 0, 0);
     }
   }
-  
+
   @keyframes pageSlideOut {
     from {
       opacity: 1;
       transform: translate3d(0, 0, 0);
     }
-  
+
     to {
       opacity: 0;
       transform: translate3d(0, -20px, 0);
     }
   }
-  
+
   .page-enter {
     animation: pageSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, opacity;
@@ -178,7 +177,7 @@
     scroll-behavior: smooth;
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     /* Prevent page from moving left/right */
     scrollbar-gutter: stable;
     /* Reserve space only where the scrollbar renders to avoid left-edge gap */
@@ -218,14 +217,8 @@
     @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200;
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     /* Belt-and-suspenders to ensure no horizontal scroll */
-  }
-
-  @media (max-width: 767px) {
-    body {
-      overscroll-behavior-x: none;
-    }
   }
 
   /* Ensure proper dark mode colors throughout */
@@ -300,11 +293,7 @@
   }
 
   /* Avoid odd overscroll glows in PWA - mobile only to preserve desktop trackpad scroll */
-  @media (max-width: 767px) {
-    .ios-overscroll-none {
-      overscroll-behavior: none;
-    }
-  }
+  /* overscroll-behavior removed to fix mobile scrolling */
 
   /* Selection highlight - GREEN instead of wiggle animation */
   .selection-highlight {
@@ -571,6 +560,7 @@
       opacity: 0;
       transform: translate3d(0, 8px, 0);
     }
+
     to {
       opacity: 1;
       transform: translate3d(0, 0, 0);
@@ -578,7 +568,7 @@
   }
 
   /* Smoother card transitions on mobile */
-  .grid-animate > * {
+  .grid-animate>* {
     animation: mCardIn 0.2s ease-out both;
   }
 
@@ -587,6 +577,7 @@
       opacity: 0.8;
       transform: translate3d(0, 4px, 0);
     }
+
     to {
       opacity: 1;
       transform: translate3d(0, 0, 0);
@@ -621,7 +612,7 @@ details summary {
   -webkit-tap-highlight-color: transparent;
 }
 
-details[open] summary ~ * {
+details[open] summary~* {
   animation: detailsOpen 0.2s ease-out;
 }
 
@@ -630,6 +621,7 @@ details[open] summary ~ * {
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

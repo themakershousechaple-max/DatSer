@@ -204,31 +204,41 @@ export const AppProvider = ({ children }) => {
   // Save locked default date (admin only)
   const saveLockedDefaultDate = useCallback(async (dateStr) => {
     if (!isSupabaseConfigured() || !user?.id || isCollaborator) return false
+
+    // Optimistic UI Update
+    const previousDateStr = lockedDefaultDate;
+    setLockedDefaultDate(dateStr || null)
+    if (dateStr) {
+      try {
+        const [year, month, day] = dateStr.split('-')
+        const newDate = new Date(year, parseInt(month) - 1, parseInt(day))
+        setSelectedAttendanceDate(newDate)
+      } catch (e) {
+        console.error('Error parsing locked date:', e)
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('user_preferences')
         .update({ locked_default_date: dateStr || null })
         .eq('user_id', user.id)
+
       if (!error) {
-        setLockedDefaultDate(dateStr || null)
-        if (dateStr) {
-          try {
-            const [year, month, day] = dateStr.split('-')
-            const newDate = new Date(year, parseInt(month) - 1, parseInt(day))
-            setSelectedAttendanceDate(newDate)
-          } catch (e) {
-            console.error('Error parsing locked date:', e)
-          }
-        }
         return true
       }
+
+      // Revert on error
       console.error('Error saving locked default date:', error)
+      setLockedDefaultDate(previousDateStr)
       return false
     } catch (err) {
+      // Revert on error
       console.error('Error saving locked default date:', err)
+      setLockedDefaultDate(previousDateStr)
       return false
     }
-  }, [user?.id, isCollaborator])
+  }, [user?.id, isCollaborator, lockedDefaultDate])
 
   const getMonthStorageKey = useCallback(() => {
     if (isCollaborator && dataOwnerId) {
