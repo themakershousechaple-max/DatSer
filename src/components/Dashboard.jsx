@@ -1259,21 +1259,21 @@ const Dashboard = ({ isAdmin = false }) => {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-8">
+      <div className="max-w-7xl mx-auto px-0 sm:px-4 mt-8">
         <TableSkeleton />
       </div>
     )
   }
 
   return (
-    <div className="space-y-2 pb-12 max-w-7xl mx-auto px-3 sm:px-4">
+    <div className="space-y-2 pb-12 max-w-7xl mx-auto px-0 sm:px-4">
       {/* Header removed; summary now shown in sticky Header */}
 
       {/* Desktop tab navigation removed; use mobile segmented control in Header */}
 
       {/* Edited Members: Sundays Quick View */}
       {dashboardTab === 'edited' && (
-        <div ref={sundaysRef} className="block mt-4 sm:mt-10 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
+        <div ref={sundaysRef} className="block mt-8 sm:mt-10 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-sm w-[96%] sm:w-full mx-auto">
           {/* Header - stacked on mobile, inline on desktop */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1709,34 +1709,20 @@ const Dashboard = ({ isAdmin = false }) => {
                         <Check className="w-3 h-3 text-white" />
                       </div>
                     )}
-                    <div className="absolute inset-y-0 right-0 w-12 md:hidden flex items-center justify-center space-x-1 rounded-xl" style={{ display: selectionMode ? 'none' : undefined }}>
-                      <button
-                        type="button"
-                        onTouchStart={(e) => { e.stopPropagation() }}
-                        onClick={(e) => { e.stopPropagation(); openDeleteConfirm(e, member) }}
-                        className="text-white flex items-center justify-center w-12 h-12 rounded-xl bg-red-600 dark:bg-red-700 hover:bg-red-700 shadow-lg"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
                     <div
-                      className={`relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${isSelected ? 'selection-highlight' : ''
+                      className={`relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden w-[96%] sm:w-full mx-auto ${isSelected ? 'selection-highlight' : ''
                         }`}
-                      style={{ transform: swipeOpenId === member.id ? 'translateX(-64px)' : 'translateX(0)', touchAction: 'pan-y', userSelect: 'none' }}
+                      style={{ touchAction: 'pan-y', userSelect: 'none' }}
                       onTouchStart={(e) => {
                         if (!selectionMode) {
                           handleLongPressStart(member.id, e)
-                          onRowTouchStart(member.id, e)
                         }
                       }}
                       onTouchMove={(e) => {
                         handleLongPressMove(e)
-                        onRowTouchMove(member.id, e)
                       }}
                       onTouchEnd={() => {
                         handleLongPressEnd()
-                        onRowTouchEnd(member.id)
                       }}
                       onMouseDown={(e) => {
                         if (!selectionMode) {
@@ -1762,64 +1748,65 @@ const Dashboard = ({ isAdmin = false }) => {
                         }
                       }}
                     >
-                      {/* Red swipe indicator - mobile only */}
-                      <div className="absolute top-0 right-0 bottom-0 w-1 bg-red-600 dark:bg-red-700 md:hidden rounded-r-xl"></div>
+                      {/* Swipe-to-delete removed on mobile */}
 
                       {/* Mobile-friendly stacked layout */}
-                      <div className="px-3 py-3 sm:px-4 sm:py-3.5">
+                      <div className="px-0 py-3 sm:px-4 sm:py-3.5">
                         {/* Row 1: Expand toggle row (chevron + name + hint) */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            if (selectionMode) {
-                              e.stopPropagation()
-                              toggleSelection(member.id)
-                            } else {
-                              toggleMemberExpansion(member.id)
-                            }
-                          }}
-                          className="w-full flex items-center gap-2 mb-2 text-left hover:bg-primary-50 dark:hover:bg-primary-900/40 rounded px-1 py-1 transition-colors duration-150"
-                        >
-                          <div className="p-1 text-gray-500 dark:text-gray-400 rounded flex-shrink-0 flex items-center justify-center">
-                            {isExpanded ? (
-                              <ChevronDown className="w-5 h-5" />
-                            ) : (
-                              <ChevronRight className="w-5 h-5" />
-                            )}
-                          </div>
-                          {dashboardTab === 'edited' && isSelected && (
-                            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
-                              <Check className="w-3 h-3 text-white" />
+                        <div className="w-full px-3 sm:px-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              if (selectionMode) {
+                                e.stopPropagation()
+                                toggleSelection(member.id)
+                              } else {
+                                toggleMemberExpansion(member.id)
+                              }
+                            }}
+                            className="w-full flex items-center gap-2 mb-2 text-left hover:bg-primary-50 dark:hover:bg-primary-900/40 rounded px-1 py-1 transition-colors duration-150"
+                          >
+                            <div className="p-1 text-gray-500 dark:text-gray-400 rounded flex-shrink-0 flex items-center justify-center">
+                              {isExpanded ? (
+                                <ChevronDown className="w-5 h-5" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5" />
+                              )}
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg truncate">
-                              {member['full_name'] || member['Full Name']}
-                            </h3>
-                            {(member.inserted_at || member.created_at) && (() => {
-                              const regDate = new Date(member.inserted_at || member.created_at)
-                              const now = new Date()
-                              const diffDays = Math.floor((now - regDate) / (1000 * 60 * 60 * 24))
-                              let label = ''
-                              if (diffDays === 0) label = 'Today'
-                              else if (diffDays === 1) label = 'Yesterday'
-                              else if (diffDays < 7) label = `${diffDays}d ago`
-                              else label = regDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            {dashboardTab === 'edited' && isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg truncate">
+                                {member['full_name'] || member['Full Name']}
+                              </h3>
+                              {(member.inserted_at || member.created_at) && (() => {
+                                const regDate = new Date(member.inserted_at || member.created_at)
+                                const now = new Date()
+                                const diffDays = Math.floor((now - regDate) / (1000 * 60 * 60 * 24))
+                                let label = ''
+                                if (diffDays === 0) label = 'Today'
+                                else if (diffDays === 1) label = 'Yesterday'
+                                else if (diffDays < 7) label = `${diffDays}d ago`
+                                else label = regDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
-                              return (
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                                  Joined {label}
-                                </p>
-                              )
-                            })()}
-                          </div>
-                          <span className="hidden xs:inline text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 ml-1">
-                            {isExpanded ? 'Hide details' : 'Details'}
-                          </span>
-                        </button>
+                                return (
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                                    Joined {label}
+                                  </p>
+                                )
+                              })()}
+                            </div>
+                            <span className="hidden xs:inline text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 ml-1">
+                              {isExpanded ? 'Hide details' : 'Details'}
+                            </span>
+                          </button>
+                        </div>
 
                         {/* Row 2: Present/Absent (and desktop Delete) buttons */}
-                        <div className="flex items-stretch gap-2 ml-0 w-full">
+                        <div className="flex items-stretch gap-2 ml-0 w-full px-3 sm:px-0">
                           {/* Present/Absent buttons */}
                           <div className="flex flex-row items-stretch gap-2 w-full">
                             {/* Present/Absent buttons - compact on mobile, full on desktop */}
@@ -1845,7 +1832,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                   <button
                                     onClick={() => handleAttendance(member.id, true)}
                                     disabled={attendanceLoading[member.id]}
-                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150 whitespace-nowrap sm:text-sm md:text-sm ${isPresentSelected
+                                    className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium transition-colors duration-150 whitespace-nowrap sm:text-sm md:text-sm ${isPresentSelected
                                       ? 'bg-green-600 dark:bg-green-700 text-white shadow ring-1 ring-green-300 dark:ring-green-500'
                                       : attendanceLoading[member.id]
                                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -1858,7 +1845,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                   <button
                                     onClick={() => handleAttendance(member.id, false)}
                                     disabled={attendanceLoading[member.id]}
-                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150 whitespace-nowrap sm:text-sm md:text-sm ${isAbsentSelected
+                                    className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium transition-colors duration-150 whitespace-nowrap sm:text-sm md:text-sm ${isAbsentSelected
                                       ? 'bg-red-600 dark:bg-red-700 text-white shadow ring-1 ring-red-300 dark:ring-red-500'
                                       : attendanceLoading[member.id]
                                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -2052,6 +2039,16 @@ const Dashboard = ({ isAdmin = false }) => {
                                     <Edit3 className="w-4 h-4" />
                                     <span>Edit Details</span>
                                   </button>
+                                {/* Mobile Delete button (replaces swipe-to-delete) */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); openDeleteConfirm(e, member) }}
+                                  className="md:hidden w-full flex items-center justify-center space-x-2 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-400 dark:hover:border-red-800 rounded-lg transition-colors duration-150 shadow-sm hover:shadow-md"
+                                  title="Delete member"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span>Delete Member</span>
+                                </button>
                                 </div>
 
                                 {/* Notes Section */}
@@ -2760,7 +2757,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
       {/* Bottom Search Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom">
-        <div className="mx-auto px-3 sm:px-4 py-3">
+        <div className="mx-auto px-0 sm:px-4 py-3">
           <div className="flex items-center gap-2">
             {dashboardTab === 'edited' ? (
               /* Marked tab: Search bar that only searches within Present/Absent members */

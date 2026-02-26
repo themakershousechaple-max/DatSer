@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, lazy, Suspense, memo } from 'react'
+import React, { useState, useEffect, lazy, Suspense, memo } from 'react'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -187,7 +187,7 @@ function AppContent({ isMobile }) {
         onToggleAIChat={() => setShowAIChat(prev => !prev)}
       />
 
-      <main className={`container mx-auto px-4 py-8 pt-28 sm:pt-24 md:pt-20`}>
+      <main className={`mx-auto px-0 sm:px-4 py-8 pt-28 sm:pt-24 md:pt-20 w-full`}>
         {currentView === 'dashboard' && (
           <Dashboard isAdmin={isAdmin} />
         )}
