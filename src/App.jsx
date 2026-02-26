@@ -42,7 +42,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 function AppContent({ isMobile }) {
 
   const { preferences, signOut } = useAuth()
-  const { members, loading: appLoading, hasAccess, isCollaborator, dataOwnerId } = useApp()
+  const { members, loading: appLoading, hasAccess, isCollaborator, adminSyncNotice, acknowledgeAdminSync } = useApp()
   const [currentView, setCurrentView] = useState('dashboard')
   const [isAdmin, setIsAdmin] = useState(() => {
     return localStorage.getItem('tmht_admin_session') === 'true'
@@ -77,6 +77,9 @@ function AppContent({ isMobile }) {
   }
 
   const isExecutive = preferences?.role === 'executive' || preferences?.is_executive === true
+  const adminTargetLabel = adminSyncNotice?.targetDate
+    ? new Date(adminSyncNotice.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : (adminSyncNotice?.targetTable ? adminSyncNotice.targetTable.replace('_', ' ') : null)
 
   // Expose modal openers globally via window for profile dropdown
   useEffect(() => {
@@ -187,6 +190,44 @@ function AppContent({ isMobile }) {
         onCreateMonth={() => setShowMonthModal(true)}
         onToggleAIChat={() => setShowAIChat(prev => !prev)}
       />
+      {isCollaborator && adminSyncNotice && !adminSyncNotice.blocking && (
+        <div className="fixed top-20 sm:top-16 left-0 right-0 z-50 px-3">
+          <div className="mx-auto max-w-3xl w-full bg-blue-600 text-white rounded-xl shadow-lg border border-blue-300 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="text-sm sm:text-base font-medium">
+              Admin has changed the working period—please refresh to continue.
+              {adminTargetLabel && <span className="ml-2 font-semibold">New: {adminTargetLabel}</span>}
+            </div>
+            <button
+              onClick={acknowledgeAdminSync}
+              className="px-4 py-2 bg-white text-blue-700 font-semibold rounded-lg shadow-sm hover:bg-blue-50 transition-colors"
+            >
+              Refresh Now
+            </button>
+          </div>
+        </div>
+      )}
+      {isCollaborator && adminSyncNotice?.blocking && (
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6">
+            <div className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+              Admin has changed the working period—please refresh to continue.
+            </div>
+            {adminTargetLabel && (
+              <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                New period: {adminTargetLabel}
+              </div>
+            )}
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={acknowledgeAdminSync}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className={`mx-auto px-0 sm:px-4 py-8 pt-28 sm:pt-24 md:pt-20 w-full`}>
         {currentView === 'dashboard' && (

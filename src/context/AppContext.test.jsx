@@ -4,11 +4,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 let preferenceListeners = []
 let emitPreferencesChange = () => {}
+let preferencesRow = null
 
 vi.mock('../lib/supabase', () => {
   preferenceListeners = []
+  preferencesRow = {
+    admin_sticky_month: 'January_2026',
+    admin_sticky_sundays: [],
+    locked_default_date: null
+  }
   emitPreferencesChange = (row) => {
-    preferenceListeners.forEach((cb) => cb({ new: row }))
+    preferencesRow = {
+      ...preferencesRow,
+      ...row
+    }
+    preferenceListeners.forEach((cb) => cb({ new: preferencesRow }))
   }
 
   const makeQuery = (table) => {
@@ -24,11 +34,7 @@ vi.mock('../lib/supabase', () => {
         }
         if (table === 'user_preferences') {
           return Promise.resolve({
-            data: {
-              admin_sticky_month: 'January_2026',
-              admin_sticky_sundays: [],
-              locked_default_date: null
-            },
+            data: preferencesRow,
             error: null
           })
         }
@@ -105,14 +111,14 @@ describe('AppContext collaborator sync', () => {
   it('jumps to admin date across month boundaries', async () => {
     const { AppProvider, useApp } = await import('./AppContext.jsx')
     const StateProbe = ({ onState }) => {
-      const { currentTable, selectedAttendanceDate } = useApp()
+      const { currentTable, selectedAttendanceDate, adminSyncNotice, acknowledgeAdminSync, isCollaborator } = useApp()
       useEffect(() => {
-        onState({ currentTable, selectedAttendanceDate })
-      }, [currentTable, selectedAttendanceDate, onState])
+        onState({ currentTable, selectedAttendanceDate, adminSyncNotice, acknowledgeAdminSync, isCollaborator })
+      }, [currentTable, selectedAttendanceDate, adminSyncNotice, acknowledgeAdminSync, isCollaborator, onState])
       return null
     }
     let latest = null
-    render(
+    const { unmount } = render(
       <AppProvider>
         <StateProbe
           onState={(state) => {
@@ -126,11 +132,33 @@ describe('AppContext collaborator sync', () => {
       expect(latest?.currentTable).toBeTruthy()
     })
 
+    await waitFor(() => {
+      expect(latest.currentTable).toBe('January_2026')
+    })
+
+    await waitFor(() => {
+      expect(latest.isCollaborator).toBe(true)
+    })
+
+    await waitFor(() => {
+      expect(preferenceListeners.length).toBeGreaterThan(0)
+    })
+
     emitPreferencesChange({
       admin_sticky_month: 'February_2026',
       locked_default_date: '2026-02-08',
       admin_sticky_sundays: []
     })
+
+    await waitFor(() => {
+      expect(latest.adminSyncNotice?.targetTable).toBe('February_2026')
+    })
+
+    await waitFor(() => {
+      expect(latest.adminSyncNotice?.targetDate).toBe('2026-02-08')
+    })
+
+    await latest.acknowledgeAdminSync()
 
     await waitFor(() => {
       expect(latest.currentTable).toBe('February_2026')
@@ -139,5 +167,7 @@ describe('AppContext collaborator sync', () => {
     await waitFor(() => {
       expect(latest.selectedAttendanceDate?.toISOString().slice(0, 10)).toBe('2026-02-08')
     })
+
+    unmount()
   })
 })
