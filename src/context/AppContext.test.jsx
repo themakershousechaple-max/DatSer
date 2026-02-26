@@ -11,7 +11,8 @@ vi.mock('../lib/supabase', () => {
   preferencesRow = {
     admin_sticky_month: 'January_2026',
     admin_sticky_sundays: [],
-    locked_default_date: null
+    locked_default_date: null,
+    admin_sync_mode: 'banner'
   }
   emitPreferencesChange = (row) => {
     preferencesRow = {
@@ -147,7 +148,8 @@ describe('AppContext collaborator sync', () => {
     emitPreferencesChange({
       admin_sticky_month: 'February_2026',
       locked_default_date: '2026-02-08',
-      admin_sticky_sundays: []
+      admin_sticky_sundays: [],
+      admin_sync_mode: 'banner'
     })
 
     await waitFor(() => {

@@ -192,38 +192,59 @@ function AppContent({ isMobile }) {
       />
       {isCollaborator && adminSyncNotice && !adminSyncNotice.blocking && (
         <div className="fixed top-20 sm:top-16 left-0 right-0 z-50 px-3">
-          <div className="mx-auto max-w-3xl w-full bg-blue-600 text-white rounded-xl shadow-lg border border-blue-300 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="text-sm sm:text-base font-medium">
-              Admin has changed the working period—please refresh to continue.
-              {adminTargetLabel && <span className="ml-2 font-semibold">New: {adminTargetLabel}</span>}
+          <div className="mx-auto max-w-4xl w-full rounded-2xl border border-blue-200/70 dark:border-blue-700/60 bg-white/95 dark:bg-gray-900/95 shadow-xl backdrop-blur px-4 sm:px-5 py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-semibold shadow-md">
+                  !
+                </div>
+                <div className="text-sm sm:text-base text-gray-800 dark:text-gray-100">
+                  <div className="font-semibold">Admin has changed the working period.</div>
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                    Please refresh to continue.
+                    {adminTargetLabel && <span className="ml-2 font-semibold text-blue-700 dark:text-blue-300">New: {adminTargetLabel}</span>}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={acknowledgeAdminSync}
+                className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition-colors"
+              >
+                Refresh Now
+              </button>
             </div>
-            <button
-              onClick={acknowledgeAdminSync}
-              className="px-4 py-2 bg-white text-blue-700 font-semibold rounded-lg shadow-sm hover:bg-blue-50 transition-colors"
-            >
-              Refresh Now
-            </button>
           </div>
         </div>
       )}
       {isCollaborator && adminSyncNotice?.blocking && (
         <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6">
-            <div className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-              Admin has changed the working period—please refresh to continue.
-            </div>
-            {adminTargetLabel && (
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                New period: {adminTargetLabel}
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center text-xl font-semibold">!</div>
+                <div>
+                  <div className="text-lg font-semibold">Working period updated</div>
+                  <div className="text-xs text-white/80">Admin requires refresh to continue</div>
+                </div>
               </div>
-            )}
-            <div className="mt-5 flex justify-end">
-              <button
-                onClick={acknowledgeAdminSync}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Refresh
-              </button>
+            </div>
+            <div className="px-6 py-5">
+              <div className="text-sm text-gray-700 dark:text-gray-200">
+                Admin has changed the working period. Your view must refresh to load the latest data.
+              </div>
+              {adminTargetLabel && (
+                <div className="mt-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  New period: <span className="text-blue-700 dark:text-blue-300">{adminTargetLabel}</span>
+                </div>
+              )}
+              <div className="mt-5">
+                <button
+                  onClick={acknowledgeAdminSync}
+                  className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
           </div>
         </div>
