@@ -386,7 +386,7 @@ function AuthenticatedApp({ isMobile }) {
   }
 
   return (
-    <AppProvider>
+    <>
       <AppContent isMobile={isMobile} />
       {showResetPassword && (
         <Suspense fallback={null}>
@@ -396,7 +396,7 @@ function AuthenticatedApp({ isMobile }) {
           />
         </Suspense>
       )}
-    </AppProvider>
+    </>
   )
 }
 
@@ -447,7 +447,9 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
-          <AuthenticatedApp isMobile={isMobile} />
+          <AppProvider>
+            <AuthenticatedApp isMobile={isMobile} />
+          </AppProvider>
         </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>

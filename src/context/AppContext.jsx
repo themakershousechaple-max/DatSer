@@ -124,10 +124,23 @@ export const AppProvider = ({ children }) => {
   const [attendanceData, setAttendanceData] = useState({})
   const [currentTable, setCurrentTable] = useState(getLatestTable())
 
+  // Admin sticky defaults for collaborators
+  const [ownerStickyMonth, setOwnerStickyMonth] = useState(null)
+  const [ownerStickySundays, setOwnerStickySundays] = useState([])
+
   // Load saved month from user preferences on app startup
   useEffect(() => {
     const loadSavedMonth = async () => {
       if (!user || authLoading) return
+
+      if (isCollaborator && ownerStickyMonth) {
+        if (currentTable !== ownerStickyMonth) {
+          setCurrentTable(ownerStickyMonth)
+        }
+        const storageKey = isCollaborator && dataOwnerId ? `selectedMonthTable_${dataOwnerId}` : 'selectedMonthTable'
+        localStorage.setItem(storageKey, ownerStickyMonth)
+        return
+      }
 
       try {
         // Try to load from Supabase preferences first (persisted across devices)
@@ -135,12 +148,14 @@ export const AppProvider = ({ children }) => {
           const savedMonth = authContext.preferences.current_month_table
           console.log('[MONTH] Loaded saved month from Supabase preferences:', savedMonth)
           setCurrentTable(savedMonth)
-          localStorage.setItem('selectedMonthTable', savedMonth)
+          const storageKey = isCollaborator && dataOwnerId ? `selectedMonthTable_${dataOwnerId}` : 'selectedMonthTable'
+          localStorage.setItem(storageKey, savedMonth)
           return
         }
 
         // Fallback to localStorage if preferences not yet synced
-        const localSaved = localStorage.getItem('selectedMonthTable')
+        const storageKey = isCollaborator && dataOwnerId ? `selectedMonthTable_${dataOwnerId}` : 'selectedMonthTable'
+        const localSaved = localStorage.getItem(storageKey)
         if (localSaved) {
           console.log('[MONTH] Loaded month from localStorage:', localSaved)
           setCurrentTable(localSaved)
@@ -149,18 +164,19 @@ export const AppProvider = ({ children }) => {
 
         // Default to DEFAULT_TABLE if nothing is saved
         console.log('[MONTH] No saved month found, using default:', DEFAULT_TABLE)
-        localStorage.setItem('selectedMonthTable', DEFAULT_TABLE)
+        localStorage.setItem(storageKey, DEFAULT_TABLE)
       } catch (error) {
         console.error('[MONTH] Error loading saved month:', error)
         // Fallback to localStorage on error
-        const localSaved = localStorage.getItem('selectedMonthTable') || DEFAULT_TABLE
+        const storageKey = isCollaborator && dataOwnerId ? `selectedMonthTable_${dataOwnerId}` : 'selectedMonthTable'
+        const localSaved = localStorage.getItem(storageKey) || DEFAULT_TABLE
         setCurrentTable(localSaved)
-        localStorage.setItem('selectedMonthTable', localSaved)
+        localStorage.setItem(storageKey, localSaved)
       }
     }
 
     loadSavedMonth()
-  }, [user, authLoading, authContext?.preferences?.current_month_table])
+  }, [user, authLoading, authContext?.preferences?.current_month_table, isCollaborator, dataOwnerId, ownerStickyMonth, currentTable])
   const [monthlyTables, setMonthlyTables] = useState(FALLBACK_MONTHLY_TABLES)
   const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(null)
   const [availableSundayDates, setAvailableSundayDates] = useState([])
@@ -280,6 +296,32 @@ export const AppProvider = ({ children }) => {
       import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co'
   }, [])
 
+  const fetchOwnerStickyDefaults = useCallback(async (ownerId) => {
+    if (!isSupabaseConfigured() || !ownerId) return null
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('admin_sticky_month, admin_sticky_sundays')
+        .eq('user_id', ownerId)
+        .single()
+
+      if (!error && data) {
+        setOwnerStickyMonth(data.admin_sticky_month || null)
+        setOwnerStickySundays(Array.isArray(data.admin_sticky_sundays) ? data.admin_sticky_sundays : [])
+        return data
+      }
+
+      setOwnerStickyMonth(null)
+      setOwnerStickySundays([])
+      return null
+    } catch (err) {
+      console.error('Error fetching owner sticky defaults:', err)
+      setOwnerStickyMonth(null)
+      setOwnerStickySundays([])
+      return null
+    }
+  }, [isSupabaseConfigured])
+
   // Check if current user is a collaborator and get the owner's ID
   const checkCollaboratorStatus = async () => {
     console.log('=== checkCollaboratorStatus STARTED ===')
@@ -342,6 +384,8 @@ export const AppProvider = ({ children }) => {
         setDataOwnerId(user.id)
         setOwnerEmail(null)
         setHasAccess(true)
+        setOwnerStickyMonth(null)
+        setOwnerStickySundays([])
         // Load admin's own locked default date setting
         fetchLockedDefaultDate(user.id)
         return user.id
@@ -354,6 +398,7 @@ export const AppProvider = ({ children }) => {
       setIsCollaborator(true)
       setDataOwnerId(data.owner_id)
       setHasAccess(true)
+      fetchOwnerStickyDefaults(data.owner_id)
 
       // Sync Workspace Name from Owner
       if (authContext?.updatePreference) {
@@ -400,6 +445,78 @@ export const AppProvider = ({ children }) => {
     if (authLoading) return
     checkCollaboratorStatus()
   }, [authLoading, user?.email])
+
+  useEffect(() => {
+    if (!isCollaborator || !dataOwnerId) {
+      setOwnerStickyMonth(null)
+      setOwnerStickySundays([])
+      return
+    }
+    fetchOwnerStickyDefaults(dataOwnerId)
+  }, [isCollaborator, dataOwnerId, fetchOwnerStickyDefaults])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !isCollaborator || !dataOwnerId) return
+
+    const channel = supabase
+      .channel(`owner-preferences-${dataOwnerId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_preferences',
+          filter: `user_id=eq.${dataOwnerId}`
+        },
+        (payload) => {
+          const nextStickyMonth = payload?.new?.admin_sticky_month || null
+          const nextStickySundays = Array.isArray(payload?.new?.admin_sticky_sundays)
+            ? payload.new.admin_sticky_sundays
+            : []
+          if (nextStickyMonth) {
+            setOwnerStickyMonth(nextStickyMonth)
+          }
+          if (nextStickySundays.length > 0) {
+            setOwnerStickySundays(nextStickySundays)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [isSupabaseConfigured, isCollaborator, dataOwnerId])
+
+  useEffect(() => {
+    if (!isCollaborator || !ownerStickyMonth) return
+    if (currentTable !== ownerStickyMonth) {
+      changeCurrentTable(ownerStickyMonth)
+    }
+  }, [isCollaborator, ownerStickyMonth, currentTable, changeCurrentTable])
+
+  useEffect(() => {
+    if (!isCollaborator || ownerStickySundays.length === 0 || !currentTable) return
+
+    const [monthName, yearStr] = currentTable.split('_')
+    const monthIndex = MONTHS_IN_YEAR.indexOf(monthName)
+    const yearNum = parseInt(yearStr, 10)
+    if (monthIndex === -1 || Number.isNaN(yearNum)) return
+
+    const matchingDateStr = ownerStickySundays.find((dateStr) => {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      return year === yearNum && month === monthIndex + 1
+    })
+    if (!matchingDateStr) return
+
+    const [y, m, d] = matchingDateStr.split('-').map(Number)
+    const targetDate = new Date(y, m - 1, d)
+    const currentSelected = selectedAttendanceDate ? selectedAttendanceDate.toISOString().slice(0, 10) : null
+    if (currentSelected === matchingDateStr) return
+
+    setSelectedAttendanceDate(targetDate)
+    localStorage.setItem(`selectedAttendanceDate_${currentTable}`, targetDate.toISOString())
+  }, [isCollaborator, ownerStickySundays, currentTable, selectedAttendanceDate])
 
   // Activity Logging Helper
   const logActivity = useCallback(async (action, details) => {
