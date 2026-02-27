@@ -2381,6 +2381,12 @@ export const AppProvider = ({ children }) => {
         return { success: true, tableName: monthIdentifier }
       }
 
+      if (monthlyTables.includes(monthIdentifier)) {
+        toast.error(`${monthIdentifier.replace('_', ' ')} already exists.`)
+        changeCurrentTable(monthIdentifier)
+        return { success: true, tableName: monthIdentifier, alreadyExists: true }
+      }
+
       // Determine the source table: use currentTable if set, otherwise find the most recent month
       let sourceTable = sourceTableOverride || currentTable
 
