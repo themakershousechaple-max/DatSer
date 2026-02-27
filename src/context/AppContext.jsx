@@ -373,13 +373,15 @@ export const AppProvider = ({ children }) => {
     const targetDateKey = targetDate ? getLocalDateString(targetDate) : null
     const currentDateKey = selectedAttendanceDate ? getLocalDateString(selectedAttendanceDate) : null
     const differs = (targetTable && targetTable !== currentTable) || (targetDateKey && targetDateKey !== currentDateKey)
-    if (!differs) {
-      setAdminSyncNotice(null)
-      return
-    }
     const mode = adminSyncMode || 'banner'
     const noticeKey = `${targetTable || 'none'}|${targetDateKey || 'none'}|${mode}`
     if (adminSyncNotice?.key === noticeKey) return
+    if (!differs) {
+      if (!adminSyncNotice) {
+        setAdminSyncNotice(null)
+      }
+      return
+    }
     setAdminSyncNotice({
       key: noticeKey,
       targetTable,
