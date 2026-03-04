@@ -108,6 +108,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
   // Handle filter closing with animation
   const closeFilters = () => {
+    selection()
     setIsClosingFilters(true)
     setTimeout(() => {
       setShowFilters(false)
@@ -2189,6 +2190,7 @@ const Dashboard = ({ isAdmin = false }) => {
                   {hasMoreMembers && (
                     <button
                       onClick={async () => {
+                        selection()
                         setIsLoadingMore(true)
                         // Simulate a small delay for better UX
                         await new Promise(resolve => setTimeout(resolve, 300))
@@ -2662,7 +2664,7 @@ const Dashboard = ({ isAdmin = false }) => {
                   {['Male', 'Female'].map(g => (
                     <button
                       key={g}
-                      onClick={() => setGenderFilter(genderFilter === g ? null : g)}
+                      onClick={() => { selection(); setGenderFilter(genderFilter === g ? null : g) }}
                       className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${genderFilter === g
                         ? 'bg-primary-600 text-white shadow-md'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -2681,7 +2683,7 @@ const Dashboard = ({ isAdmin = false }) => {
                   {levels.map(l => (
                     <button
                       key={l}
-                      onClick={() => setLevelFilter(levelFilter === l ? null : l)}
+                      onClick={() => { selection(); setLevelFilter(levelFilter === l ? null : l) }}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${levelFilter === l
                         ? 'bg-primary-600 text-white shadow-md'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -2700,7 +2702,7 @@ const Dashboard = ({ isAdmin = false }) => {
                   {ministryOptions.map(m => (
                     <button
                       key={m}
-                      onClick={() => setMinistryFilter(ministryFilter === m ? null : m)}
+                      onClick={() => { selection(); setMinistryFilter(ministryFilter === m ? null : m) }}
                       className={`px-3 py-2 rounded-full text-xs font-medium transition-all ${ministryFilter === m
                         ? 'bg-primary-600 text-white shadow-md'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -2717,7 +2719,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Member Status</label>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setVisitorFilter(visitorFilter === false ? null : false)}
+                    onClick={() => { selection(); setVisitorFilter(visitorFilter === false ? null : false) }}
                     className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${visitorFilter === false
                       ? 'bg-primary-600 text-white shadow-md'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -2726,7 +2728,7 @@ const Dashboard = ({ isAdmin = false }) => {
                     Members Only
                   </button>
                   <button
-                    onClick={() => setVisitorFilter(visitorFilter === true ? null : true)}
+                    onClick={() => { selection(); setVisitorFilter(visitorFilter === true ? null : true) }}
                     className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${visitorFilter === true
                       ? 'bg-amber-500 text-white shadow-md'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -2742,6 +2744,7 @@ const Dashboard = ({ isAdmin = false }) => {
             <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex gap-3">
               <button
                 onClick={() => {
+                  selection()
                   setGenderFilter(null)
                   setLevelFilter(null)
                   setMinistryFilter(null)
@@ -2781,7 +2784,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 />
                 {(searchTerm || localSearchTerm) && (
                   <button
-                    onClick={() => { setSearchTerm(''); setLocalSearchTerm('') }}
+                    onClick={() => { selection(); setSearchTerm(''); setLocalSearchTerm('') }}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                     title="Clear search"
                   >
@@ -2803,7 +2806,7 @@ const Dashboard = ({ isAdmin = false }) => {
                 />
                 {(searchTerm || localSearchTerm) && (
                   <button
-                    onClick={() => { setSearchTerm(''); setLocalSearchTerm('') }}
+                    onClick={() => { selection(); setSearchTerm(''); setLocalSearchTerm('') }}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                     title="Clear search"
                   >
@@ -2814,7 +2817,7 @@ const Dashboard = ({ isAdmin = false }) => {
             )}
             {/* Filter Button */}
             <button
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => { selection(); setShowFilters(!showFilters) }}
               className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${showFilters || genderFilter || levelFilter || ministryFilter || visitorFilter !== null
                 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-700'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'

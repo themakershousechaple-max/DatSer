@@ -2,17 +2,24 @@ import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, Calendar, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import useHapticFeedback from '../hooks/useHapticFeedback'
 
 const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
     const { monthlyTables, currentTable, setCurrentTable, isCollaborator } = useApp()
+    const { selection } = useHapticFeedback()
     const popupRef = useRef(null)
+
+    const handleClose = () => {
+        selection()
+        onClose()
+    }
 
     // Close on outside click
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (popupRef.current && !popupRef.current.contains(e.target) &&
                 anchorRef?.current && !anchorRef.current.contains(e.target)) {
-                onClose()
+                handleClose()
             }
         }
         if (isOpen) {
@@ -33,6 +40,7 @@ const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
     }, [isOpen, onClose])
 
     const handleSelectMonth = (table) => {
+        selection()
         setCurrentTable(table)
         onClose()
     }
@@ -63,7 +71,7 @@ const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
             {/* Backdrop with blur - very high z-index to cover everything */}
             <div
                 className="fixed inset-0 bg-black/50 z-[9998] backdrop-blur-sm"
-                onClick={onClose}
+                onClick={handleClose}
             />
 
             {/* Popup */}
@@ -81,7 +89,7 @@ const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
                         </span>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors btn-press"
                     >
                         <X className="w-4 h-4 text-gray-500" />
