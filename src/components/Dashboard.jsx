@@ -2003,7 +2003,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                     <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Ministry</h4>
                                     <div className="flex flex-wrap gap-1.5">
                                       {ministries.map(m => (
-                                        <span key={m} className="px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200/70 dark:border-primary-700/50">
+                                        <span key={m} className="px-2.5 py-1 rounded-full text-[200px] font-medium bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200/70 dark:border-primary-700/50">
                                           {m.length > 22 ? m.slice(0, 20) + '…' : m}
                                         </span>
                                       ))}

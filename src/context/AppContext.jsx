@@ -2200,6 +2200,25 @@ export const AppProvider = ({ children }) => {
     }
 
     try {
+      const resolveFallbackTables = () => {
+        try {
+          const storageKey = isCollaborator && dataOwnerId ? `selectedMonthTable_${dataOwnerId}` : 'selectedMonthTable'
+          const localSaved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null
+          const prefSaved = authContext?.preferences?.current_month_table
+          const fallback = prefSaved || localSaved || currentTable
+          if (fallback) {
+            setMonthlyTables(sortMonthTables([fallback]))
+            if (!currentTable) {
+              changeCurrentTable(fallback)
+            }
+            return true
+          }
+        } catch (err) {
+          console.warn('Failed to resolve fallback month tables:', err)
+        }
+        return false
+      }
+
       // 1. Check configuration
       if (!isSupabaseConfigured()) {
         setMonthlyTables(FALLBACK_MONTHLY_TABLES)
@@ -2242,6 +2261,7 @@ export const AppProvider = ({ children }) => {
         }
 
         // If everything fails
+        if (resolveFallbackTables()) return
         setMonthlyTables([])
         return
       }
@@ -2253,8 +2273,26 @@ export const AppProvider = ({ children }) => {
         console.log('No tables found for this user/owner.')
         if (isCollaborator && ownerStickyMonth) {
           setMonthlyTables(sortMonthTables([ownerStickyMonth]))
+          if (!currentTable) {
+            changeCurrentTable(ownerStickyMonth)
+          }
           return
         }
+        if (!isCollaborator) {
+          const { data: directData, error: directError } = await supabase
+            .from('user_month_tables')
+            .select('table_name')
+            .eq('user_id', ownerId)
+
+          if (!directError && directData) {
+            const directTables = directData.map(entry => entry.table_name).filter(Boolean)
+            if (directTables.length > 0) {
+              setMonthlyTables(sortMonthTables(directTables))
+              return
+            }
+          }
+        }
+        if (resolveFallbackTables()) return
         setMonthlyTables([])
         clearInvalidTable()
         return
@@ -2267,7 +2305,16 @@ export const AppProvider = ({ children }) => {
       console.error('Unexpected error in fetchMonthlyTables:', error)
       // Do not force fallback tables on error to avoid "ghost" months
     }
-  }, [isSupabaseConfigured, dataOwnerId, user?.id, isCollaborator, ownerStickyMonth, changeCurrentTable])
+  }, [
+    isSupabaseConfigured,
+    dataOwnerId,
+    user?.id,
+    isCollaborator,
+    ownerStickyMonth,
+    changeCurrentTable,
+    authContext?.preferences?.current_month_table,
+    currentTable
+  ])
 
   const deleteMonthTable = useCallback(async (tableName) => {
     if (!tableName) return

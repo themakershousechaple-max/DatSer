@@ -19,6 +19,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
 
   // Helper function to get month display name from table name
   const getMonthDisplayName = (tableName) => {
+    if (!tableName) return 'Select Month'
     // Convert table name like "October_2025" to "October 2025"
     return tableName.replace('_', ' ')
   }
