@@ -136,6 +136,8 @@ export const AppProvider = ({ children }) => {
   const [adminSyncNotice, setAdminSyncNotice] = useState(null)
   const adminBroadcastRef = useRef({ month: null, date: null })
   const adminRealtimeChannelRef = useRef(null)
+  const adminRealtimeStatusRef = useRef('CLOSED')
+  const pendingAdminBroadcastRef = useRef(null)
 
   // Load saved month from user preferences on app startup
   useEffect(() => {
@@ -394,6 +396,30 @@ export const AppProvider = ({ children }) => {
     setAdminSyncNotice(null)
   }, [isCollaborator, applyAdminTargetForCollaborator])
 
+  const sendAdminPeriodBroadcast = useCallback((payload) => {
+    const channel = adminRealtimeChannelRef.current
+    if (!channel || adminRealtimeStatusRef.current !== 'SUBSCRIBED' || typeof channel.send !== 'function') {
+      pendingAdminBroadcastRef.current = payload
+      return
+    }
+    try {
+      const sendResult = channel.send({
+        type: 'broadcast',
+        event: 'admin_period_change',
+        payload
+      })
+      if (sendResult && typeof sendResult.catch === 'function') {
+        sendResult.catch((err) => {
+          console.error('Error sending admin period broadcast:', err)
+          pendingAdminBroadcastRef.current = payload
+        })
+      }
+    } catch (err) {
+      console.error('Error sending admin period broadcast:', err)
+      pendingAdminBroadcastRef.current = payload
+    }
+  }, [])
+
   useEffect(() => {
     const channelOwnerId = isCollaborator ? dataOwnerId : user?.id
     if (!isSupabaseConfigured() || !channelOwnerId) return
@@ -407,13 +433,28 @@ export const AppProvider = ({ children }) => {
         applyAdminBroadcastNotice(payload)
       })
     }
-    channel.subscribe()
+    channel.subscribe((status) => {
+      adminRealtimeStatusRef.current = status
+      if (status === 'SUBSCRIBED' && pendingAdminBroadcastRef.current && typeof channel.send === 'function') {
+        const pendingPayload = pendingAdminBroadcastRef.current
+        pendingAdminBroadcastRef.current = null
+        channel.send({
+          type: 'broadcast',
+          event: 'admin_period_change',
+          payload: pendingPayload
+        }).catch((err) => {
+          console.error('Error sending queued admin period broadcast:', err)
+          pendingAdminBroadcastRef.current = pendingPayload
+        })
+      }
+    })
     adminRealtimeChannelRef.current = channel
     return () => {
       supabase.removeChannel(channel)
       if (adminRealtimeChannelRef.current === channel) {
         adminRealtimeChannelRef.current = null
       }
+      adminRealtimeStatusRef.current = 'CLOSED'
     }
   }, [isSupabaseConfigured, isCollaborator, dataOwnerId, user?.id, applyAdminBroadcastNotice])
 
@@ -438,21 +479,15 @@ export const AppProvider = ({ children }) => {
           }, {
             onConflict: 'user_id'
           })
-        if (typeof adminRealtimeChannelRef.current?.send === 'function') {
-          adminRealtimeChannelRef.current.send({
-            type: 'broadcast',
-            event: 'admin_period_change',
-            payload: {
-              targetTable: currentTable,
-              targetDate: null
-            }
-          })
-        }
+        sendAdminPeriodBroadcast({
+          targetTable: currentTable,
+          targetDate: null
+        })
       } catch (err) {
         console.error('Error broadcasting admin month change:', err)
       }
     })()
-  }, [isCollaborator, isSupabaseConfigured, user?.id, currentTable])
+  }, [isCollaborator, isSupabaseConfigured, user?.id, currentTable, sendAdminPeriodBroadcast])
 
   useEffect(() => {
     if (isCollaborator || !isSupabaseConfigured() || !user?.id || !selectedAttendanceDate) return
@@ -483,21 +518,15 @@ export const AppProvider = ({ children }) => {
           }, {
             onConflict: 'user_id'
           })
-        if (typeof adminRealtimeChannelRef.current?.send === 'function') {
-          adminRealtimeChannelRef.current.send({
-            type: 'broadcast',
-            event: 'admin_period_change',
-            payload: {
-              targetTable: currentTable,
-              targetDate: dateStr
-            }
-          })
-        }
+        sendAdminPeriodBroadcast({
+          targetTable: currentTable,
+          targetDate: dateStr
+        })
       } catch (err) {
         console.error('Error broadcasting admin date change:', err)
       }
     })()
-  }, [isCollaborator, isSupabaseConfigured, user?.id, selectedAttendanceDate, currentTable, ownerStickySundays])
+  }, [isCollaborator, isSupabaseConfigured, user?.id, selectedAttendanceDate, currentTable, ownerStickySundays, sendAdminPeriodBroadcast])
 
   // Check if current user is a collaborator and get the owner's ID
   const checkCollaboratorStatus = async () => {
@@ -647,7 +676,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (authLoading) return
     checkCollaboratorStatus()
-  }, [authLoading, user?.email])
+  }, [authLoading, user?.email, user?.id])
 
   useEffect(() => {
     if (!isCollaborator || !dataOwnerId) {
@@ -662,10 +691,24 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (import.meta.env.MODE === 'test') return
     if (!isCollaborator || !dataOwnerId || !isSupabaseConfigured()) return
-    const intervalId = setInterval(() => {
+    const refreshStickyDefaults = () => {
       fetchOwnerStickyDefaults(dataOwnerId)
-    }, 30000)
-    return () => clearInterval(intervalId)
+    }
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshStickyDefaults()
+      }
+    }
+    const intervalId = setInterval(() => {
+      refreshStickyDefaults()
+    }, 5000)
+    window.addEventListener('focus', refreshStickyDefaults)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener('focus', refreshStickyDefaults)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [isCollaborator, dataOwnerId, isSupabaseConfigured, fetchOwnerStickyDefaults])
 
   useEffect(() => {
