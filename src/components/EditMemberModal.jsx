@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext'
 import { X, User, Phone, Calendar, BookOpen, ChevronDown, ChevronUp, Users, StickyNote } from 'lucide-react'
 import { toast } from 'react-toastify'
 import useHapticFeedback from '../hooks/useHapticFeedback'
+import { normalizeMinistry } from '../utils/dataUtils'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
   const { updateMember, markAttendance, refreshSearch, currentTable, attendanceData, loadAllAttendanceData, members } = useApp()
@@ -108,7 +109,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         age: latestMember['Age'] || '',
         current_level: latestMember['Current Level'] || '',
         notes: latestMember['notes'] || '',
-        ministry: Array.isArray(latestMember['ministry']) ? latestMember['ministry'] : (latestMember['ministry'] ? [latestMember['ministry']] : []),
+        ministry: normalizeMinistry(latestMember['ministry']),
         is_visitor: latestMember['is_visitor'] || false
       })
       // Initialize parent info from member
@@ -222,6 +223,9 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     setLoading(true)
 
     try {
+      // Ensure ministry data is clean before saving
+      const cleanMinistries = normalizeMinistry(formData.ministry)
+
       await updateMember(latestMember.id, {
         // Pass normalized fields; AppContext will map to the correct table column
         full_name: formData.full_name,
@@ -237,7 +241,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         // Notes
         notes: formData.notes || null,
         // Ministry and visitor status
-        ministry: formData.ministry || [],
+        ministry: cleanMinistries,
         is_visitor: formData.is_visitor || false
       })
 

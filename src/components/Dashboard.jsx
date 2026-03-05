@@ -9,6 +9,7 @@ import SelectionToolbar from './SelectionToolbar'
 import { useLongPressSelection } from '../hooks/useLongPressSelection'
 import useHapticFeedback from '../hooks/useHapticFeedback'
 import { toast } from 'react-toastify'
+import { normalizeMinistry } from '../utils/dataUtils'
 
 // Lazy load heavy modals for better initial load performance
 const EditMemberModal = lazy(() => import('./EditMemberModal'))
@@ -1993,31 +1994,8 @@ const Dashboard = ({ isAdmin = false }) => {
 
                                 {/* Ministry Tags */}
                                 {(() => {
-                                  const normalizeMinistry = (val) => {
-                                    if (!val) return []
-                                    let arr = []
-                                    if (Array.isArray(val)) {
-                                      arr = val
-                                    } else if (typeof val === 'string') {
-                                      const s = val.trim()
-                                      if ((s.startsWith('[') && s.endsWith(']')) || s.includes('","')) {
-                                        try {
-                                          const parsed = JSON.parse(s)
-                                          arr = Array.isArray(parsed) ? parsed : [s]
-                                        } catch {
-                                          arr = s.split(',').map(x => x.trim()).filter(Boolean)
-                                        }
-                                      } else if (s.includes(',')) {
-                                        arr = s.split(',').map(x => x.trim()).filter(Boolean)
-                                      } else {
-                                        arr = [s]
-                                      }
-                                    }
-                                    const cleaned = arr
-                                      .map(x => typeof x === 'string' ? x.replace(/^\\[\"\\s]*|[\"\\s]*\\]$/g, '').trim() : x)
-                                      .filter(Boolean)
-                                    return Array.from(new Set(cleaned))
-                                  }
+                                  // normalizeMinistry is imported from utils
+
                                   const ministries = normalizeMinistry(member.ministry)
                                   if (ministries.length === 0) return null
                                   return (
