@@ -109,6 +109,7 @@ const Dashboard = ({ isAdmin = false }) => {
 
   // Handle filter closing with animation
   const closeFilters = () => {
+    selection()
     setIsClosingFilters(true)
     setTimeout(() => {
       setShowFilters(false)

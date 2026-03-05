@@ -54,18 +54,18 @@ const useHapticFeedback = () => {
   }, [])
 
   const tap = useCallback((pattern = null, tone = 'tap') => {
-    const useSoundFallback = shouldUseSoundFallback()
+    const canVibrate = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
     try {
       if (pattern) {
         trigger(pattern)
       } else {
         trigger()
       }
-      playClick(tone)
-    } catch {
-      if (useSoundFallback) {
+      if (!canVibrate) {
         playClick(tone)
       }
+    } catch {
+      playClick(tone)
     }
   }, [playClick, shouldUseSoundFallback, trigger])
 
