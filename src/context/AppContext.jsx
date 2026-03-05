@@ -105,7 +105,7 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }) => {
   // Get user from auth context - may be null during initial load
-  const authContext = useAuth()
+  const authContext = useContext(useAuth) || {}
   const user = authContext?.user
   const authLoading = authContext?.loading
   const [members, setMembers] = useState([])
@@ -291,7 +291,7 @@ export const AppProvider = ({ children }) => {
 
   // Check if Supabase is properly configured
   const isSupabaseConfigured = useCallback(() => {
-    const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+    const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL
     return supabase && supabaseUrl &&
       supabaseUrl !== 'your_supabase_url_here' &&
       supabaseUrl !== 'https://placeholder.supabase.co'
