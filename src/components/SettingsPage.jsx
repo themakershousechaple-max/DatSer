@@ -55,7 +55,7 @@ import AdminControlsModal from './AdminControlsModal'
 import ArchiveMonthModal from './ArchiveMonthModal'
 import useHapticFeedback from '../hooks/useHapticFeedback'
 
-const SettingsPage = ({ onBack, navigateToSection }) => {
+const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
     const { user, signOut, preferences, resetPassword } = useAuth()
     const { isDarkMode, toggleTheme, themeMode, setThemeMode, commandKEnabled, setCommandKEnabled } = useTheme()
     const { members, monthlyTables, currentTable, setCurrentTable, isSupabaseConfigured, createNewMonth, deleteMonthTable, isCollaborator, dataOwnerId, lockedDefaultDate, saveLockedDefaultDate } = useApp()
@@ -731,7 +731,8 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                         </div>
 
                         {monthViewMode === 'list' ? (
-                            <div className="relative">
+                            <>
+                                <div className="relative">
                                 <button
                                     type="button"
                                     onClick={() => setShowMonthDropdown(prev => !prev)}
@@ -796,7 +797,18 @@ const SettingsPage = ({ onBack, navigateToSection }) => {
                                         )}
                                     </div>
                                 )}
-                            </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        selection()
+                                        if (onCreateMonth) onCreateMonth()
+                                    }}
+                                    className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-xl font-medium transition-colors"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Create New Month
+                                </button>
+                            </>
                         ) : (
                             <div className="space-y-4">
                                 {/* Year Tabs */}

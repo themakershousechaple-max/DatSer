@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, Calendar, X } from 'lucide-react'
+import { Check, Calendar, X, Plus } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import useHapticFeedback from '../hooks/useHapticFeedback'
 
-const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
+const MonthPickerPopup = ({ isOpen, onClose, anchorRef, onCreateMonth }) => {
     const { monthlyTables, currentTable, setCurrentTable, isCollaborator, selectedAttendanceDate, setAndSaveAttendanceDate, getSundaysInMonth, ownerStickySundays } = useApp()
     const { selection } = useHapticFeedback()
     const popupRef = useRef(null)
@@ -215,6 +215,23 @@ const MonthPickerPopup = ({ isOpen, onClose, anchorRef }) => {
                                 )
                             })}
                         </div>
+                    </div>
+                )}
+
+                {/* Create New Month Button (Owner only) */}
+                {!isCollaborator && (
+                    <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-sm">
+                        <button
+                            onClick={() => {
+                                selection()
+                                onClose()
+                                if (onCreateMonth) onCreateMonth()
+                            }}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors text-sm shadow-sm btn-press"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Create New Month
+                        </button>
                     </div>
                 )}
             </div>

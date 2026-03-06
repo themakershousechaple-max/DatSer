@@ -334,6 +334,7 @@ const Header = ({ currentView, setCurrentView, isAdmin, setIsAdmin, onAddMember,
         isOpen={showMonthPicker}
         onClose={() => setShowMonthPicker(false)}
         anchorRef={monthButtonRef}
+        onCreateMonth={onCreateMonth}
       />
       {/* Badge filter popup removed; badge chips now render on the Edited page */}
     </header>

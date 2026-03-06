@@ -255,6 +255,7 @@ function AppContent({ isMobile }) {
                 setNavigateToSettingsSection(null)
               }}
               navigateToSection={navigateToSettingsSection}
+              onCreateMonth={() => setShowMonthModal(true)}
             />
           </Suspense>
         )}
