@@ -19,37 +19,47 @@ const useHapticFeedback = () => {
     try {
       const context = createAudioContext()
       if (!context) return
+      const playTone = () => {
+        const now = context.currentTime
+        const oscillator = context.createOscillator()
+        const gainNode = context.createGain()
+        oscillator.type = tone === 'error' ? 'triangle' : 'sine'
+        if (tone === 'success') {
+          oscillator.frequency.setValueAtTime(760, now)
+          oscillator.frequency.exponentialRampToValueAtTime(980, now + 0.06)
+        } else if (tone === 'error') {
+          oscillator.frequency.setValueAtTime(420, now)
+          oscillator.frequency.exponentialRampToValueAtTime(300, now + 0.08)
+        } else {
+          oscillator.frequency.setValueAtTime(640, now)
+        }
+        gainNode.gain.setValueAtTime(0.0001, now)
+        gainNode.gain.exponentialRampToValueAtTime(tone === 'error' ? 0.03 : 0.024, now + 0.01)
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + (tone === 'success' ? 0.1 : tone === 'error' ? 0.11 : 0.06))
+        oscillator.connect(gainNode)
+        gainNode.connect(context.destination)
+        oscillator.start(now)
+        oscillator.stop(now + (tone === 'success' ? 0.11 : tone === 'error' ? 0.12 : 0.07))
+      }
       if (context.state === 'suspended') {
-        context.resume().catch(() => { })
+        context.resume().then(playTone).catch(() => { })
+        return
       }
-      const now = context.currentTime
-      const oscillator = context.createOscillator()
-      const gainNode = context.createGain()
-      oscillator.type = tone === 'error' ? 'triangle' : 'sine'
-      if (tone === 'success') {
-        oscillator.frequency.setValueAtTime(760, now)
-        oscillator.frequency.exponentialRampToValueAtTime(980, now + 0.06)
-      } else if (tone === 'error') {
-        oscillator.frequency.setValueAtTime(420, now)
-        oscillator.frequency.exponentialRampToValueAtTime(300, now + 0.08)
-      } else {
-        oscillator.frequency.setValueAtTime(640, now)
-      }
-      gainNode.gain.setValueAtTime(0.0001, now)
-      gainNode.gain.exponentialRampToValueAtTime(tone === 'error' ? 0.03 : 0.024, now + 0.01)
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + (tone === 'success' ? 0.1 : tone === 'error' ? 0.11 : 0.06))
-      oscillator.connect(gainNode)
-      gainNode.connect(context.destination)
-      oscillator.start(now)
-      oscillator.stop(now + (tone === 'success' ? 0.11 : tone === 'error' ? 0.12 : 0.07))
+      playTone()
     } catch { }
   }, [createAudioContext])
 
   const shouldUseSoundFallback = useCallback(() => {
-    const isDesktopPointer = typeof window !== 'undefined' &&
+    const hasFinePointer = typeof window !== 'undefined' &&
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(pointer: fine)').matches
-    if (isDesktopPointer) {
+    const hasHoverPointer = typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(hover: hover)').matches
+    const hasNoTouchPoints = typeof navigator !== 'undefined' &&
+      typeof navigator.maxTouchPoints === 'number' &&
+      navigator.maxTouchPoints === 0
+    if (hasFinePointer || hasHoverPointer || hasNoTouchPoints) {
       return true
     }
     if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') {
