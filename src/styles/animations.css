@@ -392,3 +392,99 @@
 .dark .glow-on-hover:hover {
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.25);
 }
+
+@keyframes appBackgroundFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    25% {
+        background-position: 70% 20%;
+    }
+
+    50% {
+        background-position: 100% 60%;
+    }
+
+    75% {
+        background-position: 35% 100%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.bg-auth-orb-light {
+    background:
+        radial-gradient(54% 56% at 18% 16%, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 72%),
+        radial-gradient(50% 52% at 86% 82%, rgba(251, 146, 60, 0.34) 0%, rgba(251, 146, 60, 0) 74%);
+    animation: authOrbFloat 10s ease-in-out infinite;
+    will-change: transform, opacity;
+    filter: blur(22px);
+    opacity: 0.95;
+}
+
+.bg-auth-orb-dark {
+    background:
+        radial-gradient(58% 62% at 16% 14%, rgba(251, 146, 60, 0.34) 0%, rgba(251, 146, 60, 0) 74%),
+        radial-gradient(52% 56% at 84% 84%, rgba(39, 24, 16, 0.56) 0%, rgba(39, 24, 16, 0) 76%);
+    animation: authOrbFloat 11.5s ease-in-out infinite;
+    will-change: transform, opacity;
+    filter: blur(28px);
+    opacity: 0.9;
+}
+
+.bg-auth-wave-light {
+    background:
+        radial-gradient(86% 78% at 54% 112%, rgba(251, 146, 60, 0.26) 0%, rgba(251, 146, 60, 0) 76%),
+        linear-gradient(140deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 237, 213, 0.2) 52%, rgba(255, 255, 255, 0.24) 100%);
+    animation: authWaveDrift 13.5s ease-in-out infinite;
+    will-change: transform, opacity;
+    filter: blur(16px);
+    opacity: 0.92;
+}
+
+.bg-auth-wave-dark {
+    background:
+        radial-gradient(88% 74% at 52% 110%, rgba(251, 146, 60, 0.2) 0%, rgba(251, 146, 60, 0) 78%),
+        linear-gradient(140deg, rgba(22, 14, 10, 0.3) 0%, rgba(18, 18, 18, 0.24) 58%, rgba(12, 12, 12, 0.28) 100%);
+    animation: authWaveDrift 15.5s ease-in-out infinite;
+    will-change: transform, opacity;
+    filter: blur(20px);
+    opacity: 0.88;
+}
+
+@keyframes authOrbFloat {
+    0% {
+        transform: translate3d(-3%, -2%, 0) scale(1);
+        opacity: 0.92;
+    }
+
+    50% {
+        transform: translate3d(4%, 3%, 0) scale(1.08);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate3d(-3%, -2%, 0) scale(1);
+        opacity: 0.92;
+    }
+}
+
+@keyframes authWaveDrift {
+    0% {
+        transform: translate3d(0%, 0%, 0) scale(1.02);
+        opacity: 0.9;
+    }
+
+    50% {
+        transform: translate3d(0%, -4%, 0) scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate3d(0%, 0%, 0) scale(1.02);
+        opacity: 0.9;
+    }
+}

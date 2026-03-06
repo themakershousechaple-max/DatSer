@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Check, X, Sparkles } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Check, X, Sparkles, Sun, Moon } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { supabase } from '../lib/supabase'
+import { useTheme } from '../context/ThemeContext'
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY
 
@@ -32,6 +33,7 @@ const getPasswordStrength = (password) => {
 
 const LoginPage = () => {
   const { signInWithGoogle, signUpWithEmail, signInWithEmail, signInWithMagicLink, resetPassword, bypassAuth } = useAuth()
+  const { isDarkMode, themeMode, setThemeMode } = useTheme()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -77,6 +79,13 @@ const LoginPage = () => {
 
   // Calculate password strength for signup mode
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password])
+  const authPageStyle = useMemo(() => ({
+    background: isDarkMode
+      ? 'radial-gradient(140% 160% at 12% 10%, #fb923c 0%, #f97316 18%, #2a1a12 42%, #151515 68%, #0b0b0b 100%)'
+      : 'radial-gradient(140% 160% at 12% 10%, #fff7ed 0%, #ffffff 38%, #fed7aa 62%, #fdba74 82%, #fff1e6 100%)',
+    backgroundSize: '280% 280%',
+    animation: isDarkMode ? 'appBackgroundFlow 13s ease-in-out infinite alternate' : 'appBackgroundFlow 11s ease-in-out infinite alternate'
+  }), [isDarkMode])
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
@@ -254,12 +263,49 @@ const LoginPage = () => {
     resetForm()
   }
 
+  const themeToggle = (
+    <div className="fixed top-4 right-4 z-40">
+      <div className="inline-flex items-center p-1 rounded-full border border-white/30 dark:border-white/10 bg-white/70 dark:bg-black/30 backdrop-blur-md shadow-sm">
+        <button
+          type="button"
+          onClick={() => setThemeMode('light')}
+          className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${themeMode === 'light'
+            ? 'bg-orange-500 text-white'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10'
+            }`}
+          title="Light mode"
+        >
+          <Sun className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setThemeMode('dark')}
+          className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${themeMode === 'dark'
+            ? 'bg-orange-500 text-white'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10'
+            }`}
+          title="Dark mode"
+        >
+          <Moon className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
+  const backgroundLayers = (
+    <>
+      <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-auth-orb-dark' : 'bg-auth-orb-light'}`} />
+      <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-auth-wave-dark' : 'bg-auth-wave-light'}`} />
+    </>
+  )
+
   // Password reset flow - shown when user clicks reset link from email
   if (isPasswordResetFlow) {
     if (resetSuccess) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md">
+        <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4" style={authPageStyle}>
+          {backgroundLayers}
+          {themeToggle}
+          <div className="w-full max-w-md relative z-10">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                 <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -280,8 +326,10 @@ const LoginPage = () => {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4" style={authPageStyle}>
+        {backgroundLayers}
+        {themeToggle}
+        <div className="w-full max-w-md relative z-10">
           {/* Logo/Brand Section */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg mb-3">
@@ -423,8 +471,10 @@ const LoginPage = () => {
   // Invite flow loading screen - shown while Supabase processes the invite token
   if (isInviteFlow) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4" style={authPageStyle}>
+        {backgroundLayers}
+        {themeToggle}
+        <div className="w-full max-w-md relative z-10">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 flex items-center justify-center">
               <Mail className="w-8 h-8 text-orange-600 animate-pulse" />
@@ -447,8 +497,10 @@ const LoginPage = () => {
   // Confirmation sent screen
   if (confirmationSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4" style={authPageStyle}>
+        {backgroundLayers}
+        {themeToggle}
+        <div className="w-full max-w-md relative z-10">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
               <Mail className="w-8 h-8 text-green-600" />
@@ -480,8 +532,10 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4" style={authPageStyle}>
+      {backgroundLayers}
+      {themeToggle}
+      <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand Section */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg mb-3">
@@ -489,16 +543,16 @@ const LoginPage = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
             Datser
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Attendance Tracking & Management
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+        <div className="bg-white/95 dark:bg-gray-900/85 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 backdrop-blur-sm">
           {/* Mode Header */}
           <div className="text-center mb-5">
             {(mode === 'forgot' || mode === 'magiclink') && (
@@ -509,13 +563,13 @@ const LoginPage = () => {
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               {mode === 'login' && 'Welcome Back'}
               {mode === 'signup' && 'Create Account'}
               {mode === 'forgot' && 'Reset Password'}
               {mode === 'magiclink' && 'Magic Link Login'}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
               {mode === 'login' && 'Sign in to continue'}
               {mode === 'signup' && 'Sign up to get started'}
               {mode === 'forgot' && 'Enter your email to reset'}
@@ -556,7 +610,7 @@ const LoginPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -571,7 +625,7 @@ const LoginPage = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
-                    className="w-full pl-11 pr-12 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    className="w-full pl-11 pr-12 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   />
                   <button
                     type="button"
@@ -687,11 +741,11 @@ const LoginPage = () => {
 
           {/* Divider */}
           <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
+              <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-gray-500">
+              <span className="px-3 bg-white dark:bg-gray-900/85 text-gray-500 dark:text-gray-400">
                 or
               </span>
             </div>
@@ -701,7 +755,7 @@ const LoginPage = () => {
           <button
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 bg-white border-2 border-gray-300 hover:border-gray-400 hover:shadow-md text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-md text-gray-700 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -742,7 +796,7 @@ const LoginPage = () => {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-5 text-xs text-gray-500">
+        <div className="text-center mt-5 text-xs text-gray-600 dark:text-gray-300">
           <p>A simple platform for tracking and organizing records.</p>
         </div>
       </div>
