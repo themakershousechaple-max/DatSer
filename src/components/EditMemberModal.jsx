@@ -105,10 +105,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
   // Initialize form data only once per modal open/member id
   useEffect(() => {
     if (!isOpen || !member?.id) return
-    if (hydratedMemberIdRef.current === member.id || isDirtyRef.current) return
-    if (!stableMemberRef.current || stableMemberRef.current.id !== member.id) {
-      stableMemberRef.current = member
-    }
+    if (hydratedMemberIdRef.current !== null || isDirtyRef.current) return
+    stableMemberRef.current = member
     const sourceMember = stableMemberRef.current
     if (sourceMember) {
       // Normalize gender to lowercase to match radio button values
