@@ -25,6 +25,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
   }
   const [loading, setLoading] = useState(false)
   const hydratedMemberIdRef = useRef(null)
+  const stableMemberRef = useRef(null)
   const isDirtyRef = useRef(false)
   const [formData, setFormData] = useState({
     full_name: '',
@@ -105,7 +106,10 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
   useEffect(() => {
     if (!isOpen || !member?.id) return
     if (hydratedMemberIdRef.current === member.id || isDirtyRef.current) return
-    const sourceMember = member
+    if (!stableMemberRef.current || stableMemberRef.current.id !== member.id) {
+      stableMemberRef.current = member
+    }
+    const sourceMember = stableMemberRef.current
     if (sourceMember) {
       // Normalize gender to lowercase to match radio button values
       const rawGender = sourceMember['Gender'] || ''
@@ -143,11 +147,12 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
       hydratedMemberIdRef.current = member.id
       isDirtyRef.current = false
     }
-  }, [isOpen, member?.id, member])
+  }, [isOpen, member?.id])
 
   useEffect(() => {
     if (!isOpen) {
       hydratedMemberIdRef.current = null
+      stableMemberRef.current = null
       isDirtyRef.current = false
     }
   }, [isOpen])
