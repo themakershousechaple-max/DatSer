@@ -4041,7 +4041,8 @@ export const AppProvider = ({ children }) => {
     lockedDefaultDate,
     saveLockedDefaultDate,
     setCollaboratorOverride,
-    fetchLockedDefaultDate
+    fetchLockedDefaultDate,
+    sendAdminPeriodBroadcast
   }), [
     members, filteredMembers, loading, searchTerm, serverSearchResults,
     attendanceData, currentTable, monthlyTables, selectedAttendanceDate,
@@ -4059,7 +4060,7 @@ export const AppProvider = ({ children }) => {
     focusDateSelector, validateMemberData, getPastSundays, getMissingAttendance,
     autoAllDatesEnabled, setAutoAllDatesEnabled,
     hasAccess, isCollaborator, isAdminCollaborator, dataOwnerId, ownerStickyMonth, ownerStickySundays, adminSyncNotice, acknowledgeAdminSync,
-    lockedDefaultDate, saveLockedDefaultDate, setCollaboratorOverride, fetchLockedDefaultDate
+    lockedDefaultDate, saveLockedDefaultDate, setCollaboratorOverride, fetchLockedDefaultDate, sendAdminPeriodBroadcast
   ])
 
   return (

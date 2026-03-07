@@ -22,7 +22,7 @@ const MONTHS = [
 
 const AdminControlsModal = ({ isOpen, onClose }) => {
     const { user } = useAuth()
-    const { monthlyTables, isSupabaseConfigured, setCurrentTable, setAndSaveAttendanceDate } = useApp()
+    const { monthlyTables, isSupabaseConfigured, setCurrentTable, setAndSaveAttendanceDate, sendAdminPeriodBroadcast } = useApp()
 
     const [loading, setLoading] = useState(false)
     const [stickyMonth, setStickyMonth] = useState('')
@@ -156,6 +156,12 @@ const AdminControlsModal = ({ isOpen, onClose }) => {
                     toast.warning('Sticky month saved, but could not apply to all collaborators')
                 } else {
                     toast.success(`Sticky month set to ${monthIdentifier} for all collaborators`)
+                    
+                    // Broadcast change to all collaborators in real-time
+                    sendAdminPeriodBroadcast({
+                        targetTable: monthIdentifier,
+                        targetDate: null
+                    })
                 }
                 
                 // Apply to admin immediately
@@ -208,6 +214,14 @@ const AdminControlsModal = ({ isOpen, onClose }) => {
                     toast.warning('Sticky Sundays saved, but could not apply to all collaborators')
                 } else {
                     toast.success(`Sticky Sundays set for all collaborators (${stickySundays.length} selected)`)
+                    
+                    // Broadcast change to all collaborators in real-time
+                    if (stickySundays.length > 0) {
+                        sendAdminPeriodBroadcast({
+                            targetTable: stickyMonth,
+                            targetDate: stickySundays[0]
+                        })
+                    }
                 }
                 
                 // Apply to admin immediately
