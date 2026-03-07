@@ -63,8 +63,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     calculateAttendanceRate,
     isCollaborator,
     dataOwnerId,
-    isSupabaseConfigured,
-    sendAdminPeriodBroadcast
+    isSupabaseConfigured
   } = useApp()
   const { isDarkMode } = useTheme()
   const { user, signInWithGoogle } = useAuth()
@@ -197,10 +196,9 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const [showBadgeResults, setShowBadgeResults] = useState(false)
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false)
 
-  // Ministry management state - SUPABASE AS SOURCE OF TRUTH
+  // Ministry management state - SIMPLE APPROACH
   const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
-  const [ministries, setMinistries] = useState([])
-  const [ministriesLoading, setMinistriesLoading] = useState(true)
+  const [ministries, setMinistries] = useState(defaultMinistries)
   const [newMinistry, setNewMinistry] = useState('')
   const [editingMinistry, setEditingMinistry] = useState(null)
   const [editMinistryValue, setEditMinistryValue] = useState('')
@@ -210,17 +208,12 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   )
   const canAddMinistry = normalizedNewMinistry.length > 0
 
-  // Load ministries from Supabase on mount and whenever workspaceOwnerId changes
+  // Load ministries from Supabase on mount
   useEffect(() => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId) {
-      setMinistries(defaultMinistries)
-      setMinistriesLoading(false)
-      return
-    }
+    if (!isSupabaseConfigured() || !workspaceOwnerId) return
 
     const loadMinistries = async () => {
       try {
-        setMinistriesLoading(true)
         const { data, error } = await supabase
           .from('user_preferences')
           .select('ministry_groups')
@@ -230,18 +223,10 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
         if (error) throw error
         
         if (Array.isArray(data?.ministry_groups) && data.ministry_groups.length > 0) {
-          const normalized = normalizeMinistryList(data.ministry_groups)
-          setMinistries(normalized)
-          console.log('[MINISTRY] Loaded from Supabase:', normalized)
-        } else {
-          setMinistries(defaultMinistries)
-          console.log('[MINISTRY] No ministries in Supabase, using defaults')
+          setMinistries(normalizeMinistryList(data.ministry_groups))
         }
       } catch (error) {
-        console.error('[MINISTRY] Error loading ministries:', error)
-        setMinistries(defaultMinistries)
-      } finally {
-        setMinistriesLoading(false)
+        console.error('[MINISTRY] Error loading:', error)
       }
     }
 
@@ -257,16 +242,15 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'user_preferences',
           filter: `user_id=eq.${workspaceOwnerId}`
         },
         (payload) => {
-          console.log('[MINISTRY] Real-time update from Supabase:', payload)
-          if (!Array.isArray(payload?.new?.ministry_groups)) return
-          const updated = normalizeMinistryList(payload.new.ministry_groups)
-          setMinistries(updated)
+          if (Array.isArray(payload?.new?.ministry_groups)) {
+            setMinistries(normalizeMinistryList(payload.new.ministry_groups))
+          }
         }
       )
       .subscribe()
@@ -279,13 +263,12 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const addMinistry = async () => {
     const trimmedMinistry = newMinistry.trim().replace(/\s+/g, ' ')
     
-    if (!trimmedMinistry || trimmedMinistry.length === 0) {
+    if (!trimmedMinistry) {
       toast.warning('Please enter a ministry name')
       return
     }
 
-    const alreadyExists = ministries.some(m => m.toLowerCase() === trimmedMinistry.toLowerCase())
-    if (alreadyExists) {
+    if (ministries.some(m => m.toLowerCase() === trimmedMinistry.toLowerCase())) {
       toast.info(`"${trimmedMinistry}" already exists`)
       return
     }
@@ -293,21 +276,22 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     try {
       const updatedMinistries = [...ministries, trimmedMinistry]
       
-      // Save to Supabase via RPC
-      const { error } = await supabase.rpc('update_ministry_groups', {
-        p_ministry_groups: updatedMinistries,
-        p_owner_id: workspaceOwnerId
-      })
+      // Upsert to Supabase (insert if not exists, update if does)
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: workspaceOwnerId,
+          ministry_groups: updatedMinistries,
+          updated_at: new Date().toISOString()
+        })
 
       if (error) throw error
 
-      // Clear input field
       setNewMinistry('')
-      toast.success(`Added "${trimmedMinistry}" ministry`)
-      // Real-time listener will update the state automatically
+      toast.success(`Added "${trimmedMinistry}"`)
     } catch (error) {
-      console.error('[MINISTRY] Error adding ministry:', error)
-      toast.error('Failed to add ministry: ' + (error?.message || 'Unknown error'))
+      console.error('[MINISTRY] Error:', error)
+      toast.error('Failed to add: ' + (error?.message || 'Unknown error'))
     }
   }
 
@@ -315,19 +299,21 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     try {
       const updatedMinistries = ministries.filter(m => m !== ministry)
       
-      // Save to Supabase via RPC
-      const { error } = await supabase.rpc('update_ministry_groups', {
-        p_ministry_groups: updatedMinistries,
-        p_owner_id: workspaceOwnerId
-      })
+      // Upsert to Supabase
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: workspaceOwnerId,
+          ministry_groups: updatedMinistries,
+          updated_at: new Date().toISOString()
+        })
 
       if (error) throw error
 
-      toast.success(`Removed "${ministry}" ministry`)
-      // Real-time listener will update the state automatically
+      toast.success(`Removed "${ministry}"`)
     } catch (error) {
-      console.error('[MINISTRY] Error deleting ministry:', error)
-      toast.error('Failed to delete ministry: ' + (error?.message || 'Unknown error'))
+      console.error('[MINISTRY] Error:', error)
+      toast.error('Failed to delete: ' + (error?.message || 'Unknown error'))
     }
   }
 
@@ -342,35 +328,33 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
       
       if (!trimmed || trimmed === editingMinistry) {
         setEditingMinistry(null)
-        setEditMinistryValue('')
         return
       }
 
-      const alreadyExists = ministries.some(
-        m => m !== editingMinistry && m.toLowerCase() === trimmed.toLowerCase()
-      )
-      if (alreadyExists) {
+      if (ministries.some(m => m !== editingMinistry && m.toLowerCase() === trimmed.toLowerCase())) {
         toast.info(`"${trimmed}" already exists`)
         return
       }
 
-      const updatedMinistries = ministries.map(m => (m === editingMinistry ? trimmed : m))
+      const updatedMinistries = ministries.map(m => m === editingMinistry ? trimmed : m)
       
-      // Save to Supabase via RPC
-      const { error } = await supabase.rpc('update_ministry_groups', {
-        p_ministry_groups: updatedMinistries,
-        p_owner_id: workspaceOwnerId
-      })
+      // Upsert to Supabase
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: workspaceOwnerId,
+          ministry_groups: updatedMinistries,
+          updated_at: new Date().toISOString()
+        })
 
       if (error) throw error
 
-      toast.success(`Updated ministry to "${trimmed}"`)
+      toast.success(`Updated to "${trimmed}"`)
       setEditingMinistry(null)
       setEditMinistryValue('')
-      // Real-time listener will update the state automatically
     } catch (error) {
-      console.error('[MINISTRY] Error saving ministry:', error)
-      toast.error('Failed to save ministry: ' + (error?.message || 'Unknown error'))
+      console.error('[MINISTRY] Error:', error)
+      toast.error('Failed to save: ' + (error?.message || 'Unknown error'))
     }
   }
 
