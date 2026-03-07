@@ -660,3 +660,41 @@ details[open] summary~* {
   right: auto !important;
   transform: translateX(-50%);
 }
+
+/* Toastify Customization */
+.Toastify__toast {
+  border-radius: 12px !important;
+  font-family: inherit !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  padding: 16px !important;
+}
+.Toastify__toast-body {
+  font-weight: 500 !important;
+  font-size: 0.95rem !important;
+}
+.Toastify__toast--success {
+  background: #10b981 !important;
+  color: white !important;
+}
+.Toastify__toast--error {
+  background: #ef4444 !important;
+  color: white !important;
+}
+.Toastify__toast--info {
+  background: #3b82f6 !important;
+  color: white !important;
+}
+.Toastify__toast--warning {
+  background: #f59e0b !important;
+  color: white !important;
+}
+.Toastify__close-button {
+  color: white !important;
+  opacity: 0.8 !important;
+}
+.Toastify__close-button:hover {
+  opacity: 1 !important;
+}
+.Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.3) !important;
+}

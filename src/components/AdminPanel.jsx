@@ -200,11 +200,11 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
   const ministryStorageKey = workspaceOwnerId ? `customMinistries_${workspaceOwnerId}` : 'customMinistries'
   const [ministries, setMinistries] = useState(() => {
-    const saved = localStorage.getItem('customMinistries')
+    const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
     if (!saved) return defaultMinistries
     try {
       const parsed = normalizeMinistryList(JSON.parse(saved))
-      return parsed.length > 0 ? parsed : defaultMinistries
+      return parsed
     } catch {
       return defaultMinistries
     }
@@ -224,7 +224,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     if (scopedSaved) {
       try {
         const parsed = normalizeMinistryList(JSON.parse(scopedSaved))
-        setMinistries(parsed.length > 0 ? parsed : defaultMinistries)
+        setMinistries(parsed)
         return
       } catch {
       }
@@ -233,8 +233,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     const legacySaved = localStorage.getItem('customMinistries')
     if (legacySaved) {
       try {
-        const normalizedLegacy = normalizeMinistryList(JSON.parse(legacySaved))
-        const legacyMinistries = normalizedLegacy.length > 0 ? normalizedLegacy : defaultMinistries
+        const legacyMinistries = normalizeMinistryList(JSON.parse(legacySaved))
         setMinistries(legacyMinistries)
         localStorage.setItem(ministryStorageKey, JSON.stringify(legacyMinistries))
         return
@@ -256,8 +255,10 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   useEffect(() => {
     if (!isSupabaseConfigured() || !workspaceOwnerId) return
     let active = true
+    const hasLocalScopedMinistries = !!localStorage.getItem(ministryStorageKey)
 
     const fetchSharedMinistries = async () => {
+      if (hasLocalScopedMinistries) return
       try {
         const { data, error } = await supabase
           .from('user_preferences')
@@ -304,39 +305,48 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   }, [workspaceOwnerId, ministryStorageKey, isSupabaseConfigured])
 
   useEffect(() => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId || isCollaborator) return
+    if (!isSupabaseConfigured() || !workspaceOwnerId) return
+
     const syncMinistries = async () => {
       try {
-        const { error } = await supabase
-          .from('user_preferences')
-          .upsert(
-            {
-              user_id: workspaceOwnerId,
-              ministry_groups: ministries,
-              updated_at: new Date().toISOString()
-            },
-            { onConflict: 'user_id' }
-          )
-        if (error) throw error
-
-        const { error: collabSyncError } = await supabase.rpc('set_collaborators_ministry_groups', {
-          p_owner_id: workspaceOwnerId,
-          p_ministry_groups: ministries
+        // Use RPC that handles permissions for both owners and collaborators
+        const { error } = await supabase.rpc('update_ministry_groups', {
+          p_ministry_groups: ministries,
+          p_owner_id: workspaceOwnerId
         })
-        if (collabSyncError) {
-          console.warn('Could not sync ministries to collaborators:', collabSyncError)
+
+        if (error) {
+          // Fallback to direct update if RPC fails (e.g. legacy/offline), but only for owner
+          if (user?.id === workspaceOwnerId) {
+            const { error: directError } = await supabase
+              .from('user_preferences')
+              .upsert(
+                {
+                  user_id: workspaceOwnerId,
+                  ministry_groups: ministries,
+                  updated_at: new Date().toISOString()
+                },
+                { onConflict: 'user_id' }
+              )
+            if (directError) throw directError
+          } else {
+            throw error
+          }
         }
       } catch (error) {
         console.warn('Could not save shared ministries to Supabase:', error)
       }
     }
-    syncMinistries()
-  }, [ministries, workspaceOwnerId, isSupabaseConfigured, isCollaborator])
+
+    // Debounce updates to prevent spamming
+    const timeoutId = setTimeout(syncMinistries, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [ministries, workspaceOwnerId, isSupabaseConfigured, user?.id])
 
   const addMinistry = () => {
     if (!canAddMinistry) return
-    const exists = ministries.some(m => m.toLowerCase() === normalizedNewMinistry.toLowerCase())
-    if (exists) {
+    const alreadyExists = ministries.some(m => m.toLowerCase() === normalizedNewMinistry.toLowerCase())
+    if (alreadyExists) {
       toast.info(`"${normalizedNewMinistry}" already exists`)
       return
     }
@@ -346,7 +356,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   }
 
   const deleteMinistry = (ministry) => {
-    setMinistries(ministries.filter(m => m !== ministry))
+    setMinistries(prev => prev.filter(m => m !== ministry))
     toast.success(`Removed "${ministry}" ministry`)
   }
 
@@ -358,16 +368,14 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const saveEditMinistry = () => {
     const trimmed = editMinistryValue.replace(/\s+/g, ' ').trim()
     if (trimmed && trimmed !== editingMinistry) {
-      const exists = ministries.some(
+      const alreadyExists = ministries.some(
         m => m !== editingMinistry && m.toLowerCase() === trimmed.toLowerCase()
       )
-      if (exists) {
+      if (alreadyExists) {
         toast.info(`"${trimmed}" already exists`)
-        setEditingMinistry(null)
-        setEditMinistryValue('')
         return
       }
-      setMinistries(ministries.map(m => m === editingMinistry ? trimmed : m))
+      setMinistries(prev => prev.map(m => (m === editingMinistry ? trimmed : m)))
       toast.success(`Updated ministry to "${trimmed}"`)
     }
     setEditingMinistry(null)

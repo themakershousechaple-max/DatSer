@@ -7,6 +7,21 @@ import { toast } from 'react-toastify'
 import useHapticFeedback from '../hooks/useHapticFeedback'
 import { supabase } from '../lib/supabase'
 
+const normalizeMinistryList = (items) => {
+  if (!Array.isArray(items)) return []
+  const seen = new Set()
+  const normalized = []
+  for (const item of items) {
+    const value = String(item || '').replace(/\s+/g, ' ').trim()
+    if (!value) continue
+    const key = value.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    normalized.push(value)
+  }
+  return normalized
+}
+
 const MemberModal = ({ isOpen, onClose }) => {
   const { addMember, markAttendance, currentTable, toggleMemberBadge, updateMemberBadges, updateMember, isCollaborator, dataOwnerId, isSupabaseConfigured } = useApp()
   const { user } = useAuth()
@@ -38,11 +53,12 @@ const MemberModal = ({ isOpen, onClose }) => {
   const defaultMinistries = ['Choir', 'Ushers', 'Youth', 'Children', 'Media', 'Welfare', 'Protocol', 'Evangelism']
   const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
   const ministryStorageKey = workspaceOwnerId ? `customMinistries_${workspaceOwnerId}` : 'customMinistries'
-  const preferenceUserId = user?.id
+  const preferenceUserId = workspaceOwnerId
   const [ministries, setMinistries] = React.useState(() => {
     try {
       const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
-      return saved ? JSON.parse(saved) : defaultMinistries
+      if (!saved) return defaultMinistries
+      return normalizeMinistryList(JSON.parse(saved))
     } catch {
       return defaultMinistries
     }
@@ -70,7 +86,7 @@ const MemberModal = ({ isOpen, onClose }) => {
     const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
     if (saved) {
       try {
-        setMinistries(JSON.parse(saved))
+        setMinistries(normalizeMinistryList(JSON.parse(saved)))
       } catch {
       }
     }
@@ -79,7 +95,9 @@ const MemberModal = ({ isOpen, onClose }) => {
   React.useEffect(() => {
     if (!isSupabaseConfigured() || !preferenceUserId) return
     let active = true
+    const hasLocalScopedMinistries = !!localStorage.getItem(ministryStorageKey)
     const fetchMinistries = async () => {
+      if (hasLocalScopedMinistries) return
       try {
         const { data, error } = await supabase
           .from('user_preferences')
@@ -89,9 +107,11 @@ const MemberModal = ({ isOpen, onClose }) => {
         if (error) throw error
         if (!active) return
         if (Array.isArray(data?.ministry_groups)) {
-          setMinistries(data.ministry_groups)
-          localStorage.setItem(ministryStorageKey, JSON.stringify(data.ministry_groups))
-          localStorage.setItem('customMinistries', JSON.stringify(data.ministry_groups))
+          const normalized = normalizeMinistryList(data.ministry_groups)
+          const next = normalized
+          setMinistries(next)
+          localStorage.setItem(ministryStorageKey, JSON.stringify(next))
+          localStorage.setItem('customMinistries', JSON.stringify(next))
         }
       } catch (error) {
         console.warn('Could not load shared ministries:', error)
@@ -111,7 +131,8 @@ const MemberModal = ({ isOpen, onClose }) => {
         },
         (payload) => {
           if (!Array.isArray(payload?.new?.ministry_groups)) return
-          const next = payload.new.ministry_groups
+          const normalized = normalizeMinistryList(payload.new.ministry_groups)
+          const next = normalized
           setMinistries(next)
           localStorage.setItem(ministryStorageKey, JSON.stringify(next))
           localStorage.setItem('customMinistries', JSON.stringify(next))
