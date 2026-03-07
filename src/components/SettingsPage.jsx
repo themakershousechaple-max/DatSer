@@ -803,6 +803,22 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
                         <ChevronLeft className="w-5 h-5 text-gray-400 rotate-180" />
                     </button>
 
+                    {/* Admin Controls (Sticky Month & Sunday) */}
+                    {!isCollaborator && (
+                        <div className="p-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer" onClick={() => setIsAdminControlsOpen(true)}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                    <Lock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-medium text-gray-900 dark:text-white">Admin Controls</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Set sticky month and Sunday dates</p>
+                                </div>
+                            </div>
+                            <ChevronLeft className="w-5 h-5 text-gray-400 rotate-180" />
+                        </div>
+                    )}
+
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
@@ -1133,9 +1149,9 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Manage who has access to your workspace</p>
             </div>
 
-            {/* Admin Controls Card - Only for owners */}
+            {/* Admin Controls Card - Only for owners - moved to Workspace section */}
             {!isCollaborator && (
-                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-4">
+                <div className="hidden bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-4">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
                             <Lock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
