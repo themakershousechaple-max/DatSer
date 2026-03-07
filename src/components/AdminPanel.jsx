@@ -309,6 +309,8 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
 
     const syncMinistries = async () => {
       try {
+        console.log('[MINISTRY] syncMinistries: Syncing to Supabase:', { ministries, workspaceOwnerId })
+        
         // Use RPC that handles permissions for both owners and collaborators
         const { error } = await supabase.rpc('update_ministry_groups', {
           p_ministry_groups: ministries,
@@ -316,8 +318,11 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
         })
 
         if (error) {
+          console.log('[MINISTRY] RPC error, attempting fallback:', error)
+          
           // Fallback to direct update if RPC fails (e.g. legacy/offline), but only for owner
           if (user?.id === workspaceOwnerId) {
+            console.log('[MINISTRY] Using direct upsert fallback')
             const { error: directError } = await supabase
               .from('user_preferences')
               .upsert(
@@ -333,8 +338,11 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
             throw error
           }
         }
+        
+        console.log('[MINISTRY] Successfully synced ministries to Supabase')
       } catch (error) {
-        console.warn('Could not save shared ministries to Supabase:', error)
+        console.error('[MINISTRY] Failed to save shared ministries:', error)
+        toast.error('Failed to save ministry: ' + (error?.message || 'Unknown error'))
       }
     }
 
@@ -344,9 +352,9 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   }, [ministries, workspaceOwnerId, isSupabaseConfigured, user?.id])
 
   const addMinistry = () => {
-    console.log('[MINISTRY] addMinistry called, canAddMinistry:', canAddMinistry)
+    console.log('[MINISTRY] addMinistry called', { newMinistry, canAddMinistry, normalizedNewMinistry })
     if (!canAddMinistry) {
-      console.log('[MINISTRY] Cannot add - canAddMinistry is false, normalizedNewMinistry:', normalizedNewMinistry)
+      console.log('[MINISTRY] Cannot add - button is disabled, canAddMinistry:', canAddMinistry)
       return
     }
     const alreadyExists = ministries.some(m => m.toLowerCase() === normalizedNewMinistry.toLowerCase())
@@ -356,7 +364,11 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
       return
     }
     console.log('[MINISTRY] Adding ministry:', normalizedNewMinistry)
-    setMinistries(prev => [...prev, normalizedNewMinistry])
+    setMinistries(prev => {
+      const updated = [...prev, normalizedNewMinistry]
+      console.log('[MINISTRY] Updated ministries state:', updated)
+      return updated
+    })
     setNewMinistry('')
     toast.success(`Added "${normalizedNewMinistry}" ministry`)
   }
