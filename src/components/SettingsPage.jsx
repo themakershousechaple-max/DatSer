@@ -506,20 +506,37 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
 
     const isOverrideActive = Boolean(lockedDefaultDate)
 
-    const handleEnableOverride = async (tableName = currentTable, sundayDate = selectedAttendanceDate) => {
+    const getFallbackOverrideDate = useCallback((tableName) => {
+        if (!tableName) return null
+        const [monthName, yearStr] = tableName.split('_')
+        const yearNum = parseInt(yearStr, 10)
+        if (!monthName || Number.isNaN(yearNum)) return null
+        const sundays = getSundaysInMonth(monthName, yearNum)
+        return sundays.length > 0 ? sundays[0] : null
+    }, [getSundaysInMonth])
+
+    const handleEnableOverride = async (tableName = currentTable, sundayDate = selectedAttendanceDate, options = {}) => {
+        const { showToast = true } = options
         if (isCollaborator) return
+        const targetTable = tableName || currentTable
+        const targetDate = sundayDate || selectedAttendanceDate || getFallbackOverrideDate(targetTable) || new Date()
         setIsOverrideSaving(true)
         try {
             const ok = await setCollaboratorOverride({
                 enabled: true,
-                tableName,
-                date: sundayDate || selectedAttendanceDate || new Date()
+                tableName: targetTable,
+                date: targetDate
             })
             if (ok) {
-                toast.success('Override enabled for all collaborators')
+                if (showToast) {
+                    toast.success('Override enabled for all collaborators')
+                }
             } else {
-                toast.error('Failed to enable override')
+                if (showToast) {
+                    toast.error('Failed to enable override')
+                }
             }
+            return ok
         } finally {
             setIsOverrideSaving(false)
         }
@@ -538,6 +555,18 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
         } finally {
             setIsOverrideSaving(false)
         }
+    }
+
+    const handleAdminSundaySelection = async (sunday, table) => {
+        if (isCollaborator || !table) return
+        if (table !== currentTable) {
+            setCurrentTable(table)
+        }
+        if (isOverrideActive) {
+            await handleEnableOverride(table, sunday, { showToast: false })
+            return
+        }
+        setAndSaveAttendanceDate(sunday, table)
     }
 
     const renderAccountSection = () => (
@@ -1024,14 +1053,11 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
                                                         return (
                                                             <div
                                                                 key={`${month}-${i}`}
-                                                                onClick={(e) => {
+                                                                onClick={async (e) => {
                                                                     e.stopPropagation()
                                                                     if (isCollaborator) return
                                                                     if (!exists) return
-                                                                    if (table !== currentTable) {
-                                                                        setCurrentTable(table)
-                                                                    }
-                                                                    setAndSaveAttendanceDate(sunday, table)
+                                                                    await handleAdminSundaySelection(sunday, table)
                                                                 }}
                                                                 className={`rounded-xl px-2 py-2 flex flex-col items-center text-center shadow-inner transition-all ${
                                                                     isLocked
