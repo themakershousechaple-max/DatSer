@@ -344,12 +344,18 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   }, [ministries, workspaceOwnerId, isSupabaseConfigured, user?.id])
 
   const addMinistry = () => {
-    if (!canAddMinistry) return
+    console.log('[MINISTRY] addMinistry called, canAddMinistry:', canAddMinistry)
+    if (!canAddMinistry) {
+      console.log('[MINISTRY] Cannot add - canAddMinistry is false, normalizedNewMinistry:', normalizedNewMinistry)
+      return
+    }
     const alreadyExists = ministries.some(m => m.toLowerCase() === normalizedNewMinistry.toLowerCase())
     if (alreadyExists) {
+      console.log('[MINISTRY] Ministry already exists:', normalizedNewMinistry)
       toast.info(`"${normalizedNewMinistry}" already exists`)
       return
     }
+    console.log('[MINISTRY] Adding ministry:', normalizedNewMinistry)
     setMinistries(prev => [...prev, normalizedNewMinistry])
     setNewMinistry('')
     toast.success(`Added "${normalizedNewMinistry}" ministry`)

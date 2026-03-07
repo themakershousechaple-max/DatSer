@@ -522,9 +522,13 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
 
     const handleEnableOverride = async (tableName = currentTable, sundayDate = selectedAttendanceDate, options = {}) => {
         const { showToast = true } = options
-        if (!hasAdminAccess) return
+        if (!hasAdminAccess) {
+            console.log('[SETTINGS] handleEnableOverride: No admin access')
+            return
+        }
         const targetTable = tableName || currentTable
         const targetDate = sundayDate || selectedAttendanceDate || getFallbackOverrideDate(targetTable) || new Date()
+        console.log('[SETTINGS] handleEnableOverride called:', { targetTable, targetDate, hasAdminAccess })
         setIsOverrideSaving(true)
         try {
             const ok = await setCollaboratorOverride({
@@ -532,6 +536,7 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
                 tableName: targetTable,
                 date: targetDate
             })
+            console.log('[SETTINGS] setCollaboratorOverride returned:', ok)
             if (ok) {
                 if (showToast) {
                     toast.success('Override enabled for all collaborators')
@@ -542,6 +547,11 @@ const SettingsPage = ({ onBack, navigateToSection, onCreateMonth }) => {
                 }
             }
             return ok
+        } catch (err) {
+            console.error('[SETTINGS] Error in handleEnableOverride:', err)
+            if (showToast) {
+                toast.error('Error: ' + (err?.message || 'Failed to enable override'))
+            }
         } finally {
             setIsOverrideSaving(false)
         }

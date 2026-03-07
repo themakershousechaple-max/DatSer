@@ -3324,17 +3324,27 @@ export const AppProvider = ({ children }) => {
 
   const setCollaboratorOverride = useCallback(async ({ enabled, tableName = currentTable, date = selectedAttendanceDate } = {}) => {
     const canAdmin = isAdminCollaborator && dataOwnerId
-    if ((isCollaborator && !canAdmin) || !isSupabaseConfigured() || !user?.id) return false
+    console.log('[OVERRIDE] setCollaboratorOverride called:', { enabled, tableName, canAdmin, isCollaborator })
+    
+    if ((isCollaborator && !canAdmin) || !isSupabaseConfigured() || !user?.id) {
+      console.log('[OVERRIDE] Permission check failed', { isCollaborator, canAdmin, isSupabaseConfigured: isSupabaseConfigured(), userId: user?.id })
+      return false
+    }
 
     const targetTable = tableName || currentTable
-    if (!targetTable) return false
+    if (!targetTable) {
+      console.log('[OVERRIDE] No target table')
+      return false
+    }
     const targetOwnerId = canAdmin ? dataOwnerId : user.id
+    console.log('[OVERRIDE] Target:', { targetTable, targetOwnerId })
 
     if (!enabled) {
       const previousDate = lockedDefaultDate
       setLockedDefaultDate(null)
 
       try {
+        console.log('[OVERRIDE] Disabling override via RPC/upsert')
         const { error } = canAdmin
           ? await supabase.rpc('update_owner_admin_override', {
             p_owner_id: targetOwnerId,
@@ -3353,24 +3363,33 @@ export const AppProvider = ({ children }) => {
               onConflict: 'user_id'
             })
 
-        if (error) throw error
+        if (error) {
+          console.error('[OVERRIDE] RPC/upsert error:', error)
+          throw error
+        }
 
+        console.log('[OVERRIDE] Successfully disabled override')
         liveCalendarBroadcastRef.current = { table: null, date: null }
         await syncCalendarToToday({ forceAuto: true })
         return true
       } catch (err) {
-        console.error('Error disabling collaborator override:', err)
+        console.error('[OVERRIDE] Error disabling collaborator override:', err)
         setLockedDefaultDate(previousDate)
         return false
       }
     }
 
     const normalizedDate = normalizeDateToSundayForTable(date || new Date(), targetTable)
-    if (!normalizedDate) return false
+    if (!normalizedDate) {
+      console.log('[OVERRIDE] Could not normalize date for override:', date, targetTable)
+      return false
+    }
 
     const dateKey = getLocalDateString(normalizedDate)
     const [, yearStr] = targetTable.split('_')
     const yearNum = parseInt(yearStr, 10) || normalizedDate.getFullYear()
+
+    console.log('[OVERRIDE] Enabling override:', { dateKey, yearNum, targetOwnerId })
 
     const previousDate = lockedDefaultDate
     setLockedDefaultDate(dateKey)
@@ -3378,14 +3397,17 @@ export const AppProvider = ({ children }) => {
     setAndSaveAttendanceDate(normalizedDate, targetTable)
 
     try {
+      const rpcPayload = {
+        p_owner_id: targetOwnerId,
+        p_month_table: targetTable,
+        p_year: yearNum,
+        p_sunday_dates: [dateKey],
+        p_locked_date: dateKey
+      }
+      console.log('[OVERRIDE] Calling RPC with payload:', rpcPayload)
+      
       const { error } = canAdmin
-        ? await supabase.rpc('update_owner_admin_override', {
-          p_owner_id: targetOwnerId,
-          p_month_table: targetTable,
-          p_year: yearNum,
-          p_sunday_dates: [dateKey],
-          p_locked_date: dateKey
-        })
+        ? await supabase.rpc('update_owner_admin_override', rpcPayload)
         : await supabase
           .from('user_preferences')
           .upsert({
@@ -3399,17 +3421,23 @@ export const AppProvider = ({ children }) => {
             onConflict: 'user_id'
           })
 
-      if (error) throw error
+      if (error) {
+        console.error('[OVERRIDE] RPC/upsert failed:', error)
+        throw error
+      }
 
+      console.log('[OVERRIDE] Successfully enabled override, broadcasting...')
       sendAdminPeriodBroadcast({
         targetTable,
         targetDate: dateKey
       })
 
       liveCalendarBroadcastRef.current = { table: targetTable, date: dateKey }
+      console.log('[OVERRIDE] Override enabled and broadcasted')
       return true
     } catch (err) {
-      console.error('Error enabling collaborator override:', err)
+      console.error('[OVERRIDE] Error enabling collaborator override:', err)
+      console.error('[OVERRIDE] Error details:', err?.message, err?.code)
       setLockedDefaultDate(previousDate)
       return false
     }
