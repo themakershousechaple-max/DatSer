@@ -197,19 +197,10 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const [showBadgeResults, setShowBadgeResults] = useState(false)
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false)
 
-  // Ministry management state
+  // Ministry management state - SUPABASE AS SOURCE OF TRUTH
   const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
-  const ministryStorageKey = workspaceOwnerId ? `customMinistries_${workspaceOwnerId}` : 'customMinistries'
-  const [ministries, setMinistries] = useState(() => {
-    const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
-    if (!saved) return defaultMinistries
-    try {
-      const parsed = normalizeMinistryList(JSON.parse(saved))
-      return parsed
-    } catch {
-      return defaultMinistries
-    }
-  })
+  const [ministries, setMinistries] = useState([])
+  const [ministriesLoading, setMinistriesLoading] = useState(true)
   const [newMinistry, setNewMinistry] = useState('')
   const [editingMinistry, setEditingMinistry] = useState(null)
   const [editMinistryValue, setEditMinistryValue] = useState('')
@@ -219,69 +210,50 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   )
   const canAddMinistry = normalizedNewMinistry.length > 0
 
+  // Load ministries from Supabase on mount and whenever workspaceOwnerId changes
   useEffect(() => {
-    if (!workspaceOwnerId) return
-    const scopedSaved = localStorage.getItem(ministryStorageKey)
-    if (scopedSaved) {
-      try {
-        const parsed = normalizeMinistryList(JSON.parse(scopedSaved))
-        setMinistries(parsed)
-        return
-      } catch {
-      }
+    if (!isSupabaseConfigured() || !workspaceOwnerId) {
+      setMinistries(defaultMinistries)
+      setMinistriesLoading(false)
+      return
     }
 
-    const legacySaved = localStorage.getItem('customMinistries')
-    if (legacySaved) {
+    const loadMinistries = async () => {
       try {
-        const legacyMinistries = normalizeMinistryList(JSON.parse(legacySaved))
-        setMinistries(legacyMinistries)
-        localStorage.setItem(ministryStorageKey, JSON.stringify(legacyMinistries))
-        return
-      } catch {
-      }
-    }
-
-    setMinistries(defaultMinistries)
-  }, [workspaceOwnerId, ministryStorageKey])
-
-  // Save ministries to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem(ministryStorageKey, JSON.stringify(ministries))
-    localStorage.setItem('customMinistries', JSON.stringify(ministries))
-    // Dispatch event so other components can listen for changes
-    window.dispatchEvent(new CustomEvent('ministriesUpdated', { detail: { ministries, ownerId: workspaceOwnerId } }))
-  }, [ministries, ministryStorageKey, workspaceOwnerId])
-
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId) return
-    let active = true
-    const hasLocalScopedMinistries = !!localStorage.getItem(ministryStorageKey)
-
-    const fetchSharedMinistries = async () => {
-      if (hasLocalScopedMinistries) return
-      try {
+        setMinistriesLoading(true)
         const { data, error } = await supabase
           .from('user_preferences')
           .select('ministry_groups')
           .eq('user_id', workspaceOwnerId)
           .maybeSingle()
+        
         if (error) throw error
-        if (!active) return
-        if (Array.isArray(data?.ministry_groups)) {
-          const shared = normalizeMinistryList(data.ministry_groups)
-          setMinistries(shared)
-          localStorage.setItem(ministryStorageKey, JSON.stringify(shared))
+        
+        if (Array.isArray(data?.ministry_groups) && data.ministry_groups.length > 0) {
+          const normalized = normalizeMinistryList(data.ministry_groups)
+          setMinistries(normalized)
+          console.log('[MINISTRY] Loaded from Supabase:', normalized)
+        } else {
+          setMinistries(defaultMinistries)
+          console.log('[MINISTRY] No ministries in Supabase, using defaults')
         }
       } catch (error) {
-        console.warn('Could not load shared ministries from Supabase:', error)
+        console.error('[MINISTRY] Error loading ministries:', error)
+        setMinistries(defaultMinistries)
+      } finally {
+        setMinistriesLoading(false)
       }
     }
 
-    fetchSharedMinistries()
+    loadMinistries()
+  }, [workspaceOwnerId, isSupabaseConfigured])
+
+  // Subscribe to real-time changes from Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !workspaceOwnerId) return
 
     const channel = supabase
-      .channel(`ministries:${workspaceOwnerId}`)
+      .channel(`ministries-realtime:${workspaceOwnerId}`)
       .on(
         'postgres_changes',
         {
@@ -291,145 +263,50 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
           filter: `user_id=eq.${workspaceOwnerId}`
         },
         (payload) => {
+          console.log('[MINISTRY] Real-time update from Supabase:', payload)
           if (!Array.isArray(payload?.new?.ministry_groups)) return
-          const next = normalizeMinistryList(payload.new.ministry_groups)
-          setMinistries(next)
-          localStorage.setItem(ministryStorageKey, JSON.stringify(next))
+          const updated = normalizeMinistryList(payload.new.ministry_groups)
+          setMinistries(updated)
         }
       )
       .subscribe()
 
     return () => {
-      active = false
       supabase.removeChannel(channel)
     }
-  }, [workspaceOwnerId, ministryStorageKey, isSupabaseConfigured])
-
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId) return
-
-    const syncMinistries = async () => {
-      try {
-        console.log('[MINISTRY] syncMinistries: Syncing to Supabase:', { ministries, workspaceOwnerId })
-        
-        // Use RPC that handles permissions for both owners and collaborators
-        const { error } = await supabase.rpc('update_ministry_groups', {
-          p_ministry_groups: ministries,
-          p_owner_id: workspaceOwnerId
-        })
-
-        if (error) {
-          console.log('[MINISTRY] RPC error, attempting fallback:', error)
-          
-          // Fallback to direct update if RPC fails (e.g. legacy/offline), but only for owner
-          if (user?.id === workspaceOwnerId) {
-            console.log('[MINISTRY] Using direct upsert fallback')
-            const { error: directError } = await supabase
-              .from('user_preferences')
-              .upsert(
-                {
-                  user_id: workspaceOwnerId,
-                  ministry_groups: ministries,
-                  updated_at: new Date().toISOString()
-                },
-                { onConflict: 'user_id' }
-              )
-            if (directError) throw directError
-          } else {
-            throw error
-          }
-        }
-        
-        console.log('[MINISTRY] Successfully synced ministries to Supabase')
-      } catch (error) {
-        console.error('[MINISTRY] Failed to save shared ministries:', error)
-        toast.error('Failed to save ministry: ' + (error?.message || 'Unknown error'))
-      }
-    }
-
-    // Debounce updates to prevent spamming
-    const timeoutId = setTimeout(syncMinistries, 1000)
-    return () => clearTimeout(timeoutId)
-  }, [ministries, workspaceOwnerId, isSupabaseConfigured, user?.id])
-
-  // Listen for ministry updates broadcasts from other admins
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId) return
-
-    const channelOwnerId = isCollaborator ? dataOwnerId : user?.id
-    const channel = supabase.channel(`admin-sync-ministries-${channelOwnerId}`, {
-      config: {
-        broadcast: { self: false }
-      }
-    })
-
-    channel.on('broadcast', { event: 'ministry_updated' }, ({ payload }) => {
-      if (!Array.isArray(payload?.new_ministries)) return
-      const updated = normalizeMinistryList(payload.new_ministries)
-      console.log('[MINISTRY] Received broadcast update:', { updated })
-      setMinistries(updated)
-      localStorage.setItem(ministryStorageKey, JSON.stringify(updated))
-    })
-
-    channel.subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [workspaceOwnerId, dataOwnerId, isCollaborator, isSupabaseConfigured, ministryStorageKey])
+  }, [workspaceOwnerId, isSupabaseConfigured])
 
   const addMinistry = async () => {
     const trimmedMinistry = newMinistry.trim().replace(/\s+/g, ' ')
     
-    console.log('[MINISTRY] addMinistry called with input:', { input: newMinistry, trimmed: trimmedMinistry })
-    
     if (!trimmedMinistry || trimmedMinistry.length === 0) {
-      console.log('[MINISTRY] Input is empty')
       toast.warning('Please enter a ministry name')
       return
     }
 
-    // Check for duplicates
     const alreadyExists = ministries.some(m => m.toLowerCase() === trimmedMinistry.toLowerCase())
     if (alreadyExists) {
-      console.log('[MINISTRY] Ministry already exists:', trimmedMinistry)
       toast.info(`"${trimmedMinistry}" already exists`)
       return
     }
 
     try {
-      // Add to local state immediately
       const updatedMinistries = [...ministries, trimmedMinistry]
-      console.log('[MINISTRY] Updated ministries list:', updatedMinistries)
-      setMinistries(updatedMinistries)
-      setNewMinistry('')
-
-      // Save to Supabase via RPC (respects RLS policies)
-      console.log('[MINISTRY] Saving to Supabase via RPC:', { updatedMinistries, workspaceOwnerId })
+      
+      // Save to Supabase via RPC
       const { error } = await supabase.rpc('update_ministry_groups', {
         p_ministry_groups: updatedMinistries,
         p_owner_id: workspaceOwnerId
       })
 
-      if (error) {
-        console.log('[MINISTRY] RPC error:', error)
-        throw error
-      }
+      if (error) throw error
 
-      console.log('[MINISTRY] Successfully added and saved:', trimmedMinistry)
-      
-      // Broadcast to all collaborators
-      sendAdminPeriodBroadcast({
-        type: 'ministry_updated',
-        new_ministries: updatedMinistries,
-        timestamp: new Date().toISOString()
-      })
-      
+      // Clear input field
+      setNewMinistry('')
       toast.success(`Added "${trimmedMinistry}" ministry`)
+      // Real-time listener will update the state automatically
     } catch (error) {
       console.error('[MINISTRY] Error adding ministry:', error)
-      // Revert local state on error
-      setMinistries(prev => prev.filter(m => m !== trimmedMinistry))
       toast.error('Failed to add ministry: ' + (error?.message || 'Unknown error'))
     }
   }
@@ -437,29 +314,19 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const deleteMinistry = async (ministry) => {
     try {
       const updatedMinistries = ministries.filter(m => m !== ministry)
-      setMinistries(updatedMinistries)
-
+      
       // Save to Supabase via RPC
       const { error } = await supabase.rpc('update_ministry_groups', {
         p_ministry_groups: updatedMinistries,
         p_owner_id: workspaceOwnerId
       })
 
-      if (error) {
-        throw error
-      }
-
-      // Broadcast to all collaborators
-      sendAdminPeriodBroadcast({
-        type: 'ministry_updated',
-        new_ministries: updatedMinistries,
-        timestamp: new Date().toISOString()
-      })
+      if (error) throw error
 
       toast.success(`Removed "${ministry}" ministry`)
+      // Real-time listener will update the state automatically
     } catch (error) {
-      // Revert on error
-      setMinistries(prev => [...prev, ministry])
+      console.error('[MINISTRY] Error deleting ministry:', error)
       toast.error('Failed to delete ministry: ' + (error?.message || 'Unknown error'))
     }
   }
@@ -472,6 +339,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const saveEditMinistry = async () => {
     try {
       const trimmed = editMinistryValue.replace(/\s+/g, ' ').trim()
+      
       if (!trimmed || trimmed === editingMinistry) {
         setEditingMinistry(null)
         setEditMinistryValue('')
@@ -487,29 +355,21 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
       }
 
       const updatedMinistries = ministries.map(m => (m === editingMinistry ? trimmed : m))
-      setMinistries(updatedMinistries)
-
+      
       // Save to Supabase via RPC
       const { error } = await supabase.rpc('update_ministry_groups', {
         p_ministry_groups: updatedMinistries,
         p_owner_id: workspaceOwnerId
       })
 
-      if (error) {
-        throw error
-      }
-
-      // Broadcast to all collaborators
-      sendAdminPeriodBroadcast({
-        type: 'ministry_updated',
-        new_ministries: updatedMinistries,
-        timestamp: new Date().toISOString()
-      })
+      if (error) throw error
 
       toast.success(`Updated ministry to "${trimmed}"`)
       setEditingMinistry(null)
       setEditMinistryValue('')
+      // Real-time listener will update the state automatically
     } catch (error) {
+      console.error('[MINISTRY] Error saving ministry:', error)
       toast.error('Failed to save ministry: ' + (error?.message || 'Unknown error'))
     }
   }
