@@ -63,7 +63,8 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     calculateAttendanceRate,
     isCollaborator,
     dataOwnerId,
-    isSupabaseConfigured
+    isSupabaseConfigured,
+    sendAdminPeriodBroadcast
   } = useApp()
   const { isDarkMode } = useTheme()
   const { user, signInWithGoogle } = useAuth()
@@ -351,6 +352,32 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     return () => clearTimeout(timeoutId)
   }, [ministries, workspaceOwnerId, isSupabaseConfigured, user?.id])
 
+  // Listen for ministry updates broadcasts from other admins
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !workspaceOwnerId) return
+
+    const channelOwnerId = isCollaborator ? dataOwnerId : user?.id
+    const channel = supabase.channel(`admin-sync-ministries-${channelOwnerId}`, {
+      config: {
+        broadcast: { self: false }
+      }
+    })
+
+    channel.on('broadcast', { event: 'ministry_updated' }, ({ payload }) => {
+      if (!Array.isArray(payload?.new_ministries)) return
+      const updated = normalizeMinistryList(payload.new_ministries)
+      console.log('[MINISTRY] Received broadcast update:', { updated })
+      setMinistries(updated)
+      localStorage.setItem(ministryStorageKey, JSON.stringify(updated))
+    })
+
+    channel.subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [workspaceOwnerId, dataOwnerId, isCollaborator, isSupabaseConfigured, ministryStorageKey])
+
   const addMinistry = async () => {
     const trimmedMinistry = newMinistry.trim().replace(/\s+/g, ' ')
     
@@ -385,11 +412,19 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
       })
 
       if (error) {
-        console.log('[MINISTRY] RPC error, attempting fallback direct upsert:', error)
+        console.log('[MINISTRY] RPC error:', error)
         throw error
       }
 
       console.log('[MINISTRY] Successfully added and saved:', trimmedMinistry)
+      
+      // Broadcast to all collaborators
+      sendAdminPeriodBroadcast({
+        type: 'ministry_updated',
+        new_ministries: updatedMinistries,
+        timestamp: new Date().toISOString()
+      })
+      
       toast.success(`Added "${trimmedMinistry}" ministry`)
     } catch (error) {
       console.error('[MINISTRY] Error adding ministry:', error)
@@ -399,9 +434,34 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     }
   }
 
-  const deleteMinistry = (ministry) => {
-    setMinistries(prev => prev.filter(m => m !== ministry))
-    toast.success(`Removed "${ministry}" ministry`)
+  const deleteMinistry = async (ministry) => {
+    try {
+      const updatedMinistries = ministries.filter(m => m !== ministry)
+      setMinistries(updatedMinistries)
+
+      // Save to Supabase via RPC
+      const { error } = await supabase.rpc('update_ministry_groups', {
+        p_ministry_groups: updatedMinistries,
+        p_owner_id: workspaceOwnerId
+      })
+
+      if (error) {
+        throw error
+      }
+
+      // Broadcast to all collaborators
+      sendAdminPeriodBroadcast({
+        type: 'ministry_updated',
+        new_ministries: updatedMinistries,
+        timestamp: new Date().toISOString()
+      })
+
+      toast.success(`Removed "${ministry}" ministry`)
+    } catch (error) {
+      // Revert on error
+      setMinistries(prev => [...prev, ministry])
+      toast.error('Failed to delete ministry: ' + (error?.message || 'Unknown error'))
+    }
   }
 
   const startEditMinistry = (ministry) => {
@@ -409,9 +469,15 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     setEditMinistryValue(ministry)
   }
 
-  const saveEditMinistry = () => {
-    const trimmed = editMinistryValue.replace(/\s+/g, ' ').trim()
-    if (trimmed && trimmed !== editingMinistry) {
+  const saveEditMinistry = async () => {
+    try {
+      const trimmed = editMinistryValue.replace(/\s+/g, ' ').trim()
+      if (!trimmed || trimmed === editingMinistry) {
+        setEditingMinistry(null)
+        setEditMinistryValue('')
+        return
+      }
+
       const alreadyExists = ministries.some(
         m => m !== editingMinistry && m.toLowerCase() === trimmed.toLowerCase()
       )
@@ -419,11 +485,33 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
         toast.info(`"${trimmed}" already exists`)
         return
       }
-      setMinistries(prev => prev.map(m => (m === editingMinistry ? trimmed : m)))
+
+      const updatedMinistries = ministries.map(m => (m === editingMinistry ? trimmed : m))
+      setMinistries(updatedMinistries)
+
+      // Save to Supabase via RPC
+      const { error } = await supabase.rpc('update_ministry_groups', {
+        p_ministry_groups: updatedMinistries,
+        p_owner_id: workspaceOwnerId
+      })
+
+      if (error) {
+        throw error
+      }
+
+      // Broadcast to all collaborators
+      sendAdminPeriodBroadcast({
+        type: 'ministry_updated',
+        new_ministries: updatedMinistries,
+        timestamp: new Date().toISOString()
+      })
+
       toast.success(`Updated ministry to "${trimmed}"`)
+      setEditingMinistry(null)
+      setEditMinistryValue('')
+    } catch (error) {
+      toast.error('Failed to save ministry: ' + (error?.message || 'Unknown error'))
     }
-    setEditingMinistry(null)
-    setEditMinistryValue('')
   }
 
   // Print attendance sheet with editable preview
