@@ -298,6 +298,7 @@ const MemberModal = ({ isOpen, onClose }) => {
     setLoading(true)
 
     try {
+      console.log('[MemberModal] Submitting formData:', JSON.stringify(formData))
       const newMember = await addMember({
         ...formData,
         ...parentInfo,
@@ -370,7 +371,9 @@ const MemberModal = ({ isOpen, onClose }) => {
     if (name === 'date_of_birth') {
       // Calculate age automatically
       if (value) {
-        const dob = new Date(value)
+        // Parse date in local timezone to avoid UTC issues
+        const [year, month, day] = value.split('-').map(Number)
+        const dob = new Date(year, month - 1, day)
         const today = new Date()
         let age = today.getFullYear() - dob.getFullYear()
         const m = today.getMonth() - dob.getMonth()

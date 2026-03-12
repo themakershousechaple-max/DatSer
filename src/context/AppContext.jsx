@@ -1030,6 +1030,7 @@ export const AppProvider = ({ children }) => {
       }
 
       // Transform data to match monthly table structure
+      console.log('[addMember] Received memberData:', JSON.stringify(memberData))
       const genRaw = memberData.gender || memberData['Gender']
       const gen = typeof genRaw === 'string'
         ? (genRaw.trim().toLowerCase() === 'male' ? 'Male' : genRaw.trim().toLowerCase() === 'female' ? 'Female' : genRaw)
@@ -1065,6 +1066,8 @@ export const AppProvider = ({ children }) => {
         // Link to current user
         user_id: user?.id
       }
+
+      console.log('[addMember] Transformed data:', JSON.stringify(transformedData))
 
       const { data, error } = await supabase
         .from(currentTable)

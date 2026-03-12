@@ -87,10 +87,13 @@ const DatePicker = ({
     }
 
     const handleDateClick = (day) => {
-        const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day)
-        // Format as YYYY-MM-DD for consistency with HTML date input
-        const formattedDate = newDate.toISOString().split('T')[0]
+        // Use local date to avoid timezone issues
+        const year = viewDate.getFullYear()
+        const month = String(viewDate.getMonth() + 1).padStart(2, '0')
+        const dayStr = String(day).padStart(2, '0')
+        const formattedDate = `${year}-${month}-${dayStr}`
         
+        console.log('[DatePicker] Date clicked, formatted:', formattedDate)
         selection()
         onChange({ target: { name, value: formattedDate } })
         setIsOpen(false)
@@ -122,7 +125,10 @@ const DatePicker = ({
 
     const setToday = () => {
         const today = new Date()
-        const formattedDate = today.toISOString().split('T')[0]
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const dayStr = String(today.getDate()).padStart(2, '0')
+        const formattedDate = `${year}-${month}-${dayStr}`
         selection()
         onChange({ target: { name, value: formattedDate } })
         setViewDate(today)

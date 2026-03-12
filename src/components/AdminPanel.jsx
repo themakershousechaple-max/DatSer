@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
@@ -198,60 +198,40 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
 
   // Ministry management state - SIMPLE APPROACH
   const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
-  const ministryStorageKey = workspaceOwnerId ? `customMinistries_${workspaceOwnerId}` : 'customMinistries'
-  const [ministries, setMinistries] = useState(() => {
-    try {
-      const saved = localStorage.getItem('customMinistries')
-      if (!saved) return defaultMinistries
-      const parsed = normalizeMinistryList(JSON.parse(saved))
-      return parsed.length > 0 ? parsed : defaultMinistries
-    } catch {
-      return defaultMinistries
-    }
-  })
+  const [ministries, setMinistries] = useState(defaultMinistries)
   const [newMinistry, setNewMinistry] = useState('')
   const [editingMinistry, setEditingMinistry] = useState(null)
   const [editMinistryValue, setEditMinistryValue] = useState('')
-  const [isSavingMinistry, setIsSavingMinistry] = useState(false)
-  const savingEditRef = useRef(false)
   const normalizedNewMinistry = useMemo(
     () => newMinistry.replace(/\s+/g, ' ').trim(),
     [newMinistry]
   )
   const canAddMinistry = normalizedNewMinistry.length > 0
 
-  const applyMinistryState = (items) => {
-    const normalized = normalizeMinistryList(items)
-    setMinistries(normalized)
-    localStorage.setItem(ministryStorageKey, JSON.stringify(normalized))
-    localStorage.setItem('customMinistries', JSON.stringify(normalized))
-    window.dispatchEvent(new CustomEvent('ministriesUpdated', {
-      detail: { ownerId: workspaceOwnerId, ministries: normalized }
-    }))
-  }
-
-  const fetchMinistriesFromServer = async () => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId) return
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .select('ministry_groups')
-      .eq('user_id', workspaceOwnerId)
-      .maybeSingle()
-
-    if (error) throw error
-    if (Array.isArray(data?.ministry_groups)) {
-      applyMinistryState(data.ministry_groups)
-      return
-    }
-    applyMinistryState(defaultMinistries)
-  }
-
+  // Load ministries from Supabase on mount
   useEffect(() => {
     if (!isSupabaseConfigured() || !workspaceOwnerId) return
-    fetchMinistriesFromServer().catch((error) => {
-      console.error('[MINISTRY] Error loading:', error)
-    })
-  }, [workspaceOwnerId, ministryStorageKey, isSupabaseConfigured])
+
+    const loadMinistries = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('ministry_groups')
+          .eq('user_id', workspaceOwnerId)
+          .maybeSingle()
+        
+        if (error) throw error
+        
+        if (Array.isArray(data?.ministry_groups) && data.ministry_groups.length > 0) {
+          setMinistries(normalizeMinistryList(data.ministry_groups))
+        }
+      } catch (error) {
+        console.error('[MINISTRY] Error loading:', error)
+      }
+    }
+
+    loadMinistries()
+  }, [workspaceOwnerId, isSupabaseConfigured])
 
   // Subscribe to real-time changes from Supabase
   useEffect(() => {
@@ -269,7 +249,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
         },
         (payload) => {
           if (Array.isArray(payload?.new?.ministry_groups)) {
-            applyMinistryState(payload.new.ministry_groups)
+            setMinistries(normalizeMinistryList(payload.new.ministry_groups))
           }
         }
       )
@@ -278,7 +258,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [workspaceOwnerId, ministryStorageKey, isSupabaseConfigured])
+  }, [workspaceOwnerId, isSupabaseConfigured])
 
   const addMinistry = async () => {
     const trimmedMinistry = newMinistry.trim().replace(/\s+/g, ' ')
@@ -294,42 +274,38 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     }
 
     try {
-      setIsSavingMinistry(true)
       const updatedMinistries = [...ministries, trimmedMinistry]
+      
+      // Use RPC with SECURITY DEFINER to bypass RLS
       const { error } = await supabase.rpc('update_ministry_groups', {
         p_ministry_groups: updatedMinistries,
         p_owner_id: workspaceOwnerId
       })
 
       if (error) throw error
-      await fetchMinistriesFromServer()
       setNewMinistry('')
       toast.success(`Added "${trimmedMinistry}"`)
     } catch (error) {
       console.error('[MINISTRY] Error:', error)
       toast.error('Failed to add: ' + (error?.message || 'Unknown error'))
-    } finally {
-      setIsSavingMinistry(false)
     }
   }
 
   const deleteMinistry = async (ministry) => {
     try {
-      setIsSavingMinistry(true)
       const updatedMinistries = ministries.filter(m => m !== ministry)
+      
+      // Use RPC with SECURITY DEFINER to bypass RLS
       const { error } = await supabase.rpc('update_ministry_groups', {
         p_ministry_groups: updatedMinistries,
         p_owner_id: workspaceOwnerId
       })
 
       if (error) throw error
-      await fetchMinistriesFromServer()
       toast.success(`Removed "${ministry}"`)
     } catch (error) {
       console.error('[MINISTRY] Error:', error)
       toast.error('Failed to delete: ' + (error?.message || 'Unknown error'))
-    } finally {
-      setIsSavingMinistry(false)
     }
   }
 
@@ -339,10 +315,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   }
 
   const saveEditMinistry = async () => {
-    if (savingEditRef.current) return
     try {
-      savingEditRef.current = true
-      setIsSavingMinistry(true)
       const trimmed = editMinistryValue.replace(/\s+/g, ' ').trim()
       
       if (!trimmed || trimmed === editingMinistry) {
@@ -356,22 +329,20 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
       }
 
       const updatedMinistries = ministries.map(m => m === editingMinistry ? trimmed : m)
+      
+      // Use RPC with SECURITY DEFINER to bypass RLS
       const { error } = await supabase.rpc('update_ministry_groups', {
         p_ministry_groups: updatedMinistries,
         p_owner_id: workspaceOwnerId
       })
 
       if (error) throw error
-      await fetchMinistriesFromServer()
       toast.success(`Updated to "${trimmed}"`)
       setEditingMinistry(null)
       setEditMinistryValue('')
     } catch (error) {
       console.error('[MINISTRY] Error:', error)
       toast.error('Failed to save: ' + (error?.message || 'Unknown error'))
-    } finally {
-      savingEditRef.current = false
-      setIsSavingMinistry(false)
     }
   }
 
@@ -1185,38 +1156,36 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Tags className="w-5 h-5 text-primary-500" />
-              Ministry/Groups Tags
+              Ministry/Groups
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage ministry/groups tags for members</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage ministry tags for members</p>
           </div>
           <div className="p-4">
-            {/* Add new tag */}
+            {/* Add new ministry */}
             <div className="flex gap-2 mb-4">
               <input
                 type="text"
                 value={newMinistry}
                 onChange={(e) => setNewMinistry(e.target.value)}
-                disabled={isSavingMinistry}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     addMinistry()
                   }
                 }}
-                placeholder="Add new tag..."
+                placeholder="Add new ministry..."
                 className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <button
                 type="button"
                 onClick={() => addMinistry()}
-                disabled={isSavingMinistry || !canAddMinistry}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors font-medium text-sm"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Add</span>
               </button>
             </div>
-            {/* Tags list */}
+            {/* Ministry list */}
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {ministries.map((ministry) => (
                 <div key={ministry} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group">
@@ -1224,7 +1193,6 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
                     <input
                       type="text"
                       value={editMinistryValue}
-                      disabled={isSavingMinistry}
                       onChange={(e) => setEditMinistryValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && saveEditMinistry()}
                       onBlur={saveEditMinistry}
@@ -1237,7 +1205,6 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => startEditMinistry(ministry)}
-                      disabled={isSavingMinistry}
                       className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-all duration-200"
                       title="Edit"
                     >
@@ -1245,7 +1212,6 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
                     </button>
                     <button
                       onClick={() => deleteMinistry(ministry)}
-                      disabled={isSavingMinistry}
                       className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all duration-200"
                       title="Delete"
                     >
@@ -1256,7 +1222,7 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
               ))}
             </div>
             {ministries.length === 0 && (
-              <p className="text-center text-gray-400 py-4 text-sm">No tags added yet</p>
+              <p className="text-center text-gray-400 py-4 text-sm">No ministries added yet</p>
             )}
           </div>
         </div>

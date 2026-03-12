@@ -365,6 +365,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         Newcomer: selectedTags.includes('newcomer') ? 'Yes' : null
       }
 
+      console.log('[EditMemberModal] nextMemberPayload:', JSON.stringify(nextMemberPayload))
       const getExistingValue = (key) => {
         if (!currentSnapshot) return undefined
         if (key === 'full_name') return currentSnapshot.full_name ?? currentSnapshot['Full Name']
@@ -402,6 +403,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         return normalizeComparable(key, value) !== normalizeComparable(key, currentValue)
       })
       const changedPayload = Object.fromEntries(changedEntries)
+      console.log('[EditMemberModal] changedPayload:', JSON.stringify(changedPayload))
 
       if (Object.keys(changedPayload).length > 0) {
         await updateMember(latestMember.id, changedPayload)
@@ -447,7 +449,9 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     if (name === 'date_of_birth') {
       // Calculate age automatically
       if (value) {
-        const dob = new Date(value)
+        // Parse date in local timezone to avoid UTC issues
+        const [year, month, day] = value.split('-').map(Number)
+        const dob = new Date(year, month - 1, day)
         const today = new Date()
         let age = today.getFullYear() - dob.getFullYear()
         const m = today.getMonth() - dob.getMonth()
