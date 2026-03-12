@@ -1,0 +1,85 @@
+{
+	"mcpServers": {
+		"GitKraken": {
+			"args": [
+				"mcp",
+				"--host=windsurf",
+				"--source=gitlens",
+				"--scheme=windsurf"
+			],
+			"command": "c:\\Users\\wonde\\AppData\\Roaming\\Windsurf\\User\\globalStorage\\eamodio.gitlens\\gk.exe",
+			"type": "stdio"
+		},
+		"cloudflare-docs": {
+			"headers": {},
+			"serverUrl": "https://docs.mcp.cloudflare.com/mcp",
+			"disabled": true
+		},
+		"filesystem": {
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-filesystem",
+				""
+			],
+			"command": "npx",
+			"env": {}
+		},
+		"memory": {
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-memory"
+			],
+			"command": "npx",
+			"env": {
+				"MEMORY_FILE_PATH": "${MEMORY_FILE_PATH}"
+			}
+		},
+		"sequential-thinking": {
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-sequential-thinking"
+			],
+			"command": "npx",
+			"env": {}
+		},
+		"vercel": {
+			"serverUrl": "https://mcp.vercel.com",
+			"command": "npx.cmd",
+			"args": [
+				"-y",
+				"mcp-remote",
+				"https://mcp.vercel.com"
+			]
+		},
+		"supabase-mcp-server": {
+			"args": [
+				"-y",
+				"@supabase/mcp-server-supabase@latest",
+				"--access-token",
+				"${SUPABASE_ACCESS_TOKEN}"
+			],
+			"command": "npx",
+			"env": {}
+		},
+		"context7": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@upstash/context7-mcp@latest"
+			],
+			"env": {
+				"DEFAULT_MINIMUM_TOKENS": "${CONTEXT7_MIN_TOKENS}"
+			},
+			"fromGalleryId": "upstash.context7"
+		},
+		"Puppeteer": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-puppeteer"
+			],
+			"env": {},
+			"fromGalleryId": "modelcontextprotocol.servers_puppeteer"
+		}
+	}
+}
