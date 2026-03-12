@@ -276,14 +276,28 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     try {
       const updatedMinistries = [...ministries, trimmedMinistry]
       
-      // Use RPC with SECURITY DEFINER to bypass RLS
-      const { error } = await supabase.rpc('update_ministry_groups', {
-        p_ministry_groups: updatedMinistries,
-        p_owner_id: workspaceOwnerId
-      })
+      // Try direct update first (if RLS allows), then fallback to RPC
+      const { error: directError } = await supabase
+        .from('user_preferences')
+        .update({ 
+          ministry_groups: updatedMinistries,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', workspaceOwnerId)
 
-      if (error) throw error
+      if (directError && directError.code === '42501') {
+        // Permission denied, try RPC method
+        const { error: rpcError } = await supabase.rpc('update_ministry_groups', {
+          p_ministry_groups: updatedMinistries,
+          p_owner_id: workspaceOwnerId
+        })
+        if (rpcError) throw rpcError
+      } else if (directError) {
+        throw directError
+      }
+      
       setNewMinistry('')
+      setMinistries(updatedMinistries)
       toast.success(`Added "${trimmedMinistry}"`)
     } catch (error) {
       console.error('[MINISTRY] Error:', error)
@@ -295,13 +309,27 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
     try {
       const updatedMinistries = ministries.filter(m => m !== ministry)
       
-      // Use RPC with SECURITY DEFINER to bypass RLS
-      const { error } = await supabase.rpc('update_ministry_groups', {
-        p_ministry_groups: updatedMinistries,
-        p_owner_id: workspaceOwnerId
-      })
+      // Try direct update first (if RLS allows), then fallback to RPC
+      const { error: directError } = await supabase
+        .from('user_preferences')
+        .update({ 
+          ministry_groups: updatedMinistries,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', workspaceOwnerId)
 
-      if (error) throw error
+      if (directError && directError.code === '42501') {
+        // Permission denied, try RPC method
+        const { error: rpcError } = await supabase.rpc('update_ministry_groups', {
+          p_ministry_groups: updatedMinistries,
+          p_owner_id: workspaceOwnerId
+        })
+        if (rpcError) throw rpcError
+      } else if (directError) {
+        throw directError
+      }
+      
+      setMinistries(updatedMinistries)
       toast.success(`Removed "${ministry}"`)
     } catch (error) {
       console.error('[MINISTRY] Error:', error)
@@ -330,13 +358,27 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
 
       const updatedMinistries = ministries.map(m => m === editingMinistry ? trimmed : m)
       
-      // Use RPC with SECURITY DEFINER to bypass RLS
-      const { error } = await supabase.rpc('update_ministry_groups', {
-        p_ministry_groups: updatedMinistries,
-        p_owner_id: workspaceOwnerId
-      })
+      // Try direct update first (if RLS allows), then fallback to RPC
+      const { error: directError } = await supabase
+        .from('user_preferences')
+        .update({ 
+          ministry_groups: updatedMinistries,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', workspaceOwnerId)
 
-      if (error) throw error
+      if (directError && directError.code === '42501') {
+        // Permission denied, try RPC method
+        const { error: rpcError } = await supabase.rpc('update_ministry_groups', {
+          p_ministry_groups: updatedMinistries,
+          p_owner_id: workspaceOwnerId
+        })
+        if (rpcError) throw rpcError
+      } else if (directError) {
+        throw directError
+      }
+      
+      setMinistries(updatedMinistries)
       toast.success(`Updated to "${trimmed}"`)
       setEditingMinistry(null)
       setEditMinistryValue('')
