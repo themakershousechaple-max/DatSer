@@ -183,7 +183,7 @@ const faqData = [
         id: 19,
         category: 'filters',
         question: 'How do I filter members?',
-        answer: 'Tap the Filter button (funnel icon) next to the search bar at the bottom. A filter panel will open where you can filter by Gender, Education Level, Ministry/Group, and Member Status (Members vs Visitors).',
+        answer: 'Tap the Filter button (funnel icon) next to the search bar at the bottom. A filter panel will open where you can filter by Gender, Education Level, and Member Status (Members vs Visitors).',
         quickAction: { type: 'navigate', label: 'Go to Dashboard', target: 'dashboard' },
         hasVideo: false
     },
@@ -204,7 +204,7 @@ const faqData = [
         hasVideo: false
     },
 
-    // Notes & Ministry Category
+    // Notes Category
     {
         id: 22,
         category: 'members',
@@ -215,14 +215,6 @@ const faqData = [
     },
     {
         id: 23,
-        category: 'members',
-        question: 'How do I assign ministry tags to a member?',
-        answer: 'When adding or editing a member, you\'ll see a "Ministry/Groups" section with buttons like Choir, Ushers, Youth, etc. Tap to select multiple ministries. These tags help you filter and organize members by their church roles.',
-        quickAction: null,
-        hasVideo: false
-    },
-    {
-        id: 24,
         category: 'members',
         question: 'How do I mark someone as a visitor?',
         answer: 'When adding or editing a member, toggle the "Mark as Visitor" switch to ON. Visitors will show an amber "Visitor" badge on their card. You can filter to show only visitors using the Filter panel.',
@@ -260,14 +252,6 @@ const faqData = [
         category: 'admin',
         question: 'How do I print an attendance sheet?',
         answer: 'In the Admin Panel, tap "Print Attendance Sheet". A new window opens with an editable preview. You can adjust font size, table style, toggle columns, and edit titles before printing. Click "Print" when ready.',
-        quickAction: null,
-        hasVideo: false
-    },
-    {
-        id: 29,
-        category: 'admin',
-        question: 'How do I manage ministry/group tags?',
-        answer: 'In the Admin Panel, find the "Ministry/Groups" section. Here you can add new ministries, edit existing ones (hover and click pencil), or delete them (hover and click trash). Changes sync across the app instantly.',
         quickAction: null,
         hasVideo: false
     },

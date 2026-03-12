@@ -9,7 +9,7 @@ import SelectionToolbar from './SelectionToolbar'
 import { useLongPressSelection } from '../hooks/useLongPressSelection'
 import useHapticFeedback from '../hooks/useHapticFeedback'
 import { toast } from 'react-toastify'
-import { normalizeMinistry } from '../utils/dataUtils'
+
 
 // Lazy load heavy modals for better initial load performance
 const EditMemberModal = lazy(() => import('./EditMemberModal'))
@@ -95,7 +95,6 @@ const Dashboard = ({ isAdmin = false }) => {
   const [selectedSundayDate, setSelectedSundayDate] = useState(null)
   const [genderFilter, setGenderFilter] = useState(null)
   const [levelFilter, setLevelFilter] = useState(null)
-  const [ministryFilter, setMinistryFilter] = useState(null)
   const [visitorFilter, setVisitorFilter] = useState(null)
   const [showFilters, setShowFilters] = useState(false)
   const [isClosingFilters, setIsClosingFilters] = useState(false)
@@ -118,20 +117,6 @@ const Dashboard = ({ isAdmin = false }) => {
 
   // Available filter options
   const levels = ['SHS1', 'SHS2', 'SHS3', 'JHS1', 'JHS2', 'JHS3', 'COMPLETED', 'UNIVERSITY']
-  const defaultMinistries = ['Choir', 'Ushers', 'Youth', 'Children', 'Media', 'Welfare', 'Protocol', 'Evangelism']
-  const [ministryOptions, setMinistryOptions] = useState(() => {
-    const saved = localStorage.getItem('customMinistries')
-    return saved ? JSON.parse(saved) : defaultMinistries
-  })
-
-  // Listen for ministry updates from Admin Panel
-  useEffect(() => {
-    const handleMinistriesUpdate = (e) => {
-      setMinistryOptions(e.detail)
-    }
-    window.addEventListener('ministriesUpdated', handleMinistriesUpdate)
-    return () => window.removeEventListener('ministriesUpdated', handleMinistriesUpdate)
-  }, [])
 
   // iOS detection (used for minor tweaks if needed)
   const searchInputRef = useRef(null)
@@ -377,7 +362,7 @@ const Dashboard = ({ isAdmin = false }) => {
   const getTabFilteredMembers = () => {
     const badgeFilteredMembers = getFilteredMembersByBadge()
 
-    // Apply all filters (gender, level, ministry, visitor)
+    // Apply all filters (gender, level, visitor)
     let filteredMembers = badgeFilteredMembers
 
     // Gender filter
@@ -393,14 +378,6 @@ const Dashboard = ({ isAdmin = false }) => {
       filteredMembers = filteredMembers.filter(member => {
         const level = (member['Current Level'] || member.current_level || '').toString().toUpperCase()
         return level === levelFilter.toUpperCase()
-      })
-    }
-
-    // Ministry filter
-    if (ministryFilter) {
-      filteredMembers = filteredMembers.filter(member => {
-        const ministry = normalizeMinistry(member.ministry ?? member['Ministry'])
-        return Array.isArray(ministry) && ministry.includes(ministryFilter)
       })
     }
 
@@ -1982,26 +1959,6 @@ const Dashboard = ({ isAdmin = false }) => {
                                   })()}
                                 </div>
 
-                                {/* Ministry Tags */}
-                                {(() => {
-                                  // normalizeMinistry is imported from utils
-
-                                  const ministries = normalizeMinistry(member.ministry)
-                                  if (ministries.length === 0) return null
-                                  return (
-                                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                    <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Ministry</h4>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {ministries.map(m => (
-                                        <span key={m} className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200/70 dark:border-primary-700/50">
-                                          {m.length > 22 ? m.slice(0, 20) + '…' : m}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  )
-                                })()}
-
                                 {/* Parent Information (if available) */}
                                 {(member['parent_name_1'] || member['parent_name_2']) && (
                                   <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -2693,25 +2650,6 @@ const Dashboard = ({ isAdmin = false }) => {
                 </div>
               </div>
 
-              {/* Ministry Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ministry/Group</label>
-                <div className="flex flex-wrap gap-2">
-                  {ministryOptions.map(m => (
-                    <button
-                      key={m}
-                      onClick={() => { selection(); setMinistryFilter(ministryFilter === m ? null : m) }}
-                      className={`px-3 py-2 rounded-full text-xs font-medium transition-all ${ministryFilter === m
-                        ? 'bg-primary-600 text-white shadow-md'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                        }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Status Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Member Status</label>
@@ -2745,10 +2683,9 @@ const Dashboard = ({ isAdmin = false }) => {
                   selection()
                   setGenderFilter(null)
                   setLevelFilter(null)
-                  setMinistryFilter(null)
                   setVisitorFilter(null)
                 }}
-                disabled={!genderFilter && !levelFilter && !ministryFilter && visitorFilter === null}
+                disabled={!genderFilter && !levelFilter && visitorFilter === null}
                 className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Clear All
@@ -2816,14 +2753,14 @@ const Dashboard = ({ isAdmin = false }) => {
             {/* Filter Button */}
             <button
               onClick={() => { selection(); setShowFilters(!showFilters) }}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${showFilters || genderFilter || levelFilter || ministryFilter || visitorFilter !== null
+              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${showFilters || genderFilter || levelFilter || visitorFilter !== null
                 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-700'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               title="Filters"
             >
               <Filter className="w-4 h-4" />
-              {(genderFilter || levelFilter || ministryFilter || visitorFilter !== null) && (
+              {(genderFilter || levelFilter || visitorFilter !== null) && (
                 <span className="w-2 h-2 bg-primary-500 rounded-full" />
               )}
             </button>

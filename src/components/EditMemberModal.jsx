@@ -5,22 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { X, User, Phone, Calendar, BookOpen, ChevronDown, ChevronUp, Users, StickyNote } from 'lucide-react'
 import { toast } from 'react-toastify'
 import useHapticFeedback from '../hooks/useHapticFeedback'
-import { normalizeMinistry } from '../utils/dataUtils'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
-
-const normalizeMinistryList = (items) => {
-  const normalized = normalizeMinistry(items).map(item => item.replace(/\s+/g, ' ').trim()).filter(Boolean)
-  const seen = new Set()
-  const result = []
-  for (const item of normalized) {
-    const key = item.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    result.push(item)
-  }
-  return result
-}
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
   const { updateMember, markAttendance, refreshSearch, currentTable, attendanceData, members, isCollaborator, dataOwnerId, isSupabaseConfigured } = useApp()
@@ -52,106 +38,8 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     age: '',
     current_level: '',
     notes: '',
-    ministry: [],
     is_visitor: false
   })
-
-  // Available ministries - load from localStorage or use defaults
-  const defaultMinistries = ['Choir', 'Ushers', 'Youth', 'Children', 'Media', 'Welfare', 'Protocol', 'Evangelism']
-  const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
-  const ministryStorageKey = workspaceOwnerId ? `customMinistries_${workspaceOwnerId}` : 'customMinistries'
-  const preferenceUserId = workspaceOwnerId
-  const [ministries, setMinistries] = React.useState(() => {
-    try {
-      const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
-      if (!saved) return defaultMinistries
-      return normalizeMinistryList(JSON.parse(saved))
-    } catch {
-      return defaultMinistries
-    }
-  })
-
-  // Listen for ministry updates from Admin Panel
-  React.useEffect(() => {
-    const handleMinistriesUpdate = (e) => {
-      if (Array.isArray(e.detail)) {
-        setMinistries(e.detail)
-        return
-      }
-      if (Array.isArray(e.detail?.ministries)) {
-        if (!e.detail.ownerId || !workspaceOwnerId || e.detail.ownerId === workspaceOwnerId) {
-          setMinistries(e.detail.ministries)
-        }
-      }
-    }
-    window.addEventListener('ministriesUpdated', handleMinistriesUpdate)
-    return () => window.removeEventListener('ministriesUpdated', handleMinistriesUpdate)
-  }, [workspaceOwnerId])
-
-  React.useEffect(() => {
-    if (!workspaceOwnerId) return
-    const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
-    if (saved) {
-      try {
-        setMinistries(normalizeMinistryList(JSON.parse(saved)))
-      } catch {
-      }
-    }
-  }, [workspaceOwnerId, ministryStorageKey])
-
-  React.useEffect(() => {
-    if (!isSupabaseConfigured() || !preferenceUserId) return
-    let active = true
-    const hasLocalScopedMinistries = !!localStorage.getItem(ministryStorageKey)
-    const fetchMinistries = async () => {
-      if (hasLocalScopedMinistries) return
-      try {
-        const { data, error } = await supabase
-          .from('user_preferences')
-          .select('ministry_groups')
-          .eq('user_id', preferenceUserId)
-          .maybeSingle()
-        if (error) throw error
-        if (!active) return
-        if (Array.isArray(data?.ministry_groups)) {
-          const normalized = normalizeMinistryList(data.ministry_groups)
-          const next = normalized
-          setMinistries(next)
-          localStorage.setItem(ministryStorageKey, JSON.stringify(next))
-          localStorage.setItem('customMinistries', JSON.stringify(next))
-        }
-      } catch (error) {
-        console.warn('Could not load shared ministries:', error)
-      }
-    }
-    fetchMinistries()
-
-    const channel = supabase
-      .channel(`edit-member-modal-ministries:${preferenceUserId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_preferences',
-          filter: `user_id=eq.${preferenceUserId}`
-        },
-        (payload) => {
-          if (!Array.isArray(payload?.new?.ministry_groups)) return
-          const normalized = normalizeMinistryList(payload.new.ministry_groups)
-          const next = normalized
-          setMinistries(next)
-          localStorage.setItem(ministryStorageKey, JSON.stringify(next))
-          localStorage.setItem('customMinistries', JSON.stringify(next))
-        }
-      )
-      .subscribe()
-
-    return () => {
-      active = false
-      supabase.removeChannel(channel)
-    }
-  }, [preferenceUserId, ministryStorageKey, isSupabaseConfigured])
 
   // Helper function to generate Sunday dates for the current month/year
   const generateSundayDates = (currentTable) => {
@@ -219,7 +107,6 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         age: sourceMember['Age'] || sourceMember.age || '',
         current_level: sourceMember['Current Level'] || sourceMember.current_level || '',
         notes: sourceMember['notes'] || '',
-        ministry: normalizeMinistry(sourceMember['ministry'] ?? sourceMember['Ministry']),
         is_visitor: sourceMember['is_visitor'] || false
       })
       const resolvedTags = badgeTags.filter(tag => {
@@ -339,9 +226,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     setLoading(true)
 
     try {
-      // Ensure ministry data is clean before saving
-      const cleanMinistries = normalizeMinistry(formData.ministry)
-
+      // Clean up form data before saving
       const currentSnapshot = members.find(m => m.id === latestMember.id) || latestMember || member
       const nextMemberPayload = {
         full_name: formData.full_name,
@@ -357,10 +242,9 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         parent_phone_2: parentInfo.parent_phone_2 || null,
         // Notes
         notes: formData.notes || null,
-        // Ministry and visitor status
-        ministry: cleanMinistries,
+        // Visitor status
         is_visitor: formData.is_visitor || false,
-        Member: selectedTags.includes('member') ? 'Yes' : null,
+        Member: selectedTags.includes('member') ? 'Yes' : null,"}}]
         Regular: selectedTags.includes('regular') ? 'Yes' : null,
         Newcomer: selectedTags.includes('newcomer') ? 'Yes' : null
       }
@@ -381,19 +265,11 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
         if (key === 'parent_phone_1') return currentSnapshot.parent_phone_1 ?? currentSnapshot['Parent Phone 1']
         if (key === 'parent_name_2') return currentSnapshot.parent_name_2 ?? currentSnapshot['Parent Name 2']
         if (key === 'parent_phone_2') return currentSnapshot.parent_phone_2 ?? currentSnapshot['Parent Phone 2']
-        if (key === 'ministry') return currentSnapshot.ministry ?? currentSnapshot.Ministry
         return currentSnapshot[key]
       }
 
       const normalizeComparable = (key, value) => {
         if (key === 'is_visitor') return Boolean(value)
-        if (key === 'ministry') {
-          return normalizeMinistry(value)
-            .map(item => String(item || '').trim().toLowerCase())
-            .filter(Boolean)
-            .sort()
-            .join('|')
-        }
         if (value === null || value === undefined) return ''
         return String(value).trim()
       }
@@ -963,37 +839,6 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
                   </button>
                 )
               })}
-            </div>
-          </div>
-
-          {/* Ministry/Groups Tags Section */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Ministry/Groups Tags (Optional)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {ministries.map(ministry => (
-                <button
-                  key={ministry}
-                  type="button"
-                  onClick={() => {
-                    isDirtyRef.current = true
-                    setFormData(prev => ({
-                      ...prev,
-                      ministry: prev.ministry.includes(ministry)
-                        ? prev.ministry.filter(m => m !== ministry)
-                        : [...prev.ministry, ministry]
-                    }))
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    formData.ministry.includes(ministry)
-                      ? 'bg-primary-600 text-white shadow-sm'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {ministry}
-                </button>
-              ))}
             </div>
           </div>
 

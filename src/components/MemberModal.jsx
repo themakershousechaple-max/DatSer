@@ -8,21 +8,6 @@ import useHapticFeedback from '../hooks/useHapticFeedback'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 
-const normalizeMinistryList = (items) => {
-  if (!Array.isArray(items)) return []
-  const seen = new Set()
-  const normalized = []
-  for (const item of items) {
-    const value = String(item || '').replace(/\s+/g, ' ').trim()
-    if (!value) continue
-    const key = value.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    normalized.push(value)
-  }
-  return normalized
-}
-
 const MemberModal = ({ isOpen, onClose }) => {
   const { addMember, markAttendance, currentTable, toggleMemberBadge, updateMemberBadges, updateMember, isCollaborator, dataOwnerId, isSupabaseConfigured } = useApp()
   const { user } = useAuth()
@@ -47,106 +32,8 @@ const MemberModal = ({ isOpen, onClose }) => {
     age: '',
     current_level: '',
     notes: '',
-    ministry: [],
     is_visitor: false
   })
-
-  // Available ministries - load from localStorage or use defaults
-  const defaultMinistries = ['Choir', 'Ushers', 'Youth', 'Children', 'Media', 'Welfare', 'Protocol', 'Evangelism']
-  const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
-  const ministryStorageKey = workspaceOwnerId ? `customMinistries_${workspaceOwnerId}` : 'customMinistries'
-  const preferenceUserId = workspaceOwnerId
-  const [ministries, setMinistries] = React.useState(() => {
-    try {
-      const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
-      if (!saved) return defaultMinistries
-      return normalizeMinistryList(JSON.parse(saved))
-    } catch {
-      return defaultMinistries
-    }
-  })
-
-  // Listen for ministry updates from Admin Panel
-  React.useEffect(() => {
-    const handleMinistriesUpdate = (e) => {
-      if (Array.isArray(e.detail)) {
-        setMinistries(e.detail)
-        return
-      }
-      if (Array.isArray(e.detail?.ministries)) {
-        if (!e.detail.ownerId || !workspaceOwnerId || e.detail.ownerId === workspaceOwnerId) {
-          setMinistries(e.detail.ministries)
-        }
-      }
-    }
-    window.addEventListener('ministriesUpdated', handleMinistriesUpdate)
-    return () => window.removeEventListener('ministriesUpdated', handleMinistriesUpdate)
-  }, [workspaceOwnerId])
-
-  React.useEffect(() => {
-    if (!workspaceOwnerId) return
-    const saved = localStorage.getItem(ministryStorageKey) || localStorage.getItem('customMinistries')
-    if (saved) {
-      try {
-        setMinistries(normalizeMinistryList(JSON.parse(saved)))
-      } catch {
-      }
-    }
-  }, [workspaceOwnerId, ministryStorageKey])
-
-  React.useEffect(() => {
-    if (!isSupabaseConfigured() || !preferenceUserId) return
-    let active = true
-    const hasLocalScopedMinistries = !!localStorage.getItem(ministryStorageKey)
-    const fetchMinistries = async () => {
-      if (hasLocalScopedMinistries) return
-      try {
-        const { data, error } = await supabase
-          .from('user_preferences')
-          .select('ministry_groups')
-          .eq('user_id', preferenceUserId)
-          .maybeSingle()
-        if (error) throw error
-        if (!active) return
-        if (Array.isArray(data?.ministry_groups)) {
-          const normalized = normalizeMinistryList(data.ministry_groups)
-          const next = normalized
-          setMinistries(next)
-          localStorage.setItem(ministryStorageKey, JSON.stringify(next))
-          localStorage.setItem('customMinistries', JSON.stringify(next))
-        }
-      } catch (error) {
-        console.warn('Could not load shared ministries:', error)
-      }
-    }
-    fetchMinistries()
-
-    const channel = supabase
-      .channel(`member-modal-ministries:${preferenceUserId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_preferences',
-          filter: `user_id=eq.${preferenceUserId}`
-        },
-        (payload) => {
-          if (!Array.isArray(payload?.new?.ministry_groups)) return
-          const normalized = normalizeMinistryList(payload.new.ministry_groups)
-          const next = normalized
-          setMinistries(next)
-          localStorage.setItem(ministryStorageKey, JSON.stringify(next))
-          localStorage.setItem('customMinistries', JSON.stringify(next))
-        }
-      )
-      .subscribe()
-
-    return () => {
-      active = false
-      supabase.removeChannel(channel)
-    }
-  }, [preferenceUserId, ministryStorageKey, isSupabaseConfigured])
 
   // Helper function to generate Sunday dates for the current month/year
   const generateSundayDates = (currentTable) => {
@@ -305,7 +192,6 @@ const MemberModal = ({ isOpen, onClose }) => {
         age: formData.age ? String(formData.age).trim() : null,
         phone_number: formData.phone_number || null,
         notes: formData.notes || null,
-        ministry: formData.ministry?.length > 0 ? formData.ministry : null,
         is_visitor: formData.is_visitor || false
       })
 
@@ -796,37 +682,6 @@ const MemberModal = ({ isOpen, onClose }) => {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Ministry/Groups Tags Section */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Ministry/Groups Tags (Optional)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {ministries.map(ministry => (
-                    <button
-                      key={ministry}
-                      type="button"
-                      onClick={() => {
-                        selection()
-                        setFormData(prev => ({
-                          ...prev,
-                          ministry: prev.ministry.includes(ministry)
-                            ? prev.ministry.filter(m => m !== ministry)
-                            : [...prev.ministry, ministry]
-                        }))
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        formData.ministry.includes(ministry)
-                          ? 'bg-primary-600 text-white shadow-sm'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {ministry}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Visitor Toggle */}

@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { supabase } from '../lib/supabase'
 import { toast } from 'react-toastify'
 import { useAuth } from './AuthContext'
-import { normalizeMinistry } from '../utils/dataUtils'
 
 const AppContext = createContext()
 
@@ -849,17 +848,6 @@ export const AppProvider = ({ children }) => {
           setOwnerStickySundays(nextStickySundays)
           setLockedDefaultDate(nextLockedDate)
           updateAdminSyncNotice(nextStickyMonth, nextStickySundays)
-          
-          // Also handle ministry_groups sync for collaborators
-          if (Array.isArray(payload?.new?.ministry_groups)) {
-            const ministries = normalizeMinistry(payload.new.ministry_groups)
-            localStorage.setItem(`customMinistries_${dataOwnerId}`, JSON.stringify(ministries))
-            localStorage.setItem('customMinistries', JSON.stringify(ministries))
-            // Dispatch event for other components to update
-            window.dispatchEvent(new CustomEvent('ministriesUpdated', { 
-              detail: { ministries, ownerId: dataOwnerId } 
-            }))
-          }
         }
       )
       .subscribe()
@@ -1071,9 +1059,8 @@ export const AppProvider = ({ children }) => {
         parent_phone_1: memberData.parent_phone_1 || null,
         parent_name_2: memberData.parent_name_2 || null,
         parent_phone_2: memberData.parent_phone_2 || null,
-        // Notes, ministry tags, and visitor status
+        // Notes and visitor status
         notes: memberData.notes || null,
-        ministry: memberData.ministry || null,
         is_visitor: memberData.is_visitor || false,
         // Link to current user
         user_id: user?.id
@@ -2047,25 +2034,6 @@ export const AppProvider = ({ children }) => {
       if (incomingLevel !== undefined) {
         normalized = { ...normalized, 'Current Level': incomingLevel }
         delete normalized.current_level
-      }
-
-      // Normalize ministry to text because monthly tables store it as TEXT
-      const incomingMinistry = normalized.ministry ?? normalized['Ministry']
-      if (incomingMinistry !== undefined) {
-        let ministryText = null
-        if (Array.isArray(incomingMinistry)) {
-          const cleaned = incomingMinistry
-            .map(item => String(item || '').trim())
-            .filter(Boolean)
-          ministryText = cleaned.length > 0 ? cleaned.join(', ') : null
-        } else if (typeof incomingMinistry === 'string') {
-          const trimmed = incomingMinistry.trim()
-          ministryText = trimmed.length > 0 ? trimmed : null
-        } else if (incomingMinistry !== null) {
-          ministryText = String(incomingMinistry)
-        }
-        normalized = { ...normalized, ministry: ministryText }
-        delete normalized['Ministry']
       }
 
       // Get existing columns from the table to filter out non-existent fields

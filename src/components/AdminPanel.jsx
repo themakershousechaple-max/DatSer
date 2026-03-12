@@ -22,10 +22,6 @@ import {
   X,
   AlertTriangle,
   Star,
-  Tags,
-  Plus,
-  Trash2,
-  Edit3,
   Printer,
   Download,
   LogOut,
@@ -35,22 +31,7 @@ import {
   ArrowLeft
 } from 'lucide-react'
 
-const defaultMinistries = ['Choir', 'Ushers', 'Youth', 'Children', 'Media', 'Welfare', 'Protocol', 'Evangelism']
 
-const normalizeMinistryList = (items) => {
-  if (!Array.isArray(items)) return []
-  const seen = new Set()
-  const normalized = []
-  for (const item of items) {
-    const value = String(item || '').replace(/\s+/g, ' ').trim()
-    if (!value) continue
-    const key = value.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    normalized.push(value)
-  }
-  return normalized
-}
 
 const AdminPanel = ({ setCurrentView, onBack }) => {
   const {
@@ -196,197 +177,9 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
   const [showBadgeResults, setShowBadgeResults] = useState(false)
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false)
 
-  // Ministry management state - SIMPLE APPROACH
-  const workspaceOwnerId = isCollaborator ? dataOwnerId : user?.id
-  const [ministries, setMinistries] = useState(defaultMinistries)
-  const [newMinistry, setNewMinistry] = useState('')
-  const [editingMinistry, setEditingMinistry] = useState(null)
-  const [editMinistryValue, setEditMinistryValue] = useState('')
-  const normalizedNewMinistry = useMemo(
-    () => newMinistry.replace(/\s+/g, ' ').trim(),
-    [newMinistry]
-  )
-  const canAddMinistry = normalizedNewMinistry.length > 0
 
-  // Load ministries from Supabase on mount
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId) return
 
-    const loadMinistries = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_preferences')
-          .select('ministry_groups')
-          .eq('user_id', workspaceOwnerId)
-          .maybeSingle()
-        
-        if (error) throw error
-        
-        if (Array.isArray(data?.ministry_groups) && data.ministry_groups.length > 0) {
-          setMinistries(normalizeMinistryList(data.ministry_groups))
-        }
-      } catch (error) {
-        console.error('[MINISTRY] Error loading:', error)
-      }
-    }
 
-    loadMinistries()
-  }, [workspaceOwnerId, isSupabaseConfigured])
-
-  // Subscribe to real-time changes from Supabase
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !workspaceOwnerId) return
-
-    const channel = supabase
-      .channel(`ministries-realtime:${workspaceOwnerId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'user_preferences',
-          filter: `user_id=eq.${workspaceOwnerId}`
-        },
-        (payload) => {
-          if (Array.isArray(payload?.new?.ministry_groups)) {
-            setMinistries(normalizeMinistryList(payload.new.ministry_groups))
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [workspaceOwnerId, isSupabaseConfigured])
-
-  const addMinistry = async () => {
-    const trimmedMinistry = newMinistry.trim().replace(/\s+/g, ' ')
-    
-    if (!trimmedMinistry) {
-      toast.warning('Please enter a ministry name')
-      return
-    }
-
-    if (ministries.some(m => m.toLowerCase() === trimmedMinistry.toLowerCase())) {
-      toast.info(`"${trimmedMinistry}" already exists`)
-      return
-    }
-
-    try {
-      const updatedMinistries = [...ministries, trimmedMinistry]
-      
-      // Try direct update first (if RLS allows), then fallback to RPC
-      const { error: directError } = await supabase
-        .from('user_preferences')
-        .update({ 
-          ministry_groups: updatedMinistries,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', workspaceOwnerId)
-
-      if (directError && directError.code === '42501') {
-        // Permission denied, try RPC method
-        const { error: rpcError } = await supabase.rpc('update_ministry_groups', {
-          p_ministry_groups: updatedMinistries,
-          p_owner_id: workspaceOwnerId
-        })
-        if (rpcError) throw rpcError
-      } else if (directError) {
-        throw directError
-      }
-      
-      setNewMinistry('')
-      setMinistries(updatedMinistries)
-      toast.success(`Added "${trimmedMinistry}"`)
-    } catch (error) {
-      console.error('[MINISTRY] Error:', error)
-      toast.error('Failed to add: ' + (error?.message || 'Unknown error'))
-    }
-  }
-
-  const deleteMinistry = async (ministry) => {
-    try {
-      const updatedMinistries = ministries.filter(m => m !== ministry)
-      
-      // Try direct update first (if RLS allows), then fallback to RPC
-      const { error: directError } = await supabase
-        .from('user_preferences')
-        .update({ 
-          ministry_groups: updatedMinistries,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', workspaceOwnerId)
-
-      if (directError && directError.code === '42501') {
-        // Permission denied, try RPC method
-        const { error: rpcError } = await supabase.rpc('update_ministry_groups', {
-          p_ministry_groups: updatedMinistries,
-          p_owner_id: workspaceOwnerId
-        })
-        if (rpcError) throw rpcError
-      } else if (directError) {
-        throw directError
-      }
-      
-      setMinistries(updatedMinistries)
-      toast.success(`Removed "${ministry}"`)
-    } catch (error) {
-      console.error('[MINISTRY] Error:', error)
-      toast.error('Failed to delete: ' + (error?.message || 'Unknown error'))
-    }
-  }
-
-  const startEditMinistry = (ministry) => {
-    setEditingMinistry(ministry)
-    setEditMinistryValue(ministry)
-  }
-
-  const saveEditMinistry = async () => {
-    try {
-      const trimmed = editMinistryValue.replace(/\s+/g, ' ').trim()
-      
-      if (!trimmed || trimmed === editingMinistry) {
-        setEditingMinistry(null)
-        return
-      }
-
-      if (ministries.some(m => m !== editingMinistry && m.toLowerCase() === trimmed.toLowerCase())) {
-        toast.info(`"${trimmed}" already exists`)
-        return
-      }
-
-      const updatedMinistries = ministries.map(m => m === editingMinistry ? trimmed : m)
-      
-      // Try direct update first (if RLS allows), then fallback to RPC
-      const { error: directError } = await supabase
-        .from('user_preferences')
-        .update({ 
-          ministry_groups: updatedMinistries,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', workspaceOwnerId)
-
-      if (directError && directError.code === '42501') {
-        // Permission denied, try RPC method
-        const { error: rpcError } = await supabase.rpc('update_ministry_groups', {
-          p_ministry_groups: updatedMinistries,
-          p_owner_id: workspaceOwnerId
-        })
-        if (rpcError) throw rpcError
-      } else if (directError) {
-        throw directError
-      }
-      
-      setMinistries(updatedMinistries)
-      toast.success(`Updated to "${trimmed}"`)
-      setEditingMinistry(null)
-      setEditMinistryValue('')
-    } catch (error) {
-      console.error('[MINISTRY] Error:', error)
-      toast.error('Failed to save: ' + (error?.message || 'Unknown error'))
-    }
-  }
 
   // Print attendance sheet with editable preview
   const printAttendanceSheet = () => {
@@ -1190,82 +983,6 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
                 )
               })}
             </div>
-          </div>
-        </div>
-
-        {/* Ministry Management */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Tags className="w-5 h-5 text-primary-500" />
-              Ministry/Groups
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage ministry tags for members</p>
-          </div>
-          <div className="p-4">
-            {/* Add new ministry */}
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={newMinistry}
-                onChange={(e) => setNewMinistry(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addMinistry()
-                  }
-                }}
-                placeholder="Add new ministry..."
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <button
-                type="button"
-                onClick={() => addMinistry()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors font-medium text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add</span>
-              </button>
-            </div>
-            {/* Ministry list */}
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {ministries.map((ministry) => (
-                <div key={ministry} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group">
-                  {editingMinistry === ministry ? (
-                    <input
-                      type="text"
-                      value={editMinistryValue}
-                      onChange={(e) => setEditMinistryValue(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && saveEditMinistry()}
-                      onBlur={saveEditMinistry}
-                      autoFocus
-                      className="flex-1 px-2 py-1 text-sm border border-primary-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
-                    />
-                  ) : (
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{ministry}</span>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => startEditMinistry(ministry)}
-                      className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-all duration-200"
-                      title="Edit"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => deleteMinistry(ministry)}
-                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all duration-200"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {ministries.length === 0 && (
-              <p className="text-center text-gray-400 py-4 text-sm">No ministries added yet</p>
-            )}
           </div>
         </div>
 
