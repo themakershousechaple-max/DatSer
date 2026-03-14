@@ -229,7 +229,8 @@ const TagManager = ({ ownerId, isDarkMode, onTagsChange }) => {
                 Preview
               </label>
               <span
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium w-32 justify-center"
+                title={formData.name || 'Tag name'}
                 style={{ 
                   backgroundColor: formData.color + '20',
                   color: formData.color,
@@ -237,7 +238,7 @@ const TagManager = ({ ownerId, isDarkMode, onTagsChange }) => {
                 }}
               >
                 <Tag className="w-3 h-3 mr-1" />
-                {formData.name || 'Tag name'}
+                <span className="truncate max-w-[96px]">{formData.name || 'Tag name'}</span>
               </span>
             </div>
 
@@ -282,12 +283,12 @@ const TagManager = ({ ownerId, isDarkMode, onTagsChange }) => {
               key={tag.id}
               className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
             >
-              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
                 <span
                   className="w-4 h-4 rounded-full flex-shrink-0"
                   style={{ backgroundColor: tag.color }}
                 />
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span title={tag.name} className="font-medium text-gray-900 dark:text-white truncate w-32 block">
                   {tag.name}
                 </span>
                 <span className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">

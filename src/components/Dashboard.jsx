@@ -2025,7 +2025,8 @@ const Dashboard = ({ isAdmin = false }) => {
                                         {memberTags[member.id].map(tag => (
                                           <span
                                             key={tag.id}
-                                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium shadow-sm"
+                                            title={tag.name}
+                                            className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium shadow-sm w-32 justify-center"
                                             style={{
                                               backgroundColor: tag.color + '14',
                                               color: tag.color,
@@ -2033,7 +2034,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                             }}
                                           >
                                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tag.color }}></span>
-                                            <span className="whitespace-nowrap">{tag.name}</span>
+                                            <span className="truncate max-w-[90px]">{tag.name}</span>
                                           </span>
                                         ))}
                                       </div>

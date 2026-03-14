@@ -156,10 +156,11 @@ const TagSelector = ({
               key={tag.id}
               onClick={() => toggleTag(tag.id)}
               disabled={saving}
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+              title={tag.name}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 w-32 justify-center ${
                 isSelected 
                   ? 'shadow-md' 
-                  : 'opacity-50 hover:opacity-70'
+                  : 'opacity-60 hover:opacity-80'
               }`}
               style={{ 
                 backgroundColor: isSelected ? tag.color : tag.color + '15',
@@ -169,8 +170,8 @@ const TagSelector = ({
                 fontWeight: isSelected ? '600' : '500'
               }}
             >
-              {isSelected && <Check className="w-4 h-4" />}
-              {tag.name}
+              {isSelected && <Check className="w-3 h-3" />}
+              <span className="truncate max-w-[90px]">{tag.name}</span>
             </button>
           )
         })}
