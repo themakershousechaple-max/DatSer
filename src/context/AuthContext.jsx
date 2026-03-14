@@ -284,8 +284,12 @@ export const AuthProvider = ({ children }) => {
   }
 
   const getRedirectUrl = useCallback(() => {
-    const basePath = import.meta.env?.BASE_URL || '/'
-    const currentUrl = `${window.location.origin}${basePath}`
+    // Use the full pathname to include /DatSer/ or any base path
+    const pathname = window.location.pathname || '/'
+    // Remove trailing slash from pathname for cleaner URLs, but keep root
+    const cleanPath = pathname === '/' ? '/' : pathname.replace(/\/$/, '')
+    const currentUrl = `${window.location.origin}${cleanPath}`
+    
     const hostname = window.location.hostname || ''
     const isLocalhost =
       hostname === 'localhost' ||

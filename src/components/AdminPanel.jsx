@@ -4,7 +4,6 @@ import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { toast } from 'react-toastify'
-import TagManager from './TagManager'
 import {
   Users,
   Calendar,
@@ -984,16 +983,6 @@ const AdminPanel = ({ setCurrentView, onBack }) => {
                 )
               })}
             </div>
-          </div>
-        </div>
-
-        {/* Tag Management */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-          <div className="p-4">
-            <TagManager 
-              ownerId={dataOwnerId || user?.id} 
-              isDarkMode={isDarkMode}
-            />
           </div>
         </div>
 

@@ -174,23 +174,23 @@ CREATE OR REPLACE FUNCTION create_tag(
 RETURNS TABLE(id UUID, name TEXT, color TEXT, created_at TIMESTAMPTZ)
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_tag_id UUID;
+    v_created_at TIMESTAMPTZ;
 BEGIN
     -- Check if tag with same name already exists
-    IF EXISTS (SELECT 1 FROM tags WHERE owner_id = p_owner_id AND name = p_name) THEN
+    IF EXISTS (SELECT 1 FROM tags WHERE tags.owner_id = p_owner_id AND tags.name = p_name) THEN
         RAISE EXCEPTION 'A tag with this name already exists';
     END IF;
     
     INSERT INTO tags (owner_id, name, color)
     VALUES (p_owner_id, p_name, p_color)
-    RETURNING id INTO v_tag_id;
+    RETURNING tags.id, tags.created_at INTO v_tag_id, v_created_at;
     
     RETURN QUERY
-    SELECT id, name, color, created_at
-    FROM tags
-    WHERE id = v_tag_id;
+    SELECT v_tag_id, p_name, p_color, v_created_at;
 END;
 $$;
 
@@ -204,14 +204,15 @@ CREATE OR REPLACE FUNCTION update_tag(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_current_name TEXT;
     v_current_color TEXT;
 BEGIN
     -- Get current values
-    SELECT name, color INTO v_current_name, v_current_color
-    FROM tags WHERE id = p_tag_id AND owner_id = p_owner_id;
+    SELECT tags.name, tags.color INTO v_current_name, v_current_color
+    FROM tags WHERE tags.id = p_tag_id AND tags.owner_id = p_owner_id;
     
     IF v_current_name IS NULL THEN
         RAISE EXCEPTION 'Tag not found or access denied';
@@ -219,7 +220,7 @@ BEGIN
     
     -- Check for duplicate name if name is being changed
     IF p_name IS NOT NULL AND p_name != v_current_name THEN
-        IF EXISTS (SELECT 1 FROM tags WHERE owner_id = p_owner_id AND name = p_name AND id != p_tag_id) THEN
+        IF EXISTS (SELECT 1 FROM tags WHERE tags.owner_id = p_owner_id AND tags.name = p_name AND tags.id != p_tag_id) THEN
             RAISE EXCEPTION 'A tag with this name already exists';
         END IF;
     END IF;
@@ -229,7 +230,7 @@ BEGIN
         name = COALESCE(p_name, v_current_name),
         color = COALESCE(p_color, v_current_color),
         updated_at = NOW()
-    WHERE id = p_tag_id AND owner_id = p_owner_id;
+    WHERE tags.id = p_tag_id AND tags.owner_id = p_owner_id;
     
     RETURN TRUE;
 END;
