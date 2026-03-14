@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import DatePicker from './DatePicker'
 import { X, AlertCircle, ChevronDown } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { toast } from 'react-toastify'
@@ -52,6 +53,9 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
         if (missingFields.includes('Age')) {
             initialData.age = member['Age'] || ''
         }
+        if (missingFields.includes('Date of Birth')) {
+            initialData.dateOfBirth = member['date_of_birth'] || member.date_of_birth || ''
+        }
         if (missingFields.includes('Current Level')) {
             initialData.currentLevel = member['Current Level'] || ''
         }
@@ -96,6 +100,9 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
             if (field === 'Age' && (!formData.age || formData.age === '')) {
                 return false
             }
+            if (field === 'Date of Birth' && (!formData.dateOfBirth || formData.dateOfBirth === '')) {
+                return false
+            }
             if (field === 'Current Level' && (!formData.currentLevel || formData.currentLevel === '')) {
                 return false
             }
@@ -124,6 +131,7 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
         if (field === 'Phone Number') return !formData.phoneNumber || formData.phoneNumber.length !== 10
         if (field === 'Gender') return !formData.gender || formData.gender === ''
         if (field === 'Age') return !formData.age || formData.age === ''
+        if (field === 'Date of Birth') return !formData.dateOfBirth || formData.dateOfBirth === ''
         if (field === 'Current Level') return !formData.currentLevel || formData.currentLevel === ''
         if (field === 'Parent Name 1') return !formData.parentName1 || formData.parentName1 === ''
         if (field === 'Parent Phone 1') return !formData.parentPhone1 || formData.parentPhone1.length !== 10
@@ -158,6 +166,9 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                 }
                 if (missingFields.includes('Age')) {
                     updates['Age'] = formData.age
+                }
+                if (missingFields.includes('Date of Birth')) {
+                    updates.date_of_birth = formData.dateOfBirth
                 }
                 if (missingFields.includes('Current Level')) {
                     updates['Current Level'] = formData.currentLevel
@@ -371,23 +382,49 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                                 </div>
                             )}
 
-                            {missingFields.includes('Age') && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Age *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.age || ''}
-                                        onChange={(e) => handleInputChange('age', e.target.value)}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white ${isFieldInvalid('Age')
-                                            ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
-                                            : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
-                                            }`}
-                                        placeholder="Enter age"
-                                    />
-                                    {isFieldInvalid('Age') && (
-                                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">Age is required</p>
+                            {/* Date of Birth and Age - Side by side */}
+                            {(missingFields.includes('Date of Birth') || missingFields.includes('Age')) && (
+                                <div className="grid grid-cols-2 gap-3 items-end">
+                                    {missingFields.includes('Date of Birth') && (
+                                        <div>
+                                            <DatePicker
+                                                name="dateOfBirth"
+                                                label="Date of Birth"
+                                                value={formData.dateOfBirth || ''}
+                                                onChange={(e) => {
+                                                    // DatePicker emits an event-like object: { target: { name, value } }
+                                                    const v = e?.target?.value ?? e
+                                                    handleInputChange('dateOfBirth', v)
+                                                }}
+                                                placeholder="Select date"
+                                                inputClassName="md:py-3 md:text-base"
+                                                error={isFieldInvalid('Date of Birth')}
+                                            />
+                                            {isFieldInvalid('Date of Birth') && (
+                                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">Date of birth is required</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {missingFields.includes('Age') && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Age *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.age || ''}
+                                                onChange={(e) => handleInputChange('age', e.target.value)}
+                                                className={`w-full px-3 py-2 md:py-3 md:text-base border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-700 dark:text-white ${isFieldInvalid('Age')
+                                                    ? 'border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10'
+                                                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                                                    }`}
+                                                placeholder="Enter age"
+                                            />
+                                            {isFieldInvalid('Age') && (
+                                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">Age is required</p>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -533,35 +570,44 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                             <div className="space-y-3">
                                 {missingDates.map(date => {
                                     const dateKey = date.toISOString().split('T')[0]
-                                    const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                    const dateLabel = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', weekday: 'long' })
                                     const isMissing = hasAttemptedSave && attendanceData[dateKey] === null
 
                                     return (
-                                        <div key={dateKey} className={`flex items-center justify-between p-3 rounded-lg ${isMissing
-                                            ? 'bg-red-50 dark:bg-red-900/10 border border-red-300 dark:border-red-700'
-                                            : 'bg-gray-50 dark:bg-gray-700'
-                                            }`}>
-                                            <span className={`text-sm font-medium ${isMissing ? 'text-red-800 dark:text-red-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                                        <div key={dateKey} className={`border rounded-lg p-3 ${isMissing ? 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-700' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'} transition-colors`}> 
+                                            <div className={`text-sm font-medium mb-2 ${isMissing ? 'text-red-800 dark:text-red-200' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {dateLabel} {isMissing && '(Required)'}
-                                            </span>
-                                            <div className="flex gap-2">
+                                            </div>
+                                            <div className="flex space-x-2">
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleAttendanceChange(dateKey, true)}
-                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${attendanceData[dateKey] === true
-                                                        ? 'bg-green-600 text-white'
-                                                        : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900'
+                                                    onTouchStart={() => handleAttendanceChange(dateKey, true)}
+                                                    className={`px-3 py-1 text-xs rounded-lg font-bold transition-all duration-200 ${attendanceData[dateKey] === true
+                                                        ? 'bg-green-800 dark:bg-green-700 text-white shadow-xl ring-4 ring-green-300 dark:ring-green-400 border-2 border-green-900 dark:border-green-300 font-extrabold transform scale-110'
+                                                        : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-green-50 dark:hover:bg-green-800'
                                                         }`}
                                                 >
                                                     Present
                                                 </button>
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleAttendanceChange(dateKey, false)}
-                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${attendanceData[dateKey] === false
-                                                        ? 'bg-red-600 text-white'
-                                                        : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900'
+                                                    onTouchStart={() => handleAttendanceChange(dateKey, false)}
+                                                    className={`px-3 py-1 text-xs rounded-lg font-bold transition-all duration-200 ${attendanceData[dateKey] === false
+                                                        ? 'bg-red-800 dark:bg-red-700 text-white shadow-xl ring-4 ring-red-300 dark:ring-red-400 border-2 border-red-900 dark:border-red-300 font-extrabold transform scale-110'
+                                                        : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-red-50 dark:hover:bg-red-800'
                                                         }`}
                                                 >
                                                     Absent
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleAttendanceChange(dateKey, null)}
+                                                    onTouchStart={() => handleAttendanceChange(dateKey, null)}
+                                                    className="px-3 py-1 text-xs rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                                                >
+                                                    Clear
                                                 </button>
                                             </div>
                                         </div>

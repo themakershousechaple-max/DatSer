@@ -12,7 +12,8 @@ const DatePicker = ({
     disabled = false,
     minDate,
     maxDate,
-    name
+    name,
+    inputClassName = ''
 }) => {
     const [isOpen, setIsOpen] = useState(false)
     const [viewDate, setViewDate] = useState(new Date()) // The month currently being viewed
@@ -199,6 +200,7 @@ const DatePicker = ({
                     relative w-full pl-10 pr-10 py-2 rounded-lg border bg-white dark:bg-gray-700 
                     text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 
                     transition-all duration-200 cursor-pointer flex items-center
+                    ${inputClassName}
                     ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800' : 'hover:border-gray-400 dark:hover:border-gray-500'}
                     ${error ? 'border-red-500 ring-1 ring-red-400' : isOpen ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300 dark:border-gray-600'}
                 `}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo, lazy, Suspense } from 'react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronUp, ChevronRight, UserPlus, Award, Star, UserCheck, Check, X, Feather, StickyNote, History, Eye } from 'lucide-react'
+import { Search, Users, Filter, Edit3, Trash2, Calendar, ChevronDown, ChevronUp, ChevronRight, UserPlus, Award, Star, UserCheck, Check, X, Feather, StickyNote, History, Eye, Shield } from 'lucide-react'
 import DateSelector from './DateSelector'
 import ConfirmModal from './ConfirmModal'
 import TableSkeleton from './TableSkeleton'
@@ -1959,9 +1959,43 @@ const Dashboard = ({ isAdmin = false }) => {
                                   })()}
                                 </div>
 
-                                {/* Parent Information (if available) */}
+                                {/* Parent Information moved to Actions column for better layout */}
+                              </div>
+
+                              {/* Actions + DOB/Guardians (moved) */}
+                              <div className="space-y-3 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 pt-3 md:pt-0 md:pl-4">
+                                {/* Date of Birth - Enhanced preview similar to Edit Member display */}
+                                <div className="pt-1">
+                                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Date of Birth</h4>
+                                  <div className="relative">
+                                    <div 
+                                      className={`w-full px-3 py-2 border rounded-md text-sm font-medium cursor-default select-none
+                                        ${member['date_of_birth'] 
+                                          ? 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white' 
+                                          : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500'}
+                                      `}
+                                      style={{ minHeight: '40px' }}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />
+                                        <span className="flex-1">
+                                          {member['date_of_birth'] ? (() => {
+                                            try {
+                                              const d = new Date(member['date_of_birth'])
+                                              return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                            } catch (e) {
+                                              return member['date_of_birth']
+                                            }
+                                          })() : 'Not set'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Guardians (moved from left column) */}
                                 {(member['parent_name_1'] || member['parent_name_2']) && (
-                                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                  <div className="pt-0">
                                     <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Guardians</h4>
                                     <div className="space-y-2 text-xs sm:text-sm">
                                       {member['parent_name_1'] && (
@@ -1989,10 +2023,7 @@ const Dashboard = ({ isAdmin = false }) => {
                                     </div>
                                   </div>
                                 )}
-                              </div>
 
-                              {/* Actions */}
-                              <div className="space-y-3 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 pt-3 md:pt-0 md:pl-4">
                                 <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Actions</h4>
                                 <div className="flex flex-col gap-2">
                                   <button
@@ -2772,6 +2803,15 @@ const Dashboard = ({ isAdmin = false }) => {
             >
               <UserPlus className="w-5 h-5" />
               <span className="hidden md:inline text-sm font-medium">Add Member</span>
+            </button>
+            {/* Admin Controls Button */}
+            <button
+              onClick={() => { selection(); window.openSettings() }}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors shadow-sm"
+              title="Admin Controls & Tag Management"
+            >
+              <Shield className="w-5 h-5" />
+              <span className="hidden md:inline text-sm font-medium">Admin</span>
             </button>
           </div>
         </div>

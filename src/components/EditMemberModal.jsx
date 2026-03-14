@@ -7,18 +7,19 @@ import { toast } from 'react-toastify'
 import useHapticFeedback from '../hooks/useHapticFeedback'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
+import TagSelector from './TagSelector'
 
 const EditMemberModal = ({ isOpen, onClose, member }) => {
   const { updateMember, markAttendance, refreshSearch, currentTable, attendanceData, members, isCollaborator, dataOwnerId, isSupabaseConfigured } = useApp()
   const { user } = useAuth()
   const { selection, success } = useHapticFeedback()
+  const { isDarkMode } = useTheme()
 
   // Get the latest member data from the members array to ensure we have up-to-date info
   const latestMember = useMemo(() => {
     if (!member?.id) return member
     return members.find(m => m.id === member.id) || member
   }, [members, member])
-  const { isDarkMode } = useTheme()
 
   // Helper function to get month display name from table name
   const getMonthDisplayName = (tableName) => {
@@ -26,6 +27,7 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
     // Convert table name like "October_2025" to "October 2025"
     return tableName.replace('_', ' ')
   }
+
   const [loading, setLoading] = useState(false)
   const hydratedMemberIdRef = useRef(null)
   const stableMemberRef = useRef(null)
@@ -610,6 +612,16 @@ const EditMemberModal = ({ isOpen, onClose, member }) => {
             {hasAttemptedSave && !formData.current_level && (
               <p className="mt-1 text-xs text-red-600 dark:text-red-400">Please select current level</p>
             )}
+          </div>
+
+          {/* Tags */}
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+            <TagSelector 
+              ownerId={dataOwnerId || user?.id}
+              memberId={member?.id}
+              tableName={currentTable}
+              isDarkMode={isDarkMode}
+            />
           </div>
 
           {/* Sunday Attendance */}

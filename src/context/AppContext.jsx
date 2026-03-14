@@ -3151,6 +3151,9 @@ export const AppProvider = ({ children }) => {
     if (!member['Current Level'] || member['Current Level'] === null || member['Current Level'] === '') {
       missingFields.push('Current Level')
     }
+    if (!member['date_of_birth'] || member['date_of_birth'] === null || member['date_of_birth'] === '') {
+      missingFields.push('Date of Birth')
+    }
     if (!member['parent_name_1'] || member['parent_name_1'] === null || member['parent_name_1'] === '') {
       missingFields.push('Parent Name 1')
     }

@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { X, Lock, Calendar, Check } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
 import { toast } from 'react-toastify'
+import TagManager from './TagManager'
 
 const MONTHS = [
     { value: 1, label: 'January' },
@@ -22,7 +24,8 @@ const MONTHS = [
 
 const AdminControlsModal = ({ isOpen, onClose }) => {
     const { user } = useAuth()
-    const { monthlyTables, isSupabaseConfigured, setCurrentTable, setAndSaveAttendanceDate, sendAdminPeriodBroadcast } = useApp()
+    const { monthlyTables, isSupabaseConfigured, setCurrentTable, setAndSaveAttendanceDate, sendAdminPeriodBroadcast, dataOwnerId } = useApp()
+    const { isDarkMode } = useTheme()
 
     const [loading, setLoading] = useState(false)
     const [stickyMonth, setStickyMonth] = useState('')
@@ -389,6 +392,14 @@ const AdminControlsModal = ({ isOpen, onClose }) => {
                             <strong>Note:</strong> These settings will apply to all current and future collaborators. 
                             They will see the selected month and Sunday dates by default when they access the app.
                         </p>
+                    </div>
+
+                    {/* Tag Management Section */}
+                    <div className="border-t border-gray-200 dark:border-gray-600 pt-6 mt-6">
+                        <TagManager 
+                            ownerId={dataOwnerId || user?.id} 
+                            isDarkMode={isDarkMode}
+                        />
                     </div>
                 </div>
             </div>
