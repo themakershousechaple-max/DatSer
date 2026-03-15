@@ -5,6 +5,14 @@ import { useApp } from '../context/AppContext'
 import { toast } from 'react-toastify'
 
 const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendanceAction, selectedAttendanceDate, onClose, onSave }) => {
+    // Debug: Log all props received
+    console.log('=== MissingDataModalProps ===')
+    console.log('member:', member?.id, member?.name)
+    console.log('missingFields:', missingFields)
+    console.log('missingDates:', missingDates)
+    console.log('pendingAttendanceAction:', pendingAttendanceAction)
+    console.log('selectedAttendanceDate:', selectedAttendanceDate)
+    
     const { updateMember, markAttendance, selectedAttendanceDate: contextAttendanceDate } = useApp()
     const [formData, setFormData] = useState({})
     const [attendanceData, setAttendanceData] = useState({})
@@ -28,9 +36,18 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
 
     useEffect(() => {
         // Initialize the selected date key from the prop if available, otherwise pick the first missing date
+        if (selectedDateKey) return // Don't override user's manual selection
+        
         if (selectedAttendanceDate) {
             try {
-                setSelectedDateKey(selectedAttendanceDate.toISOString().split('T')[0])
+                // Handle both string ("2026-03-15") and Date objects
+                let dateKey
+                if (typeof selectedAttendanceDate === 'string') {
+                    dateKey = selectedAttendanceDate
+                } else {
+                    dateKey = selectedAttendanceDate.toISOString().split('T')[0]
+                }
+                setSelectedDateKey(dateKey)
                 return
             } catch { }
         }
@@ -161,12 +178,14 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
         setHasAttemptedSave(true)
 
         console.log('=== SAVE BUTTON CLICKED ===')
+        console.log('isOverrideMode:', isOverrideMode)
         console.log('Form complete?', isFormComplete())
         console.log('Missing fields:', missingFields)
         console.log('Form data:', formData)
         console.log('Attendance data:', attendanceData)
         console.log('Pending attendance action:', pendingAttendanceAction)
 
+        // In override mode, skip validation
         if (!isOverrideMode && !isFormComplete()) {
             console.log('Form not complete, showing error')
             toast.error('Please fill in all highlighted fields')
@@ -179,7 +198,7 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
         console.log('Starting save process...')
 
         try {
-            // Always update member if there are missing fields
+            // Update member data if there are missing fields
             if (missingFields.length > 0) {
                 const updates = {}
                 if (missingFields.includes('Phone Number')) {
@@ -209,8 +228,7 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                 console.log('Member updated successfully')
             }
 
-            // Use the locally-selected date if provided by the modal dropdown; fall back to the prop
-            // Use consistent local date formatting
+            // Helper functions for date handling
             const getLocalDateKey = (date) => {
                 if (!date) return null
                 if (typeof date === 'string') return date
@@ -219,23 +237,69 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                 const day = String(date.getDate()).padStart(2, '0')
                 return `${year}-${month}-${day}`
             }
-            // Parse date string as local date (not UTC)
+            
             const parseLocalDate = (dateStr) => {
                 if (!dateStr) return null
                 const [year, month, day] = dateStr.split('-').map(Number)
                 return new Date(year, month - 1, day)
             }
-            const selectedKey = selectedDateKey || getLocalDateKey(selectedAttendanceDate)
-            if (pendingAttendanceAction && selectedKey) {
-                const actionBool = !!pendingAttendanceAction.present
-                console.log(`Marking pending selected date ${selectedKey}: ${actionBool}`)
+            
+            // Mark attendance for the pending action (the date that was clicked on Dashboard)
+            // Use selectedDateKey from dropdown, or fall back to selectedAttendanceDate prop
+            // Override mode OR pendingAttendanceAction means we should save attendance
+            let selectedKey = selectedDateKey
+            if (!selectedKey && selectedAttendanceDate) {
+                // Handle both string ("2026-03-15") and Date objects
+                if (typeof selectedAttendanceDate === 'string') {
+                    selectedKey = selectedAttendanceDate
+                } else {
+                    selectedKey = selectedAttendanceDate.toISOString().split('T')[0]
+                }
+            }
+            
+            // Fallback: use context attendance date if still no key
+            if (!selectedKey && contextAttendanceDate) {
+                if (typeof contextAttendanceDate === 'string') {
+                    selectedKey = contextAttendanceDate
+                } else {
+                    selectedKey = contextAttendanceDate.toISOString().split('T')[0]
+                }
+            }
+            
+            // Last fallback: use today's date
+            if (!selectedKey) {
+                const today = new Date()
+                selectedKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+            }
+            
+            console.log('selectedKey for pending action:', selectedKey)
+            console.log('pendingAttendanceAction:', pendingAttendanceAction)
+            console.log('pendingAttendanceAction.present:', pendingAttendanceAction?.present)
+            console.log('isOverrideMode:', isOverrideMode)
+            
+            // Always mark attendance if we have Override mode OR pending action
+            // This ensures attendance is saved even if member update fails
+            if (selectedKey) {
+                // Determine action: use pendingAttendanceAction.present if available, otherwise default based on what user tapped
+                const actionBool = pendingAttendanceAction?.present ?? true // Default to present if not specified
+                console.log(`Marking attendance for ${selectedKey}: ${actionBool}`)
                 await markAttendance(member.id, parseLocalDate(selectedKey), actionBool)
+            } else {
+                console.warn('No selectedKey - attendance will not be marked!')
             }
 
-            for (const dateKey of Object.keys(attendanceData)) {
+            // Mark attendance for all dates in attendanceData (the Sunday dates shown in modal)
+            const dateKeys = Object.keys(attendanceData)
+            console.log('Attendance data date keys:', dateKeys)
+            
+            for (const dateKey of dateKeys) {
+                // Skip if this is the same as selectedKey (already marked above)
                 if (selectedKey && dateKey === selectedKey) continue
+                
                 const status = attendanceData[dateKey]
-                if (status !== null) {
+                console.log(`Checking date ${dateKey}: status =`, status)
+                
+                if (status !== null && status !== undefined) {
                     console.log(`Marking attendance for ${dateKey}: ${status}`)
                     await markAttendance(member.id, parseLocalDate(dateKey), status)
                 }
@@ -250,7 +314,6 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
             const errorMsg = error.message || 'Unknown error occurred'
             setSaveError(errorMsg)
             toast.error(`Failed to save data: ${errorMsg}`)
-        } finally {
             setIsSaving(false)
         }
     }

@@ -2747,7 +2747,7 @@ const Dashboard = ({ isAdmin = false }) => {
             missingFields={missingFields}
             missingDates={missingDates}
             pendingAttendanceAction={pendingAttendanceAction}
-            selectedAttendanceDate={selectedAttendanceDate ? new Date(selectedAttendanceDate) : new Date()}
+            selectedAttendanceDate={selectedAttendanceDate}
             onClose={() => {
               setShowMissingDataModal(false)
               setMissingDataMember(null)
@@ -2764,8 +2764,8 @@ const Dashboard = ({ isAdmin = false }) => {
                 const freshMap = await fetchAttendanceForDate(new Date(dateToRefresh))
                 setAttendanceData(prev => ({ ...prev, [dateToRefresh]: freshMap || {} }))
               }
-              // Also force refresh members to ensure any updated data is reflected
-              forceRefreshMembersSilent()
+              // Also force refresh members to ensure any updated data is reflected (with cache bypass)
+              await forceRefreshMembersSilent()
             }}
           />
         </Suspense>

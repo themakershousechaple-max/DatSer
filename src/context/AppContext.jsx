@@ -3085,7 +3085,8 @@ export const AppProvider = ({ children }) => {
   const forceRefreshMembersSilent = useCallback(async () => {
     console.log('Force refreshing members (silent) ...')
     try {
-      await fetchMembers(currentTable)
+      // Force bypass cache to get fresh data from Supabase
+      await fetchMembers(currentTable, { forceRefresh: true })
       console.log('Members refreshed silently, new count:', members.length)
     } catch (error) {
       console.error('Error refreshing members (silent):', error)
