@@ -148,10 +148,15 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
 
         console.log('=== SAVE BUTTON CLICKED ===')
         console.log('Form complete?', isFormComplete())
+        console.log('Missing fields:', missingFields)
+        console.log('Form data:', formData)
+        console.log('Attendance data:', attendanceData)
+        console.log('Pending attendance action:', pendingAttendanceAction)
 
         if (!isOverrideMode && !isFormComplete()) {
             console.log('Form not complete, showing error')
             toast.error('Please fill in all highlighted fields')
+            setIsSaving(false)
             return
         }
 
@@ -160,7 +165,8 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
         console.log('Starting save process...')
 
         try {
-            if (!isOverrideMode && missingFields.length > 0) {
+            // Always update member if there are missing fields
+            if (missingFields.length > 0) {
                 const updates = {}
                 if (missingFields.includes('Phone Number')) {
                     updates['Phone Number'] = formData.phoneNumber
@@ -199,11 +205,17 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                 const day = String(date.getDate()).padStart(2, '0')
                 return `${year}-${month}-${day}`
             }
+            // Parse date string as local date (not UTC)
+            const parseLocalDate = (dateStr) => {
+                if (!dateStr) return null
+                const [year, month, day] = dateStr.split('-').map(Number)
+                return new Date(year, month - 1, day)
+            }
             const selectedKey = selectedDateKey || getLocalDateKey(selectedAttendanceDate)
             if (pendingAttendanceAction && selectedKey) {
                 const actionBool = !!pendingAttendanceAction.present
                 console.log(`Marking pending selected date ${selectedKey}: ${actionBool}`)
-                await markAttendance(member.id, new Date(selectedKey), actionBool)
+                await markAttendance(member.id, parseLocalDate(selectedKey), actionBool)
             }
 
             for (const dateKey of Object.keys(attendanceData)) {
@@ -211,7 +223,7 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
                 const status = attendanceData[dateKey]
                 if (status !== null) {
                     console.log(`Marking attendance for ${dateKey}: ${status}`)
-                    await markAttendance(member.id, new Date(dateKey), status)
+                    await markAttendance(member.id, parseLocalDate(dateKey), status)
                 }
             }
 

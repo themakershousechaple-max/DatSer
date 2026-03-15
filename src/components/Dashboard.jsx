@@ -2757,10 +2757,12 @@ const Dashboard = ({ isAdmin = false }) => {
             }}
             onSave={async () => {
               setPendingAttendanceAction(null)
-              // Force refresh attendance data to ensure UI updates with the latest changes
-              if (selectedSundayDate) {
-                const freshMap = await fetchAttendanceForDate(new Date(selectedSundayDate))
-                setAttendanceData(prev => ({ ...prev, [selectedSundayDate]: freshMap || {} }))
+              // Force refresh attendance data for the date that was just saved
+              // Use selectedAttendanceDate if available, otherwise use selectedSundayDate
+              const dateToRefresh = selectedAttendanceDate ? getDateString(selectedAttendanceDate) : selectedSundayDate
+              if (dateToRefresh) {
+                const freshMap = await fetchAttendanceForDate(new Date(dateToRefresh))
+                setAttendanceData(prev => ({ ...prev, [dateToRefresh]: freshMap || {} }))
               }
               // Also force refresh members to ensure any updated data is reflected
               forceRefreshMembersSilent()
