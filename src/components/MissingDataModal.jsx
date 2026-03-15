@@ -85,10 +85,24 @@ const MissingDataModal = ({ member, missingFields, missingDates, pendingAttendan
         if (saveError) setSaveError(null)
     }
 
-    const handleAttendanceChange = (dateKey, status) => {
+    const handleAttendanceChange = async (dateKey, status) => {
         setAttendanceData(prev => ({ ...prev, [dateKey]: status }))
         // Clear error when user makes changes
         if (saveError) setSaveError(null)
+        
+        // Auto-save when user selects Present/Absent
+        try {
+            const parseLocalDate = (dateStr) => {
+                if (!dateStr) return null
+                const [year, month, day] = dateStr.split('-').map(Number)
+                return new Date(year, month - 1, day)
+            }
+            await markAttendance(member.id, parseLocalDate(dateKey), status)
+            toast.success(status === null ? 'Attendance cleared' : (status ? 'Marked present' : 'Marked absent'))
+        } catch (error) {
+            console.error('Error marking attendance:', error)
+            toast.error('Failed to mark attendance')
+        }
     }
 
     // Check if all required fields are filled
